@@ -87,8 +87,8 @@ Configure SSH connexion to GitHub for user:
 
 Clone and init submodule
 ```bash
-git clone git@github.com:Evarin/discover-demo.git
-cd discover-demo/api/
+git clone git@github.com:Aikon/discover-api.git
+cd discover-api/
 
 # OPTIONAL: if you are deploying demos using submodules (like dticlustering)
 git submodule init

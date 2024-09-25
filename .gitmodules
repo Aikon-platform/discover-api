@@ -1,0 +1,4 @@
+[submodule "dti"]
+	path = app/dticlustering/lib
+	url = git@github.com:sonatbaltaci/dti-sprites.git
+	branch = demo2
