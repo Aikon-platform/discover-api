@@ -1,0 +1,40 @@
+dataset:
+  name: mnist_color
+model:
+  name: dti_sprites
+  n_sprites: 10
+  n_backgrounds: 1
+  n_objects: 1
+  prototype:
+    source: generator
+    generator: mlp
+    data:
+      freeze: [True, True, False]
+      init: ["constant", "constant", "random"]
+      value: [1., 0., 0.]
+  encoder_name: resnet20
+  color_channels: 3
+  transformation_sequence: identity_color_affine_tps
+  transformation_sequence_bkg: identity_color
+  curriculum_learning: [5, 15, 30]
+  curriculum_learning_bkg: [5]
+  freeze_frg: True
+  grid_size: 4
+training:
+  batch_size: 128
+  optimizer:
+    name: adam
+    lr: 5.0e-3
+    transformer:
+      weight_decay: 1.0e-6
+  scheduler:
+    name: multi_step
+    gamma: 0.1
+    milestones: [45]
+    update_range: epoch
+  n_epoches: 50
+  train_stat_interval: 25
+  val_stat_interval: 50
+  check_cluster_interval: 50
+  seed: 51240
+  visualizer_port:

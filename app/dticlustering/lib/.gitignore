@@ -1,0 +1,38 @@
+# OS generated files
+*.swp
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# python
+*.py.swp
+*.pyc
+*.pyo
+
+# heavy files
+*.pkl
+*.html
+*.zip
+*.json
+
+# data and others
+download_data_enpc.sh
+jz_*
+/datasets
+/results
+/runs
+/jeanzay
+/visdom
+/notebook
+report.sh
+evaluate.sh
+recluster.sh
+debug.sh

@@ -1,0 +1,55 @@
+dataset:
+  name: fleuron_compounds
+  seg_eval: False
+  instance_eval: False
+  image_size: 128
+model:
+  name: dti_sprites
+  n_sprites: 72
+  n_backgrounds: 1
+  n_objects: 15 # more than average
+  inject_noise: 0.4
+  encoder_name: resnet32
+  transformation_sequence: identity
+  transformation_sequence_bkg: color
+  transformation_sequence_layer: color_position
+  curriculum_learning: False
+  curriculum_learning_bkg: False
+  curriculum_learning_layer: False
+  prototype:
+    source: generator
+    generator: mlp
+    data:
+      freeze: [1, 1, 1750]
+      init: ["constant", "constant", "gaussian"]
+      value: [0.1, 0.9, 0.]
+      gaussian_weights_std: 5
+  init_latent_linear: gaussian
+  sprite_size: [32, 32]
+  pred_occlusion: False
+  estimate_minimum: True
+  greedy_algo_iter: 1
+  empty_cluster_threshold: 0.001
+  add_empty_sprite: True
+  lambda_empty_sprite: 1.0e-3
+training:
+  batch_size: 32
+  n_workers: 8
+  optimizer:
+    name: adam
+    lr: 1.0e-4
+    transformer:
+      weight_decay: 1.0e-6
+  scheduler:
+    name: multi_step
+    gamma: [1, 0.1]
+    milestones: [4500, 4750]
+  n_epoches: 5000
+  train_stat_interval: 500
+  val_stat_interval: 100 # plotting for gifs
+  check_cluster_interval: 1000 # give time to learn before reassignment
+  eval_with_bkg: True
+  seed: 65176
+  visualizer_port:
+  pretrained: 
+  resume: 

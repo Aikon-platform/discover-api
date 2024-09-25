@@ -1,0 +1,38 @@
+dataset:
+  name: frgc
+model:
+  name: dti_sprites
+  n_sprites: 20
+  n_backgrounds: 1
+  n_objects: 1
+  prototype:
+    source: generator
+    generator: mlp
+    data:
+      freeze: [False, True, False]
+      init: ["random", "constant", "random"]
+      value: [0., 0., 0.]
+  encoder_name: resnet20
+  transformation_sequence: identity_color_affine_tps
+  curriculum_learning: [50, 200, 400]
+  transformation_sequence_bkg: identity_color
+  curriculum_learning_bkg: [50]
+  grid_size: 4
+training:
+  batch_size: 128
+  optimizer:
+    name: adam
+    lr: 5.0e-3
+    transformer:
+      weight_decay: 1.0e-6
+  scheduler:
+    name: multi_step
+    gamma: 0.1
+    milestones: [650]
+    update_range: epoch
+  n_epoches: 700
+  train_stat_interval: 10
+  val_stat_interval: 20
+  check_cluster_interval: 20
+  seed: 3903
+  visualizer_port: 

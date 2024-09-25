@@ -1,0 +1,41 @@
+dataset:
+  name: usps
+model:
+  name: dti_sprites
+  n_sprites: 10
+  n_backgrounds: 1
+  n_objects: 1
+  prototype:
+    source: generator
+    generator: mlp
+    data:
+      freeze: [True, True, False]
+      init: ["constant", "constant", "random"]
+      value: [1., 0., 0.]
+  encoder_name: resnet20
+  color_channels: 1
+  transformation_sequence: identity_color_affine_tps
+  transformation_sequence_bkg: identity_color
+  curriculum_learning: [60, 120, 200]
+  curriculum_learning_bkg: [60]
+  grid_size: 4
+  padding_mode: zeros
+  freeze_frg: True
+training:
+  batch_size: 128
+  optimizer:
+    name: adam
+    lr: 1.0e-3
+    transformer:
+      weight_decay: 1.0e-6
+  scheduler:
+    name: multi_step
+    gamma: 0.1
+    milestones: [250]
+    update_range: epoch
+  n_epoches: 270
+  train_stat_interval: 25
+  val_stat_interval: 50
+  check_cluster_interval: 50
+  seed: 18966
+  visualizer_port:

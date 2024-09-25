@@ -1,0 +1,37 @@
+dataset:
+  name: fleurons
+  img_size: 256
+model:
+  name: dti_sprites
+  n_sprites: 14 #36
+  n_backgrounds: 1
+  prototype:
+    source: data
+    data:
+      freeze: [True, True, False]
+      init: ["constant", "constant", "gaussian"]
+      value: [0.9, 0.1, 0.]
+      gaussian_weights_std: 25
+  encoder_name: resnet32
+  transformation_sequence: identity_color
+  transformation_sequence_bkg: identity_color
+  curriculum_learning: [300]
+  curriculum_learning_bkg: [300]
+training:
+  batch_size: 32
+  optimizer:
+    name: adam
+    lr: 1.0e-3
+    transformer:
+      weight_decay: 1.0e-6
+  scheduler:
+    name: multi_step
+    gamma: 0.1
+    milestones: [350]
+    update_range: epoch
+  n_epoches: 400
+  train_stat_interval: 50
+  val_stat_interval: 100
+  check_cluster_interval: 100
+  seed: 26999
+  visualizer_port:

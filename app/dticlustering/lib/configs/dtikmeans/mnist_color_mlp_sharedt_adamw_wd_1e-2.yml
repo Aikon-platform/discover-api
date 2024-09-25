@@ -1,0 +1,32 @@
+dataset:
+  name: mnist_color
+model:
+  name: dtikmeans
+  n_prototypes: 10
+  prototype:
+    source: generator
+    generator: mlp
+  encoder_name: resnet20
+  transformation_sequence: identity_color_affine_tps
+  curriculum_learning: [5, 15, 30]
+  grid_size: 4
+  shared: True
+training:
+  batch_size: 128
+  optimizer:
+    name: adamw
+    lr: 1.0e-3
+    weight_decay: 0
+    transformer:
+      weight_decay: 1.0e-2
+  scheduler:
+    name: multi_step
+    gamma: 0.1
+    milestones: [45]
+    update_range: epoch
+  n_epoches: 50
+  train_stat_interval: 25
+  val_stat_interval: 50
+  check_cluster_interval: 50
+  seed: 4590
+  visualizer_port:
