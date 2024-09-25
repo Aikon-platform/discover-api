@@ -29,7 +29,7 @@ def save_img(
 
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail(
-                (max_dim, max_dim), Image.Image.ANTIALIAS
+                (max_dim, max_dim), Image.Resampling.LANCZOS
             )  
         img_path = os.path.join(doc_dir, img_filename + ".jpg")
         img.save(img_path, format=img_format)
