@@ -145,7 +145,7 @@ The API is now accessible locally at `http://localhost:8001`.
 
 #### Secure connection
 
-> ⚠️ If you are not using `spiped` modify the `dosker.sh` file to expose `0.0.0.0:8001:8001` instead of `127.0.0.1:8001:8001`
+> ⚠️ If you are not using `spiped` modify the `docker.sh` file to expose `0.0.0.0:8001:8001` instead of `127.0.0.1:8001:8001`
 
 A good thing is to tunnel securely the connection between API and front. For `discover-demo.enpc.fr`, it is done with `spiped`, based on [this tutorial](https://www.digitalocean.com/community/tutorials/how-to-encrypt-traffic-to-redis-with-spiped-on-ubuntu-16-04).
 The Docker process running on port `localhost:8001` is encrypted and redirected to port `8080`.

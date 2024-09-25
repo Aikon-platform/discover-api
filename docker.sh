@@ -38,5 +38,5 @@ docker rm "$CONTAINER_NAME"
 
 # Run Docker container
 docker run -d --gpus "$DEVICE_NB" --name "$CONTAINER_NAME" \
-   -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p 0.0.0.0:8001:8001 \
+   -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p 127.0.0.1:8001:8001 \
    --restart unless-stopped --ipc=host "$CONTAINER_NAME"
