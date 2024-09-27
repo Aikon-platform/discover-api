@@ -87,10 +87,10 @@ Configure SSH connexion to GitHub for user:
 
 Clone and init submodule
 ```bash
-git clone git@github.com:Aikon/discover-api.git
+git clone git@github.com:Aikon-platform/discover-api.git
 cd discover-api/
 
-# OPTIONAL: if you are deploying demos using submodules (like dticlustering)
+# OPTIONAL: if you are deploying demos using submodules (like dticlustering and vectorization)
 git submodule init
 git submodule update
 ```
@@ -109,13 +109,24 @@ In [`docker.sh`](docker.sh), modify the variables depending on your setup:
 - `DATA_FOLDER`: absolute path to directory where results are stored
 - `DEMO_UID`: Universally Unique Identifier of the `<docker-user>` (`id -u <docker-user>`)
 - `DEVICE_NB`: GPU number to be used by container (get available GPUs with `nvidia-smi`)
+- `CUDA_HOME`: path to CUDA installation (e.g. `/usr/local/cuda-11.1`)
+
+To find your `CUDA_HOME` (usually located either in `/usr/local/cuda` or `/usr/lib/cuda`):
+```bash
+# find CUDA version with (pay attention to version mismatches)
+nvcc --version
+nvidia-smi
+
+# CUDA_HOME is usually parent dir of
+which nvcc
+```
 
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
 ```bash
 mkdir </path/to/results/> # e.g. /media/<docker-user>/
 sudo chmod o+X </path/to>
 sudo chmod -R u+rwX </path/to/results/>
-sudo chown <docker-user> </path/to/results/>
+sudo chown -R <docker-user>:<docker-user> </path/to/results/>
 ```
 
 #### Download models

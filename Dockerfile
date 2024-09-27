@@ -58,7 +58,7 @@ COPY --chown=${USER} ./ ./api/
 ENV CUDA_HOME=/cuda
 
 # Build and install CUDA operators for vectorization (cached)
-WORKDIR /home/${USER}/app/vectorization/lib/src/models/dino/ops
+WORKDIR /home/${USER}/api/app/vectorization/lib/src/models/dino/ops
 RUN source /home/${USER}/venv/bin/activate && python setup.py build install
 
 # Back to the user's home directory
