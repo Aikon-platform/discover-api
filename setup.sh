@@ -130,14 +130,19 @@ update_env() {
     done
 }
 
-API_ENV="$SCRIPT_DIR"/.env
+ENV="$SCRIPT_DIR"/.env
+DEV_ENV="$SCRIPT_DIR"/.env.dev
 
-cp "$API_ENV".template "$API_ENV"
+cp "$ENV".template "$ENV"
+cp "$DEV_ENV".template "$DEV_ENV"
 
-colorEcho yellow "\nSetting $API_ENV ..."
-update_env "$API_ENV"
+colorEcho yellow "\nSetting $ENV ..."
+update_env "$ENV"
 
-. "$API_ENV"
+. "$ENV"
+
+colorEcho yellow "\nSetting $DEV_ENV ..."
+update_env "$DEV_ENV"
 
 if [ "$TARGET" == "dev" ]; then
     echoTitle "PRE-COMMIT INSTALL"
