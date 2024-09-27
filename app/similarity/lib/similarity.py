@@ -24,10 +24,11 @@ from .dataset import IllusDataset
 from .features import extract_features
 from .segswap import load_backbone, load_encoder, resize, compute_score
 
-from .utils import get_model_path, is_downloaded, download_images, doc_pairs
+from .utils import get_model_path, is_downloaded, doc_pairs
 
 from ...shared.utils import get_device
 from ...shared.utils.fileutils import send_update
+from ...shared.utils.img import download_images
 from ...shared.utils.logging import LoggingTaskMixin, console
 
 
@@ -273,7 +274,8 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
 
         except Exception as e:
             self.task_update(
-                "ERROR", f"[API ERROR] Failed to compute and send similarity scores: {e}"
+                "ERROR",
+                f"[API ERROR] Failed to compute and send similarity scores: {e}",
             )
 
     def download_dataset(self):
@@ -288,7 +290,7 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
                     self.print_and_log(
                         f"[task.similarity] Downloading {doc_id} images..."
                     )
-                    download_images(url, doc_id)
+                    download_images(url, doc_id, IMG_PATH, MAX_SIZE)
             except Exception as e:
                 self.print_and_log(
                     f"[task.similarity] Unable to download images for {doc_id}", e

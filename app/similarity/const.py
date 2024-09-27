@@ -21,6 +21,6 @@ FEATS_PATH = SIM_DATA_FOLDER / "feats"
 
 create_dirs_if_not([IMG_PATH, MODEL_PATH, SCORES_PATH, FEATS_PATH])
 
-IMG_LOG = Path(f"{DEMO_DIR}/img.log")
-
-create_file_if_not(IMG_LOG)
+# IMG_LOG = Path(f"{DEMO_DIR}/img.log")
+#
+# create_file_if_not(IMG_LOG)

@@ -21,6 +21,7 @@ from typing import (
 )
 import requests
 
+
 """
 A module for logging progress
 """
@@ -78,13 +79,14 @@ def get_color(color=None):
     return getattr(ConsoleColors, color, "\033[94m")
 
 
-# def log_failed_img(img_name, img_url):
+# def log_failed_img(img_path, img_url):
+#     from app.shared.const import IMG_LOG
 #     if not os.path.isfile(IMG_LOG):
 #         f = open(IMG_LOG, "x")
 #         f.close()
 #
 #     with open(IMG_LOG, "a") as f:
-#         f.write(f"{img_name} {img_url}\n")
+#         f.write(f"{img_path} {img_url}\n")
 
 
 base_logger = logging.getLogger("DEMO_API")

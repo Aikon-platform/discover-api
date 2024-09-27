@@ -137,13 +137,20 @@ def sanitize_url(string):
 
 
 def sanitize_str(string):
-    return (string.replace("/", "").replace(".", "").replace("https", "").replace("http", "")
-            .replace("www", "").replace(" ", "_").replace(":", ""))
+    return (
+        string.replace("/", "")
+        .replace(".", "")
+        .replace("https", "")
+        .replace("http", "")
+        .replace("www", "")
+        .replace(" ", "_")
+        .replace(":", "")
+    )
 
 
 def empty_file(string):
     if exists(string):
-        open(string, 'w').close()
+        open(string, "w").close()
 
 
 def send_update(experiment_id, tracking_url, event, message):
@@ -153,7 +160,15 @@ def send_update(experiment_id, tracking_url, event, message):
             "experiment_id": experiment_id,
             "event": event,
             "message": message if message else "",
-        }
+        },
     )
     response.raise_for_status()
     return True
+
+
+def file_age(path=__file__):
+    """
+    Calculates and returns the age of a file in days based on its last modification time.
+    """
+    dt = datetime.now() - datetime.fromtimestamp(Path(path).stat().st_mtime)  # delta
+    return dt.days  # + dt.seconds / 86400  # fractional days
