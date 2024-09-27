@@ -1,5 +1,6 @@
-# Final image
+# Final image (change image based on the version showed with $ nvidia-smi)
 FROM nvidia/cuda:11.6.1-cudnn8-devel-ubuntu20.04
+#FROM nvidia/cuda:12.4.0-cudnn8-devel-ubuntu20.04
 
 ENV USER=demowebsite
 ARG USERID
