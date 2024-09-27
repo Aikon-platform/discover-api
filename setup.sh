@@ -167,9 +167,6 @@ set_redis() {
 # NOTE uncomment to use Redis password
 # set_redis $REDIS_PASSWORD
 
-colorEcho yellow "\nSetting $FRONT_ENV file ..."
-update_env "$FRONT_ENV"
-
 echoTitle "DOWNLOADING DTI SUBMODULE"
 git submodule init
 git submodule update
