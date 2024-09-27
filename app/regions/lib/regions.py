@@ -277,7 +277,9 @@ class ExtractRegions:
         else:
             return False
 
-    def send_annotations(self, experiment_id, annotation_file, digitization_ref, extraction_model):
+    def send_annotations(
+        self, experiment_id, annotation_file, digitization_ref, extraction_model
+    ):
         if not self.notify_url:
             return False
 
@@ -299,8 +301,13 @@ class ExtractRegions:
 class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
     def run_task(self):
         if not self.check_doc():
-            self.print_and_log_warning(f"[task.extract_objects] No documents to annotate")
-            self.task_update("ERROR", f"[API ERROR] Failed to download documents for {self.documents}")
+            self.print_and_log_warning(
+                f"[task.extract_objects] No documents to annotate"
+            )
+            self.task_update(
+                "ERROR",
+                f"[API ERROR] Failed to download documents for {self.documents}",
+            )
             return
 
         model = DEFAULT_MODEL if self.model is None else self.model
@@ -323,7 +330,9 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
                     image_dir = downloader.get_dir_name()
                     digitization_ref = downloader.manifest_id
                     annotation_dir = (
-                        ANNO_PATH / extraction_model / sanitize_str(document.split("/")[2])
+                        ANNO_PATH
+                        / extraction_model
+                        / sanitize_str(document.split("/")[2])
                     )
 
                     if not exists(annotation_dir):
@@ -349,11 +358,16 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
                         f"[task.regions] Error extraction regions for {document}",
                         e=e,
                     )
-                    error_list.append("[API ERROR] Regions extraction task failed for {document}")
+                    error_list.append(
+                        "[API ERROR] Regions extraction task failed for {document}"
+                    )
 
                 try:
                     self.send_annotations(
-                        self.experiment_id, annotation_file, digitization_ref, extraction_model
+                        self.experiment_id,
+                        annotation_file,
+                        digitization_ref,
+                        extraction_model,
                     )
 
                 except Exception as e:
@@ -361,7 +375,9 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
                         f"[task.regions] Failed to send annotation for {document}",
                         e=e,
                     )
-                    error_list.append(f"[API ERROR] Could not send annotation file for {document}")
+                    error_list.append(
+                        f"[API ERROR] Could not send annotation file for {document}"
+                    )
                     return False
 
                 self.print_and_log(
@@ -372,4 +388,4 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
             return True
 
         except Exception as e:
-            self.task_update("ERROR", error_list)
+            self.task_update("ERROR", error_list + [f"[API ERROR] {e}"])

@@ -7,13 +7,17 @@
 ###############################
 
 # Machine path where docker will store its /data/ folder (API_DATA_FOLDER)
-DATA_FOLDER=/media/discoverdemo/
+DATA_FOLDER=/media/demoapi/
 # GPU device number to be used by docker
 DEVICE_NB=2
 # User ID to be used by docker
 DEMO_UID=1000
-
-CONTAINER_NAME="demowebsiteapi"
+# Path to CUDA installation (/usr/local/cuda-<version> => find your version with nvidia-smi)
+CUDA_HOME=/usr/local/cuda
+# Host where the API will be accessible, (put 127.0.0.1 for spiped configuration)
+CONTAINER_HOST="0.0.0.0"
+# Name of the container
+CONTAINER_NAME="demoapi"
 
 rebuild_image() {
     docker build --rm -t "$CONTAINER_NAME" . -f Dockerfile --build-arg USERID=$DEMO_UID
@@ -38,5 +42,5 @@ docker rm "$CONTAINER_NAME"
 
 # Run Docker container
 docker run -d --gpus "$DEVICE_NB" --name "$CONTAINER_NAME" \
-   -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p 127.0.0.1:8001:8001 \
+   -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p "$CONTAINER_HOST":8001:8001 \
    --restart unless-stopped --ipc=host "$CONTAINER_NAME"

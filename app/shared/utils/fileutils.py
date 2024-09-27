@@ -1,16 +1,18 @@
 import os
 import shutil
-from datetime import datetime
-from os.path import exists
-
-from pathlib import Path
+import zipfile
 
 import requests
-from flask import Response
 import mimetypes
-from typing import Union
 
+from datetime import datetime
+from os.path import exists
+from pathlib import Path
 from slugify import slugify
+from typing import Union
+from flask import Response
+
+from .logging import console
 
 TPath = Union[str, os.PathLike]
 
@@ -172,3 +174,46 @@ def file_age(path=__file__):
     """
     dt = datetime.now() - datetime.fromtimestamp(Path(path).stat().st_mtime)  # delta
     return dt.days  # + dt.seconds / 86400  # fractional days
+
+
+def delete_directory(doc_dir):
+    """
+    Delete the directory corresponding to the document ID to relaunch vectorization
+    """
+    path = Path(doc_dir)
+    try:
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+            return True
+        else:
+            return False
+    except Exception as e:
+        console(f"An error has occurred when deleting {doc_dir} directory", e=e)
+        return False
+
+
+def zip_dir(
+    dir_path: str, zip_path: str, compression: int = zipfile.ZIP_DEFLATED
+) -> None:
+    if not os.path.isdir(dir_path):
+        raise ValueError(f"Directory '{dir_path}' does not exist.")
+
+    try:
+        with zipfile.ZipFile(zip_path, "w", compression) as zipf:
+            for root, _, files in os.walk(dir_path):
+                for file in files:
+                    file_path = os.path.join(root, file)
+                    arcname = os.path.relpath(file_path, start=dir_path)
+                    zipf.write(file_path, arcname)
+    except (OSError, ValueError, Exception) as e:
+        console(f"Error with zipping '{dir_path}'", e=e)
+        raise
+
+
+def download_file(url, filepath):
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(filepath, "wb") as file:
+            file.write(response.content)
+        return
+    console(f"Failed to download the file. Status code: {response.status_code}", "red")

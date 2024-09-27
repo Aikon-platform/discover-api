@@ -20,6 +20,10 @@ ANNO_PATH = VEC_RESULTS_PATH
 MODEL_PATH = VEC_DATA_FOLDER / "models"
 
 create_dirs_if_not([IMG_PATH, MODEL_PATH])
-torch.hub.set_dir(f'{BASE_DIR}/.cache')
+torch.hub.set_dir(f"{BASE_DIR}/.cache")
 
-DEFAULT_EPOCHS = "0045"
+# TODO allow for multiple models
+MODEL_CHECKPOINT = MODEL_PATH / "checkpoint0045.pth"
+MODEL_CONFIG = MODEL_PATH / "config_cfg.py"
+
+MAX_SIZE = 244

@@ -30,6 +30,8 @@ yapf==0.3.1
 git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 
 kornia==0.7.*
+
+# For matching version for your Cuda version: https://pytorch.org/get-started/locally/
 torch==1.12.1+cu116
 torchvision==0.13.1+cu116
 torchaudio==0.12.1

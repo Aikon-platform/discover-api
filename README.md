@@ -135,11 +135,11 @@ bash docker.sh rebuild
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
 
 It should have started the docker, check it is the case with:
-- `docker logs demowebsiteapi --tail 50`: show last 50 log messages
+- `docker logs demoapi --tail 50`: show last 50 log messages
 - `docker ps`: show running docker containers
 - `curl 127.0.0.1:8001/<installed_app>/monitor`: show if container receives requests
-- `docker exec demowebsiteapi /bin/nvidia-smi`: checks that docker communicates with nvidia
-- `docker exec -it demowebsiteapi /bin/bash`
+- `docker exec demoapi /bin/nvidia-smi`: checks that docker communicates with nvidia
+- `docker exec -it demoapi /bin/bash`
 
 The API is now accessible locally at `http://localhost:8001`.
 
@@ -160,7 +160,7 @@ sudo chmod 644 /etc/spiped/discover.key
 ```
 
 Create service config file for spiped (`sudo vi /etc/systemd/system/spiped-discover.service`):
-- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' demowebsiteapi` or use `127.0.0.1`
+- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' demoapi` or use `127.0.0.1`
 - Pick Docker port (here `8001`) depending on `EXPOSE` in [`Dockerfile`](Dockerfile)
 
 ```bash

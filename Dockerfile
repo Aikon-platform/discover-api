@@ -2,7 +2,7 @@
 FROM nvidia/cuda:11.6.1-cudnn8-devel-ubuntu20.04
 #FROM nvidia/cuda:12.4.0-cudnn8-devel-ubuntu20.04
 
-ENV USER=demowebsite
+ENV USER=demoapi
 ARG USERID
 
 RUN useradd -u ${USERID} -m -d /home/${USER} ${USER}
@@ -47,22 +47,34 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # (Before copying the rest so that this part is not rerun unless requirements change)
 COPY --chown=${USER} ./requirements.txt ./requirements.txt
 COPY --chown=${USER} ./requirements-prod.txt ./requirements-prod.txt
-RUN python3.10 -m venv venv
-RUN source venv/bin/activate && pip install --upgrade pip && pip install -r requirements-prod.txt
+RUN python3.10 -m venv venv && \
+    source venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install -r requirements-prod.txt
 
-# Install components
+# Copy the entire project code
 COPY --chown=${USER} ./ ./api/
-COPY --chown=${USER} ./.env.prod ./api/.env
-
-COPY docker-confs/nginx.conf /etc/nginx/conf.d/demowebsite.conf
-
-EXPOSE 8001
-
-RUN mkdir -p var/dramatiq/
 
 ENV CUDA_HOME=/cuda
 
-## Run command at each container launch
+# Build and install CUDA operators for vectorization (cached)
+WORKDIR /home/${USER}/app/vectorization/lib/src/models/dino/ops
+RUN source /home/${USER}/venv/bin/activate && python setup.py build install
+
+# Back to the user's home directory
+WORKDIR /home/${USER}
+
+# Copy additional configurations
+COPY --chown=${USER} ./.env.prod ./api/.env
+COPY docker-confs/nginx.conf /etc/nginx/conf.d/demoapi.conf
+
+# Expose the application port
+EXPOSE 8001
+
+# Create necessary folders
+RUN mkdir -p var/dramatiq/
+
+# Run command at each container launch
 CMD export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
     source venv/bin/activate && \
     supervisord -c api/docker-confs/supervisord.conf

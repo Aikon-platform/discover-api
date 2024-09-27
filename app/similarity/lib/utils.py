@@ -2,13 +2,10 @@ import os
 import sys
 from itertools import combinations_with_replacement
 
-import requests
-
 from pathlib import Path
 
 from ..const import IMG_PATH, MODEL_PATH
-from ...shared.utils.fileutils import create_dir
-from ...shared.utils.logging import console
+from ...shared.utils.fileutils import create_dir, download_file
 
 model_urls = {
     "moco_v2_800ep_pretrain": "https://dl.fbaipublicfiles.com/moco/moco_checkpoints/moco_v2_200ep/moco_v2_200ep_pretrain.pth.tar",
@@ -24,12 +21,7 @@ def download_models(model_name):
     if model_name not in model_urls:
         raise ValueError("Invalid network or dataset for feature extraction.")
 
-    response = requests.get(model_urls[model_name])
-    if response.status_code == 200:
-        with open(f"{MODEL_PATH}/{model_name}.pth", "wb") as file:
-            file.write(response.content)
-        return
-    console(f"Failed to download the file. Status code: {response.status_code}", "red")
+    download_file(model_urls[model_name], f"{MODEL_PATH}/{model_name}.pth")
 
 
 def get_model_path(model_name):

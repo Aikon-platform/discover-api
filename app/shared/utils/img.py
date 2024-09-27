@@ -105,10 +105,10 @@ def download_images(url, doc_id, img_path, max_dim=MAX_SIZE):
     return paths
 
 
-def get_img_paths(img_dir):
+def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")):
     images = []
     for file_ in os.listdir(img_dir):
-        if file_.endswith((".jpg", ".png", ".jpeg")):
+        if file_.endswith(img_ext):
             images.append(os.path.join(img_dir, file_))
         else:
             sys.stderr.write(
