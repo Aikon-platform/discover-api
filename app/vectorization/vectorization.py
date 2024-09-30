@@ -168,9 +168,7 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
 
             response = requests.post(
                 url=self.notify_url,
-                files={
-                    "file": (f"{self.experiment_id}.zip", zip_buffer, "application/zip")
-                },
+                files={"file": (f"{doc_id}.zip", zip_buffer, "application/zip")},
                 data={"experiment_id": self.experiment_id, "model": self.model},
             )
 
