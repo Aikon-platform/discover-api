@@ -192,24 +192,6 @@ def delete_directory(doc_dir):
         return False
 
 
-def zip_dir(
-    dir_path: str, zip_path: str, compression: int = zipfile.ZIP_DEFLATED
-) -> None:
-    if not os.path.isdir(dir_path):
-        raise ValueError(f"Directory '{dir_path}' does not exist.")
-
-    try:
-        with zipfile.ZipFile(zip_path, "w", compression) as zipf:
-            for root, _, files in os.walk(dir_path):
-                for file in files:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, start=dir_path)
-                    zipf.write(file_path, arcname)
-    except (OSError, ValueError, Exception) as e:
-        console(f"Error with zipping '{dir_path}'", e=e)
-        raise
-
-
 def download_file(url, filepath):
     response = requests.get(url)
     if response.status_code == 200:

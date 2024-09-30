@@ -1,3 +1,6 @@
+import io
+import zipfile
+
 import requests
 import os
 import torch
@@ -5,7 +8,7 @@ import torch
 from pathlib import Path
 from typing import Optional
 
-from ..shared.utils.fileutils import send_update, zip_dir, download_file
+from ..shared.utils.fileutils import send_update, download_file
 from ..shared.utils.img import download_img, get_img_paths
 from ..shared.utils.logging import LoggingTaskMixin
 from .const import IMG_PATH, MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH
@@ -144,23 +147,32 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
         """
         output_dir = VEC_RESULTS_PATH / doc_id
         try:
-            zip_path = output_dir / f"{doc_id}.zip"
             self.print_and_log(
                 f"[task.vectorization] Zipping directory {output_dir}", color="blue"
             )
 
-            zip_dir(output_dir, zip_path)
-            with open(zip_path, "rb") as zip_file:
-                response = requests.post(
-                    url=self.notify_url,
-                    files={
-                        "file": zip_file,
-                    },
-                    data={
-                        "experiment_id": self.experiment_id,
-                        "model": self.model,
-                    },
+            zip_buffer = io.BytesIO()
+            try:
+                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+                    for root, _, files in os.walk(output_dir):
+                        for file in files:
+                            file_path = Path(root) / file
+                            arcname = file_path.relative_to(output_dir)
+                            zipf.write(file_path, arcname)
+                zip_buffer.seek(0)  # Rewind buffer to the beginning
+            except Exception as e:
+                self.print_and_log(
+                    f"[task.vectorization] Failed to zip directory {output_dir}", e
                 )
+                return
+
+            response = requests.post(
+                url=self.notify_url,
+                files={
+                    "file": (f"{self.experiment_id}.zip", zip_buffer, "application/zip")
+                },
+                data={"experiment_id": self.experiment_id, "model": self.model},
+            )
 
             if response.status_code == 200:
                 self.print_and_log(
