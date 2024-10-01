@@ -1,6 +1,5 @@
 # Final image (change image based on the version showed with $ nvidia-smi)
-FROM nvidia/cuda:11.6.1-cudnn8-devel-ubuntu20.04
-#FROM nvidia/cuda:12.4.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
 ENV USER=demoapi
 ARG USERID
@@ -55,13 +54,9 @@ RUN python3.10 -m venv venv && \
 # Copy the entire project code
 COPY --chown=${USER} ./ ./api/
 
-ENV CUDA_HOME=/cuda
-
 # Build and install CUDA operators for vectorization (cached)
-WORKDIR /home/${USER}/api/app/vectorization/lib/src/models/dino/ops
-RUN source /home/${USER}/venv/bin/activate && python setup.py build install
+RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 
-# Back to the user's home directory
 WORKDIR /home/${USER}
 
 # Copy additional configurations
@@ -70,6 +65,10 @@ COPY docker-confs/nginx.conf /etc/nginx/conf.d/demoapi.conf
 
 # Expose the application port
 EXPOSE 8001
+
+# Set environment variables
+ENV MPLCONFIGDIR=/home/${USER}/.config/matplotlib
+RUN mkdir -p /home/${USER}/.config/matplotlib
 
 # Create necessary folders
 RUN mkdir -p var/dramatiq/

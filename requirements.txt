@@ -31,8 +31,12 @@ git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 
 kornia==0.7.*
 
-# For matching version for your Cuda version: https://pytorch.org/get-started/locally/
-torch==1.12.1+cu116
-torchvision==0.13.1+cu116
-torchaudio==0.12.1
---extra-index-url https://download.pytorch.org/whl/cu116
+# Match pytorch with your cuda version / container image: https://pytorch.org/get-started/locally/
+torch
+torchvision
+torchaudio
+--extra-index-url https://download.pytorch.org/whl/cu124
+#torch==1.12.1+cu116
+#torchvision==0.13.1+cu116
+#torchaudio==0.12.1
+#--extra-index-url https://download.pytorch.org/whl/cu116
