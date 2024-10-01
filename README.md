@@ -143,6 +143,14 @@ Build the docker using the premade script:
 bash docker.sh rebuild
 ```
 
+To compile cuda operators for `vectorization`, once built:
+```bash
+docker exec -it demoapi /bin/bash
+# inside the container
+/home/demoapi# source venv/bin/activate
+/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+```
+
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
 
 It should have started the docker, check it is the case with:
@@ -150,7 +158,7 @@ It should have started the docker, check it is the case with:
 - `docker ps`: show running docker containers
 - `curl 127.0.0.1:8001/<installed_app>/monitor`: show if container receives requests
 - `docker exec demoapi /bin/nvidia-smi`: checks that docker communicates with nvidia
-- `docker exec -it demoapi /bin/bash`
+- `docker exec -it demoapi /bin/bash`: enter the docker container
 
 The API is now accessible locally at `http://localhost:8001`.
 

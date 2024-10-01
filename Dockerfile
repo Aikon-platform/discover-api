@@ -55,7 +55,7 @@ RUN python3.10 -m venv venv && \
 COPY --chown=${USER} ./ ./api/
 
 # Build and install CUDA operators for vectorization (cached)
-RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+#RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 
 WORKDIR /home/${USER}
 
