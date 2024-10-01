@@ -66,9 +66,10 @@ COPY docker-confs/nginx.conf /etc/nginx/conf.d/demoapi.conf
 # Expose the application port
 EXPOSE 8001
 
-# Set environment variables
+# Set matplotlib tmp dir
 ENV MPLCONFIGDIR=/home/${USER}/.config/matplotlib
 RUN mkdir -p /home/${USER}/.config/matplotlib
+RUN chown -R ${USER} /home/${USER}/.config/matplotlib
 
 # Create necessary folders
 RUN mkdir -p var/dramatiq/
