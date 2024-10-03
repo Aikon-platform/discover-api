@@ -13,7 +13,7 @@ from ..shared.utils.img import download_img, get_img_paths
 from ..shared.utils.logging import LoggingTaskMixin
 from .const import IMG_PATH, MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH
 
-from .lib.src.main import build_model_main
+from .lib.src import build_model_main
 from .lib.src.inference import (
     set_config,
     preprocess_img,
