@@ -32,12 +32,12 @@ def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_C
     # TODO allow for multiple models
     if not os.path.exists(model_checkpoint_path):
         download_file(
-            model_checkpoint_path,
             "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/resolve/main/checkpoint0045.pth?download=true",
+            model_checkpoint_path,
         )
         download_file(
-            model_config_path,
             "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/resolve/main/config_cfg.py?download=true",
+            model_config_path,
         )
 
     config = set_config(model_config_path)
