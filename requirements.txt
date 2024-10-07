@@ -25,6 +25,8 @@ svg.path
 termcolor
 timm
 yapf==0.3.1
+ultralytics
+git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 
 kornia==0.7.*
 
