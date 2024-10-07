@@ -149,6 +149,7 @@ docker exec -it demoapi /bin/bash
 # inside the container
 /home/demoapi# source venv/bin/activate
 /home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
 /home/demoapi# pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/.
 
 docker exec demoapi venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
