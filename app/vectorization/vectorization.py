@@ -8,7 +8,7 @@ import torch
 from pathlib import Path
 from typing import Optional
 
-from ..shared.utils.fileutils import send_update, download_file
+from ..shared.utils.fileutils import send_update, download_file, has_content
 from ..shared.utils.img import download_img, get_img_paths
 from ..shared.utils.logging import LoggingTaskMixin
 from .const import IMG_PATH, MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH
@@ -21,11 +21,6 @@ from .lib.src.inference import (
     postprocess_preds,
     save_pred_as_svg,
 )
-
-
-def is_downloaded(doc_id, image_id):
-    path = Path(f"{IMG_PATH}/{doc_id}/{image_id}.jpg")
-    return path.exists()
 
 
 def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_CONFIG):
@@ -131,14 +126,19 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
         self.print_and_log(
             f"[task.vectorization] Downloading {doc_id} images...", color="blue"
         )
-        for image_id, url in document.items():
+        if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
+            self.print_and_log(
+                f"[task.similarity] {doc_id} already downloaded. Skipping..."
+            )
+            return
+
+        for img_name, img_url in document.items():
             try:
-                if not is_downloaded(doc_id, image_id):
-                    download_img(url, doc_id, image_id, IMG_PATH, MAX_SIZE)
+                download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
 
             except Exception as e:
                 self.print_and_log(
-                    f"[task.vectorization] Unable to download image {image_id}", e
+                    f"[task.vectorization] Unable to download image {img_name}", e
                 )
 
     def send_zip(self, doc_id):

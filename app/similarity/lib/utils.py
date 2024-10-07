@@ -2,10 +2,8 @@ import os
 import sys
 from itertools import combinations_with_replacement
 
-from pathlib import Path
-
 from ..const import IMG_PATH, MODEL_PATH
-from ...shared.utils.fileutils import create_dir, download_file
+from ...shared.utils.fileutils import download_file
 
 model_urls = {
     "moco_v2_800ep_pretrain": "https://dl.fbaipublicfiles.com/moco/moco_checkpoints/moco_v2_200ep/moco_v2_200ep_pretrain.pth.tar",
@@ -46,16 +44,6 @@ def get_doc_dirs(doc_pair):
         IMG_PATH / doc
         for doc in (doc_pair if doc_pair[0] != doc_pair[1] else [doc_pair[0]])
     ]
-
-
-def is_downloaded(doc_id):
-    path = Path(f"{IMG_PATH}/{doc_id}/")
-    if not os.path.exists(path):
-        create_dir(path)
-        return False
-    if len(os.listdir(path)) == 0:
-        return False
-    return True
 
 
 def best_matches(segswap_pairs, q_img, doc_pair):

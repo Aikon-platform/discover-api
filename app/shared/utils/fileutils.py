@@ -1,6 +1,5 @@
 import os
 import shutil
-import zipfile
 
 import requests
 import mimetypes
@@ -63,6 +62,18 @@ def is_too_old(filepath: Path, max_days: int = 30):
         )
     except Exception:
         return False
+
+
+def has_content(path, file_nb=None):
+    path = Path(path)
+    if not os.path.exists(path):
+        create_dir(path)
+        return False
+
+    nb_of_files = len(os.listdir(path))
+    if file_nb:
+        return nb_of_files == file_nb
+    return nb_of_files != 0
 
 
 def create_dir(path: Path):

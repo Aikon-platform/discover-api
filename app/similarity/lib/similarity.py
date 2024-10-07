@@ -24,10 +24,10 @@ from .dataset import IllusDataset
 from .features import extract_features
 from .segswap import load_backbone, load_encoder, resize, compute_score
 
-from .utils import get_model_path, is_downloaded, doc_pairs
+from .utils import get_model_path, doc_pairs
 
 from ...shared.utils import get_device
-from ...shared.utils.fileutils import send_update
+from ...shared.utils.fileutils import send_update, has_content
 from ...shared.utils.img import download_images
 from ...shared.utils.logging import LoggingTaskMixin, console
 
@@ -286,7 +286,7 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
             try:
                 doc_id = f"{self.client_id}_{doc_id}"
                 self.doc_ids.append(doc_id)
-                if not is_downloaded(doc_id):
+                if not has_content(f"{IMG_PATH}/{doc_id}/"):
                     self.print_and_log(
                         f"[task.similarity] Downloading {doc_id} images..."
                     )
