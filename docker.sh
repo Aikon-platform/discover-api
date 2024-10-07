@@ -35,6 +35,7 @@ fi
 
 if [ "$1" = "pull" ]; then
     git pull
+    git submodule update
     rebuild_image
 fi
 

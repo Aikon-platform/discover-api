@@ -58,6 +58,7 @@ COPY --chown=${USER} ./ ./api/
 # Build and install CUDA operators for vectorization (cached)
 RUN source venv/bin/activate && bash /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/make.sh
 #RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
 RUN /home/${USER}/venv/bin/pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/
 
 WORKDIR /home/${USER}
