@@ -150,6 +150,8 @@ docker exec -it demoapi /bin/bash
 /home/demoapi# source venv/bin/activate
 /home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 /home/demoapi# pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/.
+
+docker exec demoapi venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 ```
 
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.

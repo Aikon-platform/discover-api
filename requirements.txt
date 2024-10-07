@@ -24,10 +24,7 @@ svgwrite
 svg.path
 termcolor
 timm
-ultralytics
 yapf==0.3.1
-
-git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 
 kornia==0.7.*
 
@@ -36,7 +33,3 @@ torch
 torchvision
 torchaudio
 --extra-index-url https://download.pytorch.org/whl/cu124
-#torch==1.12.1+cu116
-#torchvision==0.13.1+cu116
-#torchaudio==0.12.1
-#--extra-index-url https://download.pytorch.org/whl/cu116
