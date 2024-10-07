@@ -39,7 +39,7 @@ def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_C
     model, _, postprocessors = build_model_main(config)
     checkpoint = torch.load(model_checkpoint_path, map_location="cuda")
     model.load_state_dict(checkpoint["model"])
-    return model
+    return model, postprocessors
 
 
 class ComputeVectorization:
@@ -90,7 +90,7 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
         try:
             self.task_update("STARTED")
 
-            model = load_model()
+            model, postprocessors = load_model()
             model.eval()
 
             for doc_id, document in self.documents.items():
@@ -104,7 +104,7 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
 
                 for path in get_img_paths(IMG_PATH / doc_id, (".jpg", ".jpeg")):
                     orig_img, tr_img = preprocess_img(path)
-                    preds = generate_prediction(orig_img, tr_img, model)
+                    preds = generate_prediction(orig_img, tr_img, model, postprocessors)
                     preds = postprocess_preds(preds, orig_img.size)
                     save_pred_as_svg(
                         path,
