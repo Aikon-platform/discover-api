@@ -151,6 +151,7 @@ docker exec -it demoapi /bin/bash
 /home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 /home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
 ```
+Then restart the container with `docker restart demoapi`
 
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
 
