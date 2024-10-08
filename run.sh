@@ -17,7 +17,7 @@ cleanup() {
 trap cleanup SIGINT SIGTERM
 
 export CUDA_VISIBLE_DEVICES=$DEVICE_NB
-venv/bin/flask --app app.main run --debug -p "$DEV_PORT" &
+venv/bin/flask --app app.main run --debug -p "$API_DEV_PORT" &
 flask_pid=$!
 
 venv/bin/dramatiq app.main -t 1 -p 1 &
