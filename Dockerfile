@@ -1,8 +1,7 @@
 # Final image (change image based on the version showed with $ nvidia-smi)
-FROM nvidia/cuda:11.6.1-cudnn8-devel-ubuntu20.04
-#FROM nvidia/cuda:12.4.0-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
-ENV USER=demowebsite
+ENV USER=demoapi
 ARG USERID
 
 RUN useradd -u ${USERID} -m -d /home/${USER} ${USER}
@@ -47,22 +46,38 @@ ENV NVIDIA_DRIVER_CAPABILITIES=compute,utility
 # (Before copying the rest so that this part is not rerun unless requirements change)
 COPY --chown=${USER} ./requirements.txt ./requirements.txt
 COPY --chown=${USER} ./requirements-prod.txt ./requirements-prod.txt
-RUN python3.10 -m venv venv
-RUN source venv/bin/activate && pip install --upgrade pip && pip install -r requirements-prod.txt
+RUN python3.10 -m venv venv && \
+    source venv/bin/activate && \
+    pip install --upgrade pip && \
+    pip install -r requirements-prod.txt
 
-# Install components
+# Copy the entire project code
 COPY --chown=${USER} ./ ./api/
+
+# FOR VECTORIZATION MODULE
+# Build and install CUDA operators for DETR (not working)
+#RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+#RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
+RUN /home/${USER}/venv/bin/pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/
+
+WORKDIR /home/${USER}
+
+# Copy additional configurations
 COPY --chown=${USER} ./.env.prod ./api/.env
+COPY docker-confs/nginx.conf /etc/nginx/conf.d/demoapi.conf
 
-COPY docker-confs/nginx.conf /etc/nginx/conf.d/demowebsite.conf
-
+# Expose the application port
 EXPOSE 8001
 
+# Set matplotlib tmp dir
+ENV MPLCONFIGDIR=/home/${USER}/.config/matplotlib
+RUN mkdir -p /home/${USER}/.config/matplotlib
+RUN chown -R ${USER} /home/${USER}/.config/matplotlib
+
+# Create necessary folders
 RUN mkdir -p var/dramatiq/
 
-ENV CUDA_HOME=/cuda
-
-## Run command at each container launch
+# Run command at each container launch
 CMD export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
     source venv/bin/activate && \
     supervisord -c api/docker-confs/supervisord.conf

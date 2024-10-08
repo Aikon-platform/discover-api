@@ -1,10 +1,12 @@
+import os
+
 from . import config
 from flask import Flask
 
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
 from dramatiq_abort import Abortable, backends
-from dramatiq.middleware import CurrentMessage
+from dramatiq.middleware import CurrentMessage, Prometheus
 from dramatiq.results.backends import RedisBackend
 from .shared.utils.logging import LoggedResults
 from .shared.utils.modular import auto_import_apps
@@ -15,6 +17,9 @@ app.config.from_object(config.FLASK_CONFIG)
 
 # Dramatiq setup
 broker = RedisBroker(url=config.BROKER_URL)
+
+# Remove the Prometheus middleware if it's added by default
+# broker.middleware = [m for m in broker.middleware if not isinstance(m, Prometheus)]
 
 # if os.getenv("TESTS") == "true":
 #     import os

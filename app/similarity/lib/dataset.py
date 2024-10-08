@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 import cv2
 
-from .utils import get_imgs_in_dirs
+from ...shared.utils.img import get_imgs_in_dirs
 
 
 def img_id(img_path):

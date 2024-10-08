@@ -1,11 +1,9 @@
-from flask import request, send_from_directory, Blueprint
+from flask import request, Blueprint
 from slugify import slugify
-import uuid
 
-from ..main import app
 from .tasks import compute_similarity
 from ..shared import routes as shared_routes
-from ..shared.utils.fileutils import delete_path, clear_dir
+from ..shared.utils.fileutils import clear_dir
 from .const import (
     IMG_PATH,
     FEATS_PATH,

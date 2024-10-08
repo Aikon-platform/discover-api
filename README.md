@@ -87,10 +87,10 @@ Configure SSH connexion to GitHub for user:
 
 Clone and init submodule
 ```bash
-git clone git@github.com:Aikon/discover-api.git
+git clone git@github.com:Aikon-platform/discover-api.git
 cd discover-api/
 
-# OPTIONAL: if you are deploying demos using submodules (like dticlustering)
+# OPTIONAL: if you are deploying demos using submodules (like dticlustering and vectorization)
 git submodule init
 git submodule update
 ```
@@ -109,13 +109,24 @@ In [`docker.sh`](docker.sh), modify the variables depending on your setup:
 - `DATA_FOLDER`: absolute path to directory where results are stored
 - `DEMO_UID`: Universally Unique Identifier of the `<docker-user>` (`id -u <docker-user>`)
 - `DEVICE_NB`: GPU number to be used by container (get available GPUs with `nvidia-smi`)
+- `CUDA_HOME`: path to CUDA installation (e.g. `/usr/local/cuda-11.1`)
+
+To find your `CUDA_HOME` (usually located either in `/usr/local/cuda` or `/usr/lib/cuda`):
+```bash
+# find CUDA version with (pay attention to version mismatches)
+nvcc --version
+nvidia-smi
+
+# CUDA_HOME is usually parent dir of
+which nvcc
+```
 
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
 ```bash
 mkdir </path/to/results/> # e.g. /media/<docker-user>/
 sudo chmod o+X </path/to>
 sudo chmod -R u+rwX </path/to/results/>
-sudo chown <docker-user> </path/to/results/>
+sudo chown -R <docker-user>:<docker-user> </path/to/results/>
 ```
 
 #### Download models
@@ -132,14 +143,24 @@ Build the docker using the premade script:
 bash docker.sh rebuild
 ```
 
+To compile cuda operators for `vectorization`, once built:
+```bash
+docker exec -it demoapi /bin/bash
+# inside the container
+/home/demoapi# source venv/bin/activate
+/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
+```
+Then restart the container with `docker restart demoapi`
+
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
 
 It should have started the docker, check it is the case with:
-- `docker logs demowebsiteapi --tail 50`: show last 50 log messages
+- `docker logs demoapi --tail 50`: show last 50 log messages
 - `docker ps`: show running docker containers
 - `curl 127.0.0.1:8001/<installed_app>/monitor`: show if container receives requests
-- `docker exec demowebsiteapi /bin/nvidia-smi`: checks that docker communicates with nvidia
-- `docker exec -it demowebsiteapi /bin/bash`
+- `docker exec demoapi /bin/nvidia-smi`: checks that docker communicates with nvidia
+- `docker exec -it demoapi /bin/bash`: enter the docker container
 
 The API is now accessible locally at `http://localhost:8001`.
 
@@ -160,7 +181,7 @@ sudo chmod 644 /etc/spiped/discover.key
 ```
 
 Create service config file for spiped (`sudo vi /etc/systemd/system/spiped-discover.service`):
-- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' demowebsiteapi` or use `127.0.0.1`
+- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' demoapi` or use `127.0.0.1`
 - Pick Docker port (here `8001`) depending on `EXPOSE` in [`Dockerfile`](Dockerfile)
 
 ```bash

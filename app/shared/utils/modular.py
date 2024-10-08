@@ -1,5 +1,6 @@
 from importlib import import_module
 
+
 def auto_import_apps(flask_app, INSTALLED_APPS, package):
     for app in INSTALLED_APPS:
         # import routes and tasks for each installed app

@@ -1,12 +1,11 @@
 import dramatiq
-from dramatiq.brokers.redis import RedisBroker
 from typing import Optional
 from datetime import datetime, timedelta
 import os
 import shutil
 
 from .const import VEC_QUEUE, IMG_PATH
-from .lib.vectorization import LoggedComputeVectorization
+from .vectorization import LoggedComputeVectorization
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
@@ -32,8 +31,8 @@ def compute_vectorization(
 
     E.g. of dataset dict
     {
-    "wit4_man19_0023_260,1335,1072,1114": "http://localhost:8182/iiif/2/wit4_man19_0023.jpg/260,1335,1072,1114/full/0/default.jpg", 
-    "wit4_man19_0025_244,1462,768,779": "http://localhost:8182/iiif/2/wit4_man19_0025.jpg/244,1462,768,779/full/0/default.jpg", 
+    "wit4_man19_0023_260,1335,1072,1114": "http://localhost:8182/iiif/2/wit4_man19_0023.jpg/260,1335,1072,1114/full/0/default.jpg",
+    "wit4_man19_0025_244,1462,768,779": "http://localhost:8182/iiif/2/wit4_man19_0025.jpg/244,1462,768,779/full/0/default.jpg",
     "wit4_man19_0030_15,1523,623,652": "http://localhost:8182/iiif/2/wit4_man19_0030.jpg/15,1523,623,652/full/0/default.jpg"
     }
     """
@@ -43,7 +42,7 @@ def compute_vectorization(
         documents=documents,
         model=model,
         notify_url=notify_url,
-        tracking_url=tracking_url
+        tracking_url=tracking_url,
     )
     vectorization_task.run_task()
 
@@ -59,6 +58,3 @@ def delete_images():
             dir_modified_time = datetime.fromtimestamp(os.path.getmtime(dir_path))
             if dir_modified_time < week_ago:
                 shutil.rmtree(dir_path, ignore_errors=False, onerror=None)
-
-    pass
-
