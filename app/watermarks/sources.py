@@ -1,6 +1,6 @@
 from .const import WATERMARKS_SOURCES_FOLDER
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 import json
 import torch
 
@@ -34,7 +34,7 @@ class WatermarkSource:
         return self._features
 
     @staticmethod
-    def list_available() -> Dict[str, Dict]:
+    def list_available() -> list[dict[str, dict]]:
         return [
             {"uid": s.name, "metadata": WatermarkSource(s.name).metadata}
             for s in WATERMARKS_SOURCES_FOLDER.iterdir()

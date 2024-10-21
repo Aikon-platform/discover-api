@@ -1,17 +1,10 @@
 from flask import request, send_from_directory, Blueprint
 from slugify import slugify
 import uuid
-from dramatiq_abort import abort
-from dramatiq.results import ResultMissing, ResultFailure
 import json
-import shutil
-from datetime import datetime
 
-from .. import config
-
-from ..main import app
 from .tasks import train_dti
-from ..shared.utils.fileutils import xaccel_send_from_directory, clear_dir, delete_path
+from ..shared.utils.fileutils import clear_dir, delete_path
 from ..shared import routes as shared_routes
 from .const import (
     DTI_RESULTS_PATH,

@@ -4,9 +4,9 @@ from PIL import ImageOps, Image
 from torchvision import transforms
 import torch
 from typing import List, Dict, Optional
-from pathlib import Path
 import json
 import os
+
 from .const import (
     MODEL_PATHS,
     DEVICE,
@@ -14,8 +14,10 @@ from .const import (
     WATERMARKS_RESULTS_FOLDER,
 )
 from .sources import WatermarkSource
+from .utils import box_to_xyxy
 
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
+
 
 FEATURE_TRANSFORMS = lambda sz: transforms.Compose(
     [
@@ -150,20 +152,7 @@ def _pipeline(
             for box, score in zip(boxes["boxes"], boxes["scores"]):
                 if score < 0.5 and len(crops) > 0:
                     break
-                box = [
-                    box[0] * image.width,
-                    box[1] * image.height,
-                    box[2] * image.width,
-                    box[3] * image.height,
-                ]
-                cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-                sz = max(box[2] - box[0], box[3] - box[1]) * 1.20
-                x0, y0, x1, y1 = (
-                    int(cx - sz / 2),
-                    int(cy - sz / 2),
-                    int(cx + sz / 2),
-                    int(cy + sz / 2),
-                )
+                x0, y0, x1, y1 = box_to_xyxy(box, image)
                 crops.append(image.crop((x0, y0, x1, y1)).resize((resize, resize)))
 
     if compare_to and len(crops) > 0:
