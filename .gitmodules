@@ -2,3 +2,7 @@
 	path = app/vectorization/lib
 	url = git@github.com:vayvi/HDV.git
 	branch = demoapi
+[submodule "clustering"]
+	path = app/dticlustering/lib
+	url = git@github.com:Segolene-Albouy/dti-sprites.git
+	branch = main
