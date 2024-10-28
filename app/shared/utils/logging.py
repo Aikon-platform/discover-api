@@ -429,9 +429,9 @@ class LoggedResults(Results):
 
 
 def console(msg, color="bold", e: Optional[Exception] = None):
-    print(f"\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n")
+    base_logger.info(f"\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n")
     if e:
-        print(
+        base_logger.info(
             f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
         )
 

@@ -7,7 +7,7 @@ from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from urllib.parse import urlparse
 
-
+# TODO change to not only use IMG_PATH from regions
 from ...regions.const import IMG_PATH
 from .fileutils import check_dir, sanitize_str, sanitize_url
 from .logging import console

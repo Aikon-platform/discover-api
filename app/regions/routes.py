@@ -1,3 +1,4 @@
+import json
 import os
 import time
 
@@ -26,14 +27,20 @@ def start_regions_extraction(client_id):
         Extract regions for images from a list of IIIF URLs.
         """
 
-    if not request.is_json:
-        return "No JSON in request: Regions extraction task aborted!"
+    if request.is_json:
+        json_param = request.get_json()
+    else:
+        json_param = request.form.to_dict()
 
-    json_param = request.get_json()
+    if not json_param:
+        return "No data in request: Regions extraction task aborted!"
+
     console(json_param, color="cyan")
 
-    experiment_id = json_param.get('experiment_id')
     documents = json_param.get('documents', {})
+    if type(documents) is str:
+        documents = json.loads(documents)
+    experiment_id = json_param.get('experiment_id')
     model = json_param.get('model')
 
     notify_url = json_param.get('callback')

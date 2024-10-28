@@ -66,7 +66,7 @@ def status(tracking_id: str, task_fct):
         log = task_fct.message().copy(message_id=tracking_id).get_result()
     except ResultMissing:
         # TODO check in what cases this happen (only after task execution?)
-        log = None
+        log = {"status": "PENDING", "infos": ["Task still running"]}
     except ResultFailure as e:
         log = {
             "status": "ERROR",

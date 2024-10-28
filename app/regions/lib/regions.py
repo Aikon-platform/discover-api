@@ -10,7 +10,7 @@ import torch
 from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from ...shared.utils.fileutils import sanitize_str, empty_file, send_update
 from ...shared.utils.download import download_dataset
-from ...shared.utils.logging import LoggingTaskMixin
+from ...shared.utils.logging import LoggingTaskMixin, console
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
 
@@ -299,15 +299,107 @@ class ExtractRegions:
 
 
 class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
+    # def run_task(self):
+    #     if not self.check_doc():
+    #         self.print_and_log_warning(
+    #             f"[task.extract_objects] No documents to annotate"
+    #         )
+    #         self.task_update(
+    #             "ERROR",
+    #             f"[API ERROR] Failed to download documents for {self.documents}",
+    #         )
+    #         return
+    #
+    #     model = DEFAULT_MODEL if self.model is None else self.model
+    #     weights = MODEL_PATH / model
+    #     extraction_model = model.split(".")[0]
+    #
+    #     error_list = []
+    #
+    #     try:
+    #         self.print_and_log(
+    #             f"[task.extract_objects] Extraction task triggered with {model}!"
+    #         )
+    #         self.task_update("STARTED")
+    #
+    #         for doc_id, document in self.documents.items():
+    #             try:
+    #                 self.print_and_log(
+    #                     f"[task.extract_objects] Downloading {doc_id}..."
+    #                 )
+    #                 # downloader = IIIFDownloader(document)
+    #                 # downloader.run()
+    #                 #
+    #                 # image_dir = downloader.get_dir_name()
+    #                 # digitization_ref = downloader.manifest_id
+    #                 image_dir, digitization_ref = download_dataset(document, datasets_dir_path=IMG_PATH)
+    #
+    #                 annotation_dir = (
+    #                     ANNO_PATH
+    #                     / extraction_model
+    #                     / sanitize_str(document.split("/")[2])
+    #                 )
+    #
+    #                 if not exists(annotation_dir):
+    #                     os.makedirs(annotation_dir)
+    #
+    #                 annotation_file = f"{annotation_dir}/{digitization_ref}.txt"
+    #                 empty_file(annotation_file)
+    #
+    #                 self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {document} 🕵️")
+    #
+    #                 digitization_path = IMG_PATH / image_dir
+    #                 for i, image in enumerate(sorted(os.listdir(digitization_path)), 1):
+    #                     self.print_and_log(f"====> Processing {image} 🔍")
+    #                     detect(
+    #                         weights=weights,
+    #                         source=digitization_path / image,
+    #                         anno_file=annotation_file,
+    #                         img_nb=i,
+    #                     )
+    #
+    #             except Exception as e:
+    #                 self.print_and_log_error(
+    #                     f"[task.regions] Error extraction regions for {document}",
+    #                     e=e,
+    #                 )
+    #                 error_list.append(
+    #                     f"[API ERROR] Regions extraction task failed for {document}"
+    #                 )
+    #
+    #             try:
+    #                 self.send_annotations(
+    #                     self.experiment_id,
+    #                     annotation_file,
+    #                     digitization_ref,
+    #                     extraction_model,
+    #                 )
+    #
+    #             except Exception as e:
+    #                 self.print_and_log_error(
+    #                     f"[task.regions] Failed to send annotation for {document}",
+    #                     e=e,
+    #                 )
+    #                 error_list.append(
+    #                     f"[API ERROR] Could not send annotation file for {document}"
+    #                 )
+    #                 return False
+    #
+    #             self.print_and_log(
+    #                 f"[task.regions] Successfully sent annotation for {document}"
+    #             )
+    #
+    #         self.task_update("SUCCESS", error_list if error_list else None)
+    #         return True
+    #
+    #     except Exception as e:
+    #         self.task_update("ERROR", error_list + [f"[API ERROR] {e}"])
+
+
     def run_task(self):
         if not self.check_doc():
-            self.print_and_log_warning(
-                f"[task.extract_objects] No documents to annotate"
-            )
-            self.task_update(
-                "ERROR",
-                f"[API ERROR] Failed to download documents for {self.documents}",
-            )
+            self.print_and_log_warning("[task.extract_objects] No documents to annotate")
+            self.task_update("ERROR", "[API ERROR] Failed to download documents for {self.documents}")
             return
 
         model = DEFAULT_MODEL if self.model is None else self.model
@@ -317,25 +409,14 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
         error_list = []
 
         try:
-            self.print_and_log(
-                f"[task.extract_objects] Extraction task triggered with {model}!"
-            )
+            self.print_and_log(f"[task.extract_objects] Extraction task triggered with {model}!")
             self.task_update("STARTED")
 
-            for document in self.documents.values():
+            for doc_id, document in self.documents.items():
                 try:
-                    # downloader = IIIFDownloader(document)
-                    # downloader.run()
-                    #
-                    # image_dir = downloader.get_dir_name()
-                    # digitization_ref = downloader.manifest_id
-                    image_dir, digitization_ref = download_dataset(document)
-
-                    annotation_dir = (
-                        ANNO_PATH
-                        / extraction_model
-                        / sanitize_str(document.split("/")[2])
-                    )
+                    self.print_and_log(f"[task.extract_objects] Downloading {doc_id}...")
+                    image_dir, digitization_ref = download_dataset(document, datasets_dir_path=IMG_PATH)
+                    annotation_dir = ANNO_PATH / extraction_model / sanitize_str(document.split("/")[2])
 
                     if not exists(annotation_dir):
                         os.makedirs(annotation_dir)
@@ -344,8 +425,8 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
                     empty_file(annotation_file)
 
                     self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {document} 🕵️")
-
                     digitization_path = IMG_PATH / image_dir
+
                     for i, image in enumerate(sorted(os.listdir(digitization_path)), 1):
                         self.print_and_log(f"====> Processing {image} 🔍")
                         detect(
@@ -355,39 +436,76 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
                             img_nb=i,
                         )
 
-                except Exception as e:
-                    self.print_and_log_error(
-                        f"[task.regions] Error extraction regions for {document}",
-                        e=e,
-                    )
-                    error_list.append(
-                        "[API ERROR] Regions extraction task failed for {document}"
-                    )
-
-                try:
                     self.send_annotations(
                         self.experiment_id,
                         annotation_file,
                         digitization_ref,
                         extraction_model,
                     )
+                    self.print_and_log(f"[task.regions] Successfully sent annotation for {document}")
 
                 except Exception as e:
-                    self.print_and_log_error(
-                        f"[task.regions] Failed to send annotation for {document}",
-                        e=e,
-                    )
-                    error_list.append(
-                        f"[API ERROR] Could not send annotation file for {document}"
-                    )
-                    return False
-
-                self.print_and_log(
-                    f"[task.regions] Successfully sent annotation for {document}"
-                )
+                    self.print_and_log_error(f"[task.regions] Error extracting regions for {document}", e=e)
+                    error_list.append(f"[API ERROR] Regions extraction task failed for {document}")
 
             self.task_update("SUCCESS", error_list if error_list else None)
             return True
 
         except Exception as e:
             self.task_update("ERROR", error_list + [f"[API ERROR] {e}"])
+            return False
+
+    # def run_task(self):
+    #     if not self.check_doc():
+    #         return self.task_update("ERROR", f"[API ERROR] No documents for {self.documents}")
+    #
+    #     model = DEFAULT_MODEL if self.model is None else self.model
+    #     weights = MODEL_PATH / model
+    #     error_list = []
+    #
+    #     self.print_and_log(f"[task.extract_objects] Starting extraction with {model}!")
+    #     self.task_update("STARTED")
+    #
+    #     for doc_id, document in self.documents.items():
+    #         if not self.process_document(doc_id, document, weights, error_list):
+    #             error_list.append(f"[API ERROR] Extraction failed for {doc_id}")
+    #
+    #     self.task_update("SUCCESS" if not error_list else "ERROR", error_list or None)
+    #
+    # def model_name(self):
+    #     return self.model.split(".")[0]
+    #
+    # def process_document(self, doc_id, document, weights, error_list):
+    #     try:
+    #         self.print_and_log(f"[task.extract_objects] Downloading {doc_id}...")
+    #         image_dir, digitization_ref = download_dataset(document, IMG_PATH)
+    #         annotation_file = self.get_anno_file(document, digitization_ref)
+    #
+    #         self.detect_elements(image_dir, weights, annotation_file)
+    #         return self.send_annotations_safe(document, annotation_file, digitization_ref, error_list)
+    #
+    #     except Exception as e:
+    #         self.print_and_log_error(f"[task.regions] Error processing {document}", e=e)
+    #         return False
+    #
+    # def get_anno_file(self, document, digitization_ref):
+    #     annotation_dir = ANNO_PATH / self.model_name / sanitize_str(document.split("/")[2])
+    #     os.makedirs(annotation_dir, exist_ok=True)
+    #     annotation_file = f"{annotation_dir}/{digitization_ref}.txt"
+    #     empty_file(annotation_file)
+    #     return annotation_file
+    #
+    # def detect_elements(self, image_dir, weights, annotation_file):
+    #     for i, image in enumerate(sorted(os.listdir(IMG_PATH / image_dir)), 1):
+    #         self.print_and_log(f"====> Processing {image} 🔍")
+    #         detect(weights=weights, source=IMG_PATH / image_dir / image, anno_file=annotation_file, img_nb=i)
+    #
+    # def send_annotations_safe(self, document, annotation_file, digitization_ref, error_list):
+    #     try:
+    #         self.send_annotations(self.experiment_id, annotation_file, digitization_ref, self.model_name)
+    #         self.print_and_log(f"[task.regions] Successfully sent annotation for {document}")
+    #         return True
+    #     except Exception as e:
+    #         self.print_and_log_error(f"[task.regions] Failed to send annotation for {document}", e=e)
+    #         error_list.append(f"[API ERROR] Failed to send annotation for {document}")
+    #         return False

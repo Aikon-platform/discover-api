@@ -278,7 +278,7 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
             )
 
     def download_documents(self):
-        # _, _, docs_ids = download_dataset(self.dataset, IMG_PATH, self.client_id)
+        # _, _, docs_ids = download_dataset(self.dataset, datasets_dir_path=IMG_PATH, dataset_dir_name=self.client_id)
         # self.doc_ids = docs_ids
         for doc_id, url in self.dataset.items():
             self.print_and_log(
