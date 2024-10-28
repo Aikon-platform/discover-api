@@ -13,7 +13,7 @@ addict
 cython
 pandas
 Pillow==9.5.0
-scipy
+scipy<1.13
 scikit-learn
 matplotlib
 opencv-python
