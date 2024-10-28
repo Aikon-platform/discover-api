@@ -10,7 +10,6 @@ from torch.utils.data import DataLoader
 
 from sklearn.metrics.pairwise import cosine_similarity
 
-
 from ..const import SCORES_PATH, IMG_PATH
 from .const import (
     SEG_STRIDE,
@@ -263,7 +262,7 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
         self.task_update("STARTED")
 
         try:
-            self.download_dataset()
+            self.download_documents()
             self.compute_and_send_scores()
 
             self.print_and_log(
@@ -278,7 +277,9 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
                 f"[API ERROR] Failed to compute and send similarity scores: {e}",
             )
 
-    def download_dataset(self):
+    def download_documents(self):
+        # _, _, docs_ids = download_dataset(self.dataset, IMG_PATH, self.client_id)
+        # self.doc_ids = docs_ids
         for doc_id, url in self.dataset.items():
             self.print_and_log(
                 f"[task.similarity] Processing {doc_id}...", color="blue"

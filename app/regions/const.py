@@ -21,8 +21,4 @@ MODEL_PATH = EXT_DATA_FOLDER / "models"
 
 create_dirs_if_not([IMG_PATH, MAN_PATH, ANNO_PATH, MODEL_PATH])
 
-IMG_LOG = Path(f"{DEMO_DIR}/img.log")
-
-create_file_if_not(IMG_LOG)
-
 DEFAULT_MODEL = "best_eida.pt"

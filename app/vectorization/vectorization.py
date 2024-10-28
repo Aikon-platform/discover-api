@@ -97,7 +97,7 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
                 self.print_and_log(
                     f"[task.vectorization] Vectorization task triggered for {doc_id} !"
                 )
-                self.download_dataset(doc_id, document)
+                self.download_document(doc_id, document)
 
                 output_dir = VEC_RESULTS_PATH / doc_id
                 os.makedirs(output_dir, exist_ok=True)
@@ -122,13 +122,13 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
             self.print_and_log(f"Error when computing vectorization", e=e)
             self.task_update("ERROR", f"[API ERROR] Vectorization task failed: {e}")
 
-    def download_dataset(self, doc_id, document):
+    def download_document(self, doc_id, document):
         self.print_and_log(
             f"[task.vectorization] Downloading {doc_id} images...", color="blue"
         )
         if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
             self.print_and_log(
-                f"[task.similarity] {doc_id} already downloaded. Skipping..."
+                f"[task.vectorization] {doc_id} already downloaded. Skipping..."
             )
             return
 

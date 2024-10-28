@@ -9,8 +9,8 @@ import torch
 
 from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from ...shared.utils.fileutils import sanitize_str, empty_file, send_update
+from ...shared.utils.download import download_dataset
 from ...shared.utils.logging import LoggingTaskMixin
-from ...shared.utils.iiif import IIIFDownloader
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
 
@@ -324,11 +324,13 @@ class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
 
             for document in self.documents.values():
                 try:
-                    downloader = IIIFDownloader(document)
-                    downloader.run()
+                    # downloader = IIIFDownloader(document)
+                    # downloader.run()
+                    #
+                    # image_dir = downloader.get_dir_name()
+                    # digitization_ref = downloader.manifest_id
+                    image_dir, digitization_ref = download_dataset(document)
 
-                    image_dir = downloader.get_dir_name()
-                    digitization_ref = downloader.manifest_id
                     annotation_dir = (
                         ANNO_PATH
                         / extraction_model

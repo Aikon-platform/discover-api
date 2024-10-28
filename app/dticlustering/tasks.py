@@ -1,7 +1,6 @@
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional
-import requests
 from zipfile import ZipFile
 from PIL import Image
 
@@ -11,6 +10,7 @@ from .training import (
     run_kmeans_training,
     run_sprites_training,
 )
+from ..shared.utils.download import download_dataset
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
@@ -47,20 +47,21 @@ def train_dti(
     dataset_ready_file = dataset_path / "ready.meta"
 
     if not dataset_ready_file.exists():
-        dataset_path.mkdir(parents=True, exist_ok=True)
-        dataset_zip_path = dataset_path / "dataset.zip"
-
-        with requests.get(dataset_url, stream=True) as r:
-            r.raise_for_status()
-            with open(dataset_zip_path, "wb") as f:
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-        # Unzip dataset
-        with ZipFile(dataset_zip_path, "r") as zipObj:
-            zipObj.extractall(dataset_path / "train")
-
-        dataset_zip_path.unlink()
+        # dataset_path.mkdir(parents=True, exist_ok=True)
+        # dataset_zip_path = dataset_path / "dataset.zip"
+        #
+        # with requests.get(dataset_url, stream=True) as r:
+        #     r.raise_for_status()
+        #     with open(dataset_zip_path, "wb") as f:
+        #         for chunk in r.iter_content(chunk_size=8192):
+        #             f.write(chunk)
+        #
+        # # Unzip dataset
+        # with ZipFile(dataset_zip_path, "r") as zipObj:
+        #     zipObj.extractall(dataset_path / "train")
+        #
+        # dataset_zip_path.unlink()
+        download_dataset(dataset_url, dataset_path, "train")
 
         # Create ready file
         dataset_ready_file.touch()

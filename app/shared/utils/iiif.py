@@ -1,15 +1,23 @@
 import glob
 import os
 import time
-from pathlib import Path
-
 import requests
+
+from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from urllib.parse import urlparse
+
 
 from ...regions.const import IMG_PATH
 from .fileutils import check_dir, sanitize_str, sanitize_url
 from .logging import console
+
+
+def is_iiif_manifest(json_content):
+    try:
+        return "@context" in json_content
+    except (requests.RequestException, ValueError, KeyError):
+        return False
 
 
 def get_json(url):
@@ -119,11 +127,25 @@ class IIIFDownloader:
         self.sleep = sleep
         self.max_dim = max_dim  # Maximal height in px
 
+    def run(self):
+        manifest = self.check_url()
+        self.download_manifest(manifest)
+
     def get_dir_name(self):
         return sanitize_str(self.manifest_url).replace("manifest", "").replace("json", "")
 
-    def run(self):
-        manifest = get_json(self.manifest_url)
+    def check_url(self):
+        try:
+            manifest = get_json(self.manifest_url)
+            if not manifest:
+                raise ValueError("Failed to load json content")
+            if not is_iiif_manifest(manifest):
+                raise ValueError("URL content is not a valid IIIF manifest")
+        except Exception as e:
+            raise ValueError(f"Failed to load manifest: {e}")
+        return manifest
+
+    def download_manifest(self, manifest):
         self.manifest_id = self.manifest_id + self.get_manifest_id(manifest)
         if manifest is not None:
             console(f"Processing {self.manifest_url}...")
