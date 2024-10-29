@@ -61,7 +61,7 @@ def train_dti(
         #     zipObj.extractall(dataset_path / "train")
         #
         # dataset_zip_path.unlink()
-        download_dataset(dataset_url, datasets_dir_path=dataset_path, sub_dir="train")
+        download_dataset(dataset_url, datasets_dir_path=DATASETS_PATH, dataset_dir_name=f"generic/{dataset_id}", sub_dir="train")
 
         # Create ready file
         dataset_ready_file.touch()
