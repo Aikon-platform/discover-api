@@ -6,8 +6,8 @@ from .lib.regions import LoggedExtractRegions
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
-# @notifying # TODO implement results return with notifying
 @dramatiq.actor(time_limit=1000 * 60 * 60, max_retries=0, queue_name=EXT_QUEUE)
+@notifying
 def extract_objects(
     experiment_id: str,
     documents: dict,
