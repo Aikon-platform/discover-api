@@ -22,17 +22,16 @@ def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None,
         datasets_dir_path = Path(datasets_dir_path)
 
     if not dataset_dir_name:
-        dataset_dir_name = sanitize_str(dataset_src).replace("manifest", "").replace("json", "")
+        # TODO improve this
+        dataset_dir_name = sanitize_str(dataset_ref or dataset_src).replace("manifest", "").replace("json", "")
 
     dataset_path = datasets_dir_path / dataset_dir_name
 
     # if dataset_src is a URL
     if all([urlparse(dataset_src).scheme, urlparse(dataset_src).netloc]):
-        console(f"{dataset_src} is an URL", color="green")
-
+        # TODO improve check on URL type
         if dataset_src.endswith(".zip"):
             # ZIP FILE
-            console(f"{dataset_src} is an ZIP", color="red")
             dataset_path.mkdir(parents=True, exist_ok=True)
             dataset_zip_path = dataset_path / "dataset.zip"
 
@@ -51,10 +50,7 @@ def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None,
             # IIIF MANIFEST
             downloader = IIIFDownloader(dataset_src, img_dir=datasets_dir_path)
             downloader.run()
-            dataset_dir_name = downloader.get_dir_name()
-            dataset_ref = downloader.manifest_id
-            console(f"{dataset_dir_name} has worked", color="red")
-            return dataset_dir_name, dataset_ref
+            return downloader.get_dir_name(), downloader.manifest_id
 
     elif type(dataset_src) is dict:
         # LIST OF URLS
@@ -71,4 +67,4 @@ def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None,
     else:
         console(f"{dataset_src} format is not handled for a dataset", color="yellow")
 
-    return dataset_dir_name, dataset_ref
+    return dataset_dir_name, dataset_ref or dataset_dir_name

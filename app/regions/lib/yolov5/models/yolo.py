@@ -186,7 +186,7 @@ class BaseModel(nn.Module):
 
     def fuse(self):
         """Fuses Conv2d() and BatchNorm2d() layers in the model to improve inference speed."""
-        LOGGER.info("Fusing layers... ")
+        # LOGGER.info("Fusing layers... ")
         for m in self.model.modules():
             if isinstance(m, (Conv, DWConv)) and hasattr(m, "bn"):
                 m.conv = fuse_conv_and_bn(m.conv, m.bn)  # update conv

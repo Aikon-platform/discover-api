@@ -7,7 +7,7 @@ from flask import request, jsonify, Blueprint
 from ..main import app
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import EXT_RESULTS_PATH, MODEL_PATH, IMG_PATH
+from .const import ANNO_PATH, MODEL_PATH, IMG_PATH
 from ..shared.utils.fileutils import delete_path, sanitize_str
 from ..shared.utils.logging import console
 
@@ -78,7 +78,7 @@ def qsizes_regions_extraction():
 
 @blueprint.route("monitor", methods=["GET"])
 def monitor_regions_extraction():
-    return shared_routes.monitor(EXT_RESULTS_PATH, extract_objects.broker)
+    return shared_routes.monitor(ANNO_PATH, extract_objects.broker)
 
 
 @blueprint.route("models", methods=['GET'])
