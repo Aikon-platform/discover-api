@@ -30,7 +30,7 @@ def start_clustering():
     - notify_url [optional]: the URL to be called when the task is finished
     - parameters [optional]: a JSON object containing the parameters to be used
 
-    The callback_url will be called with a JSON object containing the following keys:
+    The notify_url will be called with a JSON object containing the following keys:
     - tracking_id: the task ID
     - result_url: the URL from which to fetch the results
     """
@@ -67,7 +67,7 @@ def status_clustering(tracking_id: str):
 
 @blueprint.route("<tracking_id>/result", methods=["GET"])
 def result_clustering(tracking_id: str):
-    return shared_routes.result(tracking_id, DTI_RESULTS_PATH, DTI_XACCEL_PREFIX)
+    return shared_routes.result(tracking_id, DTI_RESULTS_PATH, DTI_XACCEL_PREFIX, "zip")
 
 
 @blueprint.route("qsizes", methods=["GET"])

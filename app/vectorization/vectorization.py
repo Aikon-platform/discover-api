@@ -8,9 +8,9 @@ import torch
 from pathlib import Path
 from typing import Optional
 
-from ..shared.utils.fileutils import send_update, download_file, has_content
+from ..shared.utils.fileutils import download_file, has_content
 from ..shared.utils.img import download_img, get_img_paths
-from ..shared.utils.logging import LoggingTaskMixin
+from ..shared.utils.logging import LoggingTaskMixin, send_update
 from .const import IMG_PATH, MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH
 
 from .lib.src import build_model_main

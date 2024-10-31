@@ -7,7 +7,7 @@ from flask import request, jsonify, Blueprint
 from ..main import app
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import ANNO_PATH, MODEL_PATH, IMG_PATH
+from .const import ANNO_PATH, MODEL_PATH, IMG_PATH, EXT_XACCEL_PREFIX
 from ..shared.utils.fileutils import delete_path, sanitize_str
 from ..shared.utils.logging import console
 
@@ -19,32 +19,36 @@ blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 @shared_routes.error_wrapper
 def start_regions_extraction(client_id):
     """
-        manifests = {
-            "wit3": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json",
-            "wit87": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json",
-            "wit2": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"
-        }
-        Extract regions for images from a list of IIIF URLs.
-        """
+    manifests = {
+        "wit3": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json",
+        "wit87": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json",
+        "wit2": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"
+    }
+    Extract regions for images from a list of IIIF URLs.
+    """
 
-    if request.is_json:
-        json_param = request.get_json()
-    else:
-        json_param = request.form.to_dict()
+    # if request.is_json:
+    #     json_param = request.get_json()
+    # else:
+    #     json_param = request.form.to_dict()
+    #
+    # if not json_param:
+    #     return "No data in request: Regions extraction task aborted!"
+    #
+    # console(json_param, color="cyan")
+    # experiment_id = json_param.get('experiment_id')
+    # notify_url = json_param.get('notify_url') or json_param.get('callback')
+    # tracking_url = json_param.get("tracking_url")
 
-    if not json_param:
-        return "No data in request: Regions extraction task aborted!"
+    experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(
+        request, ["documents", "model"]
+    )
 
-    console(json_param, color="cyan")
-
-    documents = json_param.get('documents', {})
+    documents = param.get('documents', {})
     if type(documents) is str:
         documents = json.loads(documents)
-    experiment_id = json_param.get('experiment_id')
-    model = json_param.get('model')
 
-    notify_url = json_param.get('callback')
-    tracking_url = json_param.get("tracking_url")
+    model = param.get('model')
 
     return shared_routes.start_task(
         extract_objects,
@@ -81,6 +85,11 @@ def monitor_regions_extraction():
     return shared_routes.monitor(ANNO_PATH, extract_objects.broker)
 
 
+# @blueprint.route("<tracking_id>/result", methods=["GET"])
+# def result_extraction(tracking_id: str):
+#     return shared_routes.result(tracking_id, ANNO_PATH, EXT_XACCEL_PREFIX, "json")
+
+
 @blueprint.route("models", methods=['GET'])
 def get_models():
     models_info = {}
@@ -100,9 +109,9 @@ def get_models():
 
 @blueprint.route("clear", methods=["POST"])
 def clear_images():
-    manifest_url = request.form['manifest_url']
-    dir_path = os.path.join(IMG_PATH, sanitize_str(manifest_url).replace("manifest", "").replace("json", ""))
-
+    dataset_id = request.form['dataset_id']
+    # TODO change inside front ends to send correct path for dataset
+    #  (for AIKON: "{app_name}_{digit_ref}" / for dicover-demo "{dataset_id}")
     return {
-        "cleared_img_dir": 1 if delete_path(IMG_PATH / dir_path) else 0,
+        "cleared_img_dir": 1 if delete_path(IMG_PATH / dataset_id) else 0,
     }

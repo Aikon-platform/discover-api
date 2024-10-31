@@ -24,6 +24,7 @@ def train_dti(
     dataset_url: str,
     parameters: Optional[dict] = None,
     logger: TLogger = LoggerHelper,
+    notifier=None,
 ):
     """
     Train a DTI model

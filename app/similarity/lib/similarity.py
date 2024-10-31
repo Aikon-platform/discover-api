@@ -26,9 +26,9 @@ from .segswap import load_backbone, load_encoder, resize, compute_score
 from .utils import get_model_path, doc_pairs
 
 from ...shared.utils import get_device
-from ...shared.utils.fileutils import send_update, has_content
+from ...shared.utils.fileutils import has_content
 from ...shared.utils.img import download_images
-from ...shared.utils.logging import LoggingTaskMixin, console
+from ...shared.utils.logging import LoggingTaskMixin, console, send_update
 
 
 def get_doc_feat(doc_id, feat_net=FEAT_NET, feat_set=FEAT_SET, feat_layer=FEAT_LAYER):

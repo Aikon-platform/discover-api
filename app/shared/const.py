@@ -3,6 +3,7 @@ from ..shared.utils.fileutils import create_file_if_not, create_dirs_if_not
 from ..config.base import BASE_DIR, API_DATA_FOLDER
 
 DIR_NAME = "shared"
+DEMO_NAME = DIR_NAME
 
 # Path to shared/ folder
 SHARED_DIR = BASE_DIR / "app" / DIR_NAME

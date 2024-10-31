@@ -323,7 +323,7 @@ class JobLogger:
         title="",
         key: Optional[str] = None,
         end=False,
-        print: bool = False,
+        display: bool = False,
         send: bool = True,
         **kwargs,
     ) -> None:
@@ -345,7 +345,7 @@ class JobLogger:
             "context": title,
         }
 
-        if print:
+        if display:
             LoggerHelper.progress(current, total, title=title, **kwargs)
 
         if send:
@@ -381,13 +381,13 @@ class JobLogger:
 def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     """
     A decorator to notify the task of the progress of a function
+    Sends back to frontend the results returned be the task when it is done
     """
-
-    def wrapper(func: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(func)
+    def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fct)
         def execute(*args, notify_url: Optional[str] = None, **kwargs):
             logger = JobLogger.getLogger(create=True)
-            logger.info(f"Starting task {func.__name__}")
+            logger.info(f"Starting task {fct.__name__}")
             current_task_id = getattr(logger, "_id", None)
 
             def notify(event: str, **data):
@@ -399,13 +399,13 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
 
             try:
                 notify("STARTED")
-                result = func(*args, **kwargs, logger=logger)
+                result = fct(*args, **kwargs, logger=logger, notifier=notify)
+                # dispatch results to frontend
                 notify("SUCCESS", success=True, output=result)
 
                 return result
             except Exception as e:
-                logger.error(f"Error in task {func.__name__}", exception=e)
-
+                logger.error(f"Error in task {fct.__name__}", exception=e)
                 try:
                     notify("ERROR", error=traceback.format_exc())
                 except Exception as e:
@@ -413,10 +413,7 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
 
         return execute
 
-    if func is None:
-        return wrapper
-
-    return wrapper(func)
+    return wrapper if func is None else wrapper(func)
 
 
 class LoggedResults(Results):
@@ -429,7 +426,7 @@ class LoggedResults(Results):
 
 
 def console(msg, color="bold", e: Optional[Exception] = None):
-    base_logger.info(f"\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n")
+    base_logger.info(f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n")
     if e:
         base_logger.info(
             f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
@@ -463,3 +460,16 @@ class LoggingTaskMixin:
     def run_task(self, *args, **kwargs):
         result = super().run_task(*args, **kwargs)
         return result
+
+
+def send_update(experiment_id, tracking_url, event, message):
+    response = requests.post(
+        url=tracking_url,
+        data={
+            "experiment_id": experiment_id,
+            "event": event,
+            "message": message if message else "",
+        },
+    )
+    response.raise_for_status()
+    return True

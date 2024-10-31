@@ -7,6 +7,7 @@ from dramatiq.results import ResultMissing, ResultFailure
 import traceback
 
 from .utils import hash_str
+from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
@@ -37,6 +38,25 @@ def get_client_id(func):
     return decorator
 
 
+def receive_task(req, additional_params=None):
+    param = req.get_json() if req.is_json else req.form.to_dict()
+    if not param:
+        raise ValueError("No data in request: Task aborted!")
+
+    console(param, color="cyan")
+
+    experiment_id = param.get('experiment_id')
+    tracking_url = param.get("tracking_url")
+    # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
+    notify_url = param.get('notify_url') or param.get('callback')
+
+    # task_kwargs = {}
+    # for param_name in additional_params:
+    #     task_kwargs[param_name] = param.get(param_name, None)
+
+    return experiment_id, notify_url, tracking_url, param
+
+
 def start_task(task_fct, experiment_id, task_kwargs):
     """
     Start a new task
@@ -65,29 +85,27 @@ def status(tracking_id: str, task_fct):
     try:
         log = task_fct.message().copy(message_id=tracking_id).get_result()
     except ResultMissing:
-        # TODO check in what cases this happen (only after task execution?)
         log = {"status": "PENDING", "infos": ["Task still running"]}
     except ResultFailure as e:
         log = {
             "status": "ERROR",
             "infos": [f"Error: Actor raised {e.orig_exc_type} ({e.orig_exc_msg})"],
         }
-
     return {
         "tracking_id": tracking_id,
         "log": log,
     }
 
 
-def result(tracking_id: str, results_dir, xaccel_prefix):
+def result(tracking_id: str, results_dir, xaccel_prefix, extension="zip"):
     """
     Get the result of a task
     """
     if not config.USE_NGINX_XACCEL:
-        return send_from_directory(results_dir, f"{slugify(tracking_id)}.zip")
+        return send_from_directory(results_dir, f"{slugify(tracking_id)}.{extension}")
 
     return xaccel_send_from_directory(
-        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.zip"
+        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.{extension}"
     )
 
 

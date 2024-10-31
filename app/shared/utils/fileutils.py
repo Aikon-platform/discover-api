@@ -166,19 +166,6 @@ def empty_file(string):
         open(string, "w").close()
 
 
-def send_update(experiment_id, tracking_url, event, message):
-    response = requests.post(
-        url=tracking_url,
-        data={
-            "experiment_id": experiment_id,
-            "event": event,
-            "message": message if message else "",
-        },
-    )
-    response.raise_for_status()
-    return True
-
-
 def file_age(path=__file__):
     """
     Calculates and returns the age of a file in days based on its last modification time.

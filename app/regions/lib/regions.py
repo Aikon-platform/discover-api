@@ -8,9 +8,10 @@ import requests
 import torch
 
 from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
-from ...shared.utils.fileutils import sanitize_str, empty_file, send_update
+from ...shared.tasks import LoggedTask, Task
+from ...shared.utils.fileutils import empty_file
 from ...shared.utils.download import download_dataset
-from ...shared.utils.logging import LoggingTaskMixin, console
+from ...shared.utils.logging import LoggingTaskMixin, send_update
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
 
@@ -246,19 +247,16 @@ def detect(
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
 
-class ExtractRegions:
+class ExtractRegions(Task):
     def __init__(
         self,
-        experiment_id: str,
         documents: dict,
         model: Optional[str] = None,
-        notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
+        *args,
+        **kwargs
     ):
-        self.experiment_id = experiment_id
+        super().__init__(*args, **kwargs)
         self.documents = documents
-        self.notify_url = notify_url
-        self.tracking_url = tracking_url
         self._model = model
         self._extraction_model: Optional[str] = None
 
@@ -276,20 +274,11 @@ class ExtractRegions:
             self._extraction_model = self.model.split(".")[0]
         return self._extraction_model
 
-    def run_task(self):
-        pass
-
     def check_doc(self):
         # TODO check URL in document list
         if not self.documents:
             return False
         return True
-
-    def task_update(self, event, message=None):
-        if self.tracking_url:
-            send_update(self.experiment_id, self.tracking_url, event, message)
-            return True
-        return False
 
     def send_annotations(
         self, experiment_id, annotation_file, dataset_ref
@@ -312,14 +301,9 @@ class ExtractRegions:
         return True
 
 
-class LoggedExtractRegions(LoggingTaskMixin, ExtractRegions):
+class LoggedExtractRegions(LoggedTask, ExtractRegions):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.error_list: List[str] = []
-
-    def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
-        self.print_and_log_error(f"[task.regions] {message}", e=exception)
-        self.error_list.append(f"[API ERROR] {message}")
 
     def process_img(
         self,
