@@ -7,7 +7,7 @@ import requests
 import torch
 
 from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
-from ...shared.tasks import LoggedTask, Task
+from ...shared.tasks import LoggedTask
 from ...shared.utils.fileutils import empty_file
 from ...shared.utils.download import download_dataset
 
@@ -246,7 +246,7 @@ def detect(
         strip_optimizer(weights[0])  # update model (to fix SourceChangeWarning)
 
 
-class ExtractRegions(Task):
+class ExtractRegions(LoggedTask):
     def __init__(
         self,
         documents: dict,
@@ -273,15 +273,19 @@ class ExtractRegions(Task):
             self._extraction_model = self.model.split(".")[0]
         return self._extraction_model
 
-    def check_doc(self):
-        # TODO check URL in document list
+    def check_doc(self) -> bool:
+        # TODO improve check regarding documents content
         if not self.documents:
             return False
         return True
 
     def send_annotations(
-        self, experiment_id, annotation_file, dataset_ref
-    ):
+        self,
+        experiment_id: str,
+        annotation_file: Path,
+        dataset_ref: str
+    ) -> bool:
+        # TODO remove and use @notifying only
         if not self.notify_url:
             return False
 
@@ -299,11 +303,6 @@ class ExtractRegions(Task):
         response.raise_for_status()
         return True
 
-
-class LoggedExtractRegions(LoggedTask, ExtractRegions):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def process_img(
         self,
         img_path: Path,
@@ -319,13 +318,13 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
                 anno_file=str(annotation_file),
                 img_nb=img_number,
             )
+            return True
         except Exception as e:
             self.handle_error(
                 f"Error processing image {filename}",
                 exception=e
             )
             return False
-        return True
 
     def process_doc_imgs(
         self,
@@ -335,7 +334,9 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
         images = get_img_paths(dataset_path)
         try:
             for i, image in enumerate(images, 1):
-                self.process_img(image, annotation_file, i)
+                success = self.process_img(image, annotation_file, i)
+                if not success:
+                    self.handle_error(f"Failed to process {image}")
         except Exception as e:
             self.handle_error(
                 f"Error processing images for {dataset_path}",
@@ -350,7 +351,7 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
         doc_url: str,
     ) -> bool:
         try:
-            self.print_and_log(f"[task.extract_objects] Downloading {doc_id}...")
+            self.print_and_log(f"[task.extract_regions] Downloading {doc_id}...")
 
             image_dir, dataset_ref = download_dataset(
                 doc_url,
@@ -360,25 +361,20 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
 
             annotation_dir = ANNO_PATH / dataset_ref
             os.makedirs(annotation_dir, exist_ok=True)
-
             # TODO check which name to use / which directory structure is better
             annotation_file = annotation_dir / f"{self.extraction_model}_{self.experiment_id}.txt"
             empty_file(annotation_file)
 
-            # Process images
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc_url} 🕵️")
-            dataset_path = IMG_PATH / image_dir
-            self.process_doc_imgs(dataset_path, annotation_file)
-
-            # Send annotations
-            success = self.send_doc_regions(
-                doc_url,
-                annotation_file,
-                dataset_ref,
-            )
+            success = self.process_doc_imgs(IMG_PATH / image_dir, annotation_file)
+            if success:
+                success = self.send_annotations(
+                    self.experiment_id,
+                    annotation_file,
+                    dataset_ref,
+                )
 
             return success
-
         except Exception as e:
             self.handle_error(
                 f"Error processing document {doc_url}",
@@ -386,35 +382,10 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
             )
             return False
 
-    def send_doc_regions(
-        self,
-        document: str,
-        annotation_file: Path,
-        dataset_ref: str,
-    ) -> bool:
-        """Send annotations for a document"""
-        try:
-            self.send_annotations(
-                self.experiment_id,
-                annotation_file,
-                dataset_ref,
-            )
-            self.print_and_log(
-                f"[task.regions] Successfully sent annotation for {document}"
-            )
-            return True
-        except Exception as e:
-            self.handle_error(
-                f"Failed to send annotation for {document}",
-                exception=e
-            )
-            return False
-
     def run_task(self) -> bool:
-        """Main task execution method"""
         if not self.check_doc():
             self.print_and_log_warning(
-                "[task.extract_objects] No documents to annotate"
+                "[task.extract_regions] No documents to annotate"
             )
             self.task_update(
                 "ERROR",
@@ -422,12 +393,12 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
             )
             return False
 
-        try:
-            self.print_and_log(
-                f"[task.extract_objects] Extraction task triggered with {self.model}!"
-            )
-            self.task_update("STARTED")
+        self.task_update("STARTED")
+        self.print_and_log(
+            f"[task.extract_regions] Extraction task triggered with {self.model}!"
+        )
 
+        try:
             all_successful = True
             for doc_id, dataset_url in self.documents.items():
                 success = self.process_doc(doc_id, dataset_url)
@@ -436,7 +407,6 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
             status = "SUCCESS" if all_successful else "ERROR"
             self.task_update(status, self.error_list if self.error_list else None)
             return all_successful
-
         except Exception as e:
             self.handle_error(str(e))
             self.task_update("ERROR", self.error_list)
