@@ -30,6 +30,7 @@ class Task:
             if event == "ERROR":
                 self.notifier(event, message=message)
                 raise Exception(message)
+                # make frontend/task stop
 
     class Meta:
         abstract = True

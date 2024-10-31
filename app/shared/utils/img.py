@@ -1,5 +1,7 @@
 import os
 import sys
+from pathlib import Path
+from typing import List
 
 import requests
 import urllib.request
@@ -8,6 +10,7 @@ import shutil
 
 from PIL import Image
 
+from .fileutils import get_all_files
 from ..const import UTILS_DIR
 from .logging import console
 
@@ -105,20 +108,26 @@ def download_images(url, doc_id, img_path, max_dim=MAX_SIZE):
     return paths
 
 
-def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")):
-    images = []
-    for file_ in os.listdir(img_dir):
-        if file_.endswith(img_ext):
-            images.append(os.path.join(img_dir, file_))
-        else:
-            sys.stderr.write(
-                f"Image format is not compatible in {file_}. Skipping this file.\n"
-            )
-    return sorted(images)
+def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")) -> list[Path]:
+    """
+    Get all image paths in a directory
+    """
+    # img_dir = Path(img_dir)
+    # images = []
+    # for file_ in os.listdir(img_dir):
+    #     if file_.endswith(img_ext):
+    #         images.append(os.path.join(img_dir, file_))
+    #     else:
+    #         sys.stderr.write(
+    #             f"Image format is not compatible in {file_}. Skipping this file.\n"
+    #         )
+    # return sorted(images)
+    return get_all_files(img_dir, img_ext)
 
 
-def get_imgs_in_dirs(img_dirs):
+def get_imgs_in_dirs(img_dirs) -> list[str]:
     images = []
     for img_dir in img_dirs:
-        images.extend(get_img_paths(img_dir))
+        # TODO check if necessary to transform to strings (used only for similarity dataset)
+        images.extend([str(img) for img in get_img_paths(img_dir)])
     return images

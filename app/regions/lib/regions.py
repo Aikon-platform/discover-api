@@ -1,9 +1,8 @@
 import os
 import platform
 import sys
-from os.path import exists
 from pathlib import Path
-from typing import Optional, List
+from typing import Optional
 import requests
 import torch
 
@@ -11,7 +10,6 @@ from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from ...shared.tasks import LoggedTask, Task
 from ...shared.utils.fileutils import empty_file
 from ...shared.utils.download import download_dataset
-from ...shared.utils.logging import LoggingTaskMixin, send_update
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
 
@@ -36,6 +34,7 @@ from .yolov5.utils.general import (
     xyxy2xywh,
 )
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
+from ...shared.utils.img import get_img_paths
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -307,22 +306,22 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
 
     def process_img(
         self,
-        image: str,
-        image_path: Path,
+        img_path: Path,
         annotation_file: Path,
         img_number: int
     ) -> bool:
+        filename = img_path.name
         try:
-            self.print_and_log(f"====> Processing {image} 🔍")
+            self.print_and_log(f"====> Processing {filename} 🔍")
             detect(
                 weights=self.weights,
-                source=image_path / image,
+                source=img_path,
                 anno_file=str(annotation_file),
                 img_nb=img_number,
             )
         except Exception as e:
             self.handle_error(
-                f"Error processing image {image}",
+                f"Error processing image {filename}",
                 exception=e
             )
             return False
@@ -333,10 +332,10 @@ class LoggedExtractRegions(LoggedTask, ExtractRegions):
         dataset_path: Path,
         annotation_file: Path
     ) -> bool:
-        images = sorted(os.listdir(dataset_path))
+        images = get_img_paths(dataset_path)
         try:
             for i, image in enumerate(images, 1):
-                self.process_img(image, dataset_path, annotation_file, i)
+                self.process_img(image, annotation_file, i)
         except Exception as e:
             self.handle_error(
                 f"Error processing images for {dataset_path}",

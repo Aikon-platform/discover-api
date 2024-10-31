@@ -8,7 +8,7 @@ from datetime import datetime
 from os.path import exists
 from pathlib import Path
 from slugify import slugify
-from typing import Union
+from typing import Union, Optional, Set, List
 from flask import Response
 
 from .logging import console
@@ -197,3 +197,41 @@ def download_file(url, filepath):
             file.write(response.content)
         return
     console(f"Failed to download the file. Status code: {response.status_code}", "red")
+
+
+def get_all_files(
+    directory: str | Path,
+    extensions: Optional[Set[str]] = None,
+    exclude_dirs: Optional[Set[str]] = None
+) -> List[Path]:
+    """
+    Get all files in a directory and its subdirectories.
+
+    Args:
+        directory: Base directory path
+        extensions: Optional set of extensions to filter files (e.g. {'.txt', '.pdf'})
+        exclude_dirs: Optional set of directory names to exclude from search
+
+    Returns:
+        List of Path objects for all matching files
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+
+    if not directory.exists():
+        return []
+
+    files = []
+    try:
+        for item in directory.rglob("*"):
+            if exclude_dirs and any(p.name in exclude_dirs for p in item.parents):
+                continue
+
+            if item.is_file():
+                if extensions is None or item.suffix.lower() in extensions:
+                    files.append(item)
+    except PermissionError:
+        # no permission to directories
+        pass
+
+    return sorted(files)
