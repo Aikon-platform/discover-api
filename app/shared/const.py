@@ -13,5 +13,8 @@ UTILS_DIR = SHARED_DIR / "utils"
 IMG_LOG = Path(f"{SHARED_DIR}/img.log")
 IMG_PATH = EXT_DATA_FOLDER / "images"
 
+DATASETS_PATH = EXT_DATA_FOLDER / "datasets"
+DOCUMENTS_PATH = EXT_DATA_FOLDER / "documents"
+
 create_file_if_not(IMG_LOG)
 create_dirs_if_not([IMG_PATH])

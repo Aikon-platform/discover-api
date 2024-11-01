@@ -30,6 +30,12 @@ def save_img(
     max_dim=MAX_SIZE,
     img_format="JPEG",
 ):
+    """
+    Save an image to a file
+    Resize the image if it is larger than the max_dim
+    Convert the image to RGB if it is not already in that mode
+    Filename should not include the extension
+    """
     try:
         if img.mode != "RGB":
             img = img.convert("RGB")
@@ -52,26 +58,34 @@ def save_img(
         console(f"Failed to save {img_filename} as JPEG", e=e)
         return False
 
-
+@DeprecationWarning
 def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
-    doc_dir = f"{img_path}/{doc_id}"
+    return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
+
+
+def download_image(img_url, target_dir, target_filename, max_dim=MAX_SIZE):
+    """
+    Download an image from a URL and save it to a target file
+    If the image is not valid, a placeholder image is saved instead
+    Filename should not include the extension
+    """
     try:
         with requests.get(img_url, stream=True) as response:
             response.raw.decode_content = True
             img = Image.open(response.raw)
-            save_img(img, img_name, doc_dir, max_dim)
+            save_img(img, target_filename, target_dir, max_dim)
 
     except requests.exceptions.RequestException as e:
         shutil.copyfile(
             f"{UTILS_DIR}/img/placeholder.jpg",
-            f"{doc_dir}/{img_name}",
+            f"{target_dir}/{target_filename}",
         )
         # log_failed_img(f"{doc_dir}/{img_name}", img_url)
         console(f"[download_img] {img_url} is not a valid img file", e=e)
     except Exception as e:
         shutil.copyfile(
             f"{UTILS_DIR}/img/placeholder.jpg",
-            f"{doc_dir}/{img_name}",
+            f"{target_dir}/{target_filename}",
         )
         # log_failed_img(f"{doc_dir}/{img_name}", img_url)
         console(f"[download_img] {img_url} image was not downloaded", e=e)

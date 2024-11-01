@@ -6,7 +6,7 @@ from .. import config
 from .const import EXT_QUEUE, DEMO_NAME
 from .regions import ExtractRegions
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
-
+from ..shared.dataset import Dataset
 
 @dramatiq.actor(
     time_limit=1000 * 60 * 60,
@@ -17,7 +17,7 @@ from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 @notifying
 def extract_objects(
     experiment_id: str,
-    documents: dict,
+    dataset: str,
     model: Optional[str] = None,
     notify_url: Optional[str] = None,
     tracking_url: Optional[str] = None,
@@ -26,9 +26,10 @@ def extract_objects(
 ):
     current_task = CurrentMessage.get_current_message()
     current_task_id = current_task.message_id
+    dataset = Dataset(dataset, load=True)
 
     regions_extraction_task = ExtractRegions(
-        documents=documents,
+        dataset=dataset,
         model=model,
         logger=logger,
         experiment_id=experiment_id,

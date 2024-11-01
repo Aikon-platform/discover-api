@@ -7,6 +7,7 @@ import requests
 from .const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from .lib.extract import extract
 from ..shared.tasks import LoggedTask
+from ..shared.dataset import Document, Dataset
 from ..shared.utils.fileutils import empty_file
 from ..shared.utils.download import download_dataset
 from ..shared.utils.img import get_img_paths
@@ -15,13 +16,13 @@ from ..shared.utils.img import get_img_paths
 class ExtractRegions(LoggedTask):
     def __init__(
         self,
-        documents: dict,
+        dataset: Dataset,
         model: Optional[str] = None,
         *args,
         **kwargs
     ):
         super().__init__(*args, **kwargs)
-        self.documents = documents
+        self.dataset = dataset
         self._model = model
         self._extraction_model: Optional[str] = None
         self.result_dir = Path()
@@ -42,8 +43,8 @@ class ExtractRegions(LoggedTask):
         return self._extraction_model
 
     def check_doc(self) -> bool:
-        # TODO improve check regarding documents content
-        if not self.documents:
+        # TODO improve check regarding dataset content
+        if not self.dataset.documents:
             return False
         return True
 
@@ -51,7 +52,6 @@ class ExtractRegions(LoggedTask):
         self,
         experiment_id: str,
         annotation_file: Path,
-        dataset_ref: str
     ) -> bool:
         if not self.notify_url:
             self.error_list.append("Notify URL not provided")
@@ -61,7 +61,7 @@ class ExtractRegions(LoggedTask):
             annotation_file = f.read()
 
         response = requests.post(
-            url=f"{self.notify_url}/{dataset_ref}",
+            url=f"{self.notify_url}/{self.dataset.uid}",
             files={"annotation_file": annotation_file},
             data={
                 "model": self.extraction_model,
@@ -97,10 +97,10 @@ class ExtractRegions(LoggedTask):
 
     def process_doc_imgs(
         self,
-        dataset_path: Path,
+        doc: Document,
         extraction_ref: str
     ) -> bool:
-        images = get_img_paths(dataset_path)
+        images = doc.list_images()
         self.annotations[extraction_ref] = []
         try:
             for i, image in enumerate(images, 1):
@@ -109,7 +109,7 @@ class ExtractRegions(LoggedTask):
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:
             self.handle_error(
-                f"Error processing images for {dataset_path}",
+                f"Error processing images for {doc.uid}",
                 exception=e
             )
             return False
@@ -117,28 +117,27 @@ class ExtractRegions(LoggedTask):
 
     def process_doc(
         self,
-        doc_id: str,
-        doc_url: str,
+        doc: Document
     ) -> bool:
         try:
-            self.print_and_log(f"[task.extract_regions] Downloading {doc_id}...")
+            self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
-            image_dir, dataset_ref = download_dataset(
-                doc_url,
-                datasets_dir_path=IMG_PATH,
-                dataset_dir_name=doc_id,
-            )
+            # image_dir, dataset_ref = download_dataset(
+            #     doc_url,
+            #     datasets_dir_path=IMG_PATH,
+            #     dataset_dir_name=doc_id,
+            # )
 
-            # TODO check which name to use / which directory structure is better
-            self.result_dir = ANNO_PATH / dataset_ref
+            doc.download()
+            self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
 
             extraction_ref = f"{self.extraction_model}_{self.experiment_id}"
             annotation_file = self.result_dir / f"{extraction_ref}.txt"
             empty_file(annotation_file)
 
-            self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc_url} 🕵️")
-            success = self.process_doc_imgs(IMG_PATH / image_dir, extraction_ref)
+            self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
+            success = self.process_doc_imgs(doc.images_path, extraction_ref)
             if success:
                 with open(self.result_dir / f"{extraction_ref}.json", 'w') as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
@@ -146,13 +145,12 @@ class ExtractRegions(LoggedTask):
                 success = self.send_annotations(
                     self.experiment_id,
                     annotation_file,
-                    dataset_ref,
                 )
 
             return success
         except Exception as e:
             self.handle_error(
-                f"Error processing document {doc_url}",
+                f"Error processing document {doc.uid}",
                 exception=e
             )
             return False
@@ -160,11 +158,11 @@ class ExtractRegions(LoggedTask):
     def run_task(self) -> bool:
         if not self.check_doc():
             self.print_and_log_warning(
-                "[task.extract_regions] No documents to annotate"
+                "[task.extract_regions] No dataset to annotate"
             )
             self.task_update(
                 "ERROR",
-                f"[API ERROR] Failed to download documents for {self.documents}",
+                f"[API ERROR] Failed to download dataset for {self.dataset}",
             )
             return False
 
@@ -175,8 +173,8 @@ class ExtractRegions(LoggedTask):
 
         try:
             all_successful = True
-            for doc_id, dataset_url in self.documents.items():
-                success = self.process_doc(doc_id, dataset_url)
+            for doc in self.dataset.documents:
+                success = self.process_doc(doc)
                 all_successful = all_successful and success
 
             status = "SUCCESS" if all_successful else "ERROR"

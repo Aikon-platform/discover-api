@@ -7,7 +7,8 @@ from flask import request, jsonify, Blueprint
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
 from .const import ANNO_PATH, MODEL_PATH, IMG_PATH, EXT_XACCEL_PREFIX
-from ..shared.utils.fileutils import delete_path
+from ..shared.utils.fileutils import delete_path, sanitize_str
+from ..shared.dataset import Dataset
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -25,12 +26,17 @@ def start_regions_extraction(client_id):
     Extract regions for images from a list of IIIF URLs.
     """
     experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(
-        request, ["documents", "model"]
+        request, ["dataset", "documents", "model"]
     )
+
+    dataset = param.get('dataset')
 
     documents = param.get('documents', {})
     if type(documents) is str:
         documents = json.loads(documents)
+
+    dataset = Dataset(dataset, documents=documents)
+    dataset.save()
 
     model = param.get('model')
 
@@ -38,7 +44,7 @@ def start_regions_extraction(client_id):
         extract_objects,
         experiment_id,
         {
-            "documents": documents,
+            "dataset": dataset,
             "model": model,
             "notify_url": notify_url,
             "tracking_url": tracking_url,
