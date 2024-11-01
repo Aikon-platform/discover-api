@@ -134,10 +134,11 @@ class ExtractRegions(LoggedTask):
 
             extraction_ref = f"{self.extraction_model}_{self.experiment_id}"
             annotation_file = self.result_dir / f"{extraction_ref}.txt"
-            empty_file(annotation_file)
+            with open(annotation_file, 'w'):
+                pass
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
-            success = self.process_doc_imgs(doc.images_path, extraction_ref)
+            success = self.process_doc_imgs(doc, extraction_ref)
             if success:
                 with open(self.result_dir / f"{extraction_ref}.json", 'w') as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)

@@ -17,7 +17,7 @@ from ..shared.dataset import Dataset
 @notifying
 def extract_objects(
     experiment_id: str,
-    dataset: str,
+    dataset_uid: str,
     model: Optional[str] = None,
     notify_url: Optional[str] = None,
     tracking_url: Optional[str] = None,
@@ -26,7 +26,7 @@ def extract_objects(
 ):
     current_task = CurrentMessage.get_current_message()
     current_task_id = current_task.message_id
-    dataset = Dataset(dataset, load=True)
+    dataset = Dataset(dataset_uid, load=True)
 
     regions_extraction_task = ExtractRegions(
         dataset=dataset,

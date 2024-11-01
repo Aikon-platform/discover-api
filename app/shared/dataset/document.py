@@ -8,8 +8,9 @@ import json
 from ..const import DOCUMENTS_PATH
 from ..utils.iiif import IIIFDownloader, get_json
 from ..utils.fileutils import sanitize_str, has_content
-from ..utils.img import download_images, MAX_SIZE, download_image
+from ..utils.img import download_images, MAX_SIZE, download_image, get_img_paths
 from ..utils.logging import console
+
 
 class Document:
     """
@@ -17,25 +18,26 @@ class Document:
     It corresponds to the "manifest" object in the IIIF Presentation API
     """
 
-    def __init__(self, uid:str, path: Path|str=None):
+    def __init__(self, uid: str, path: Path | str = None, src: Optional[str] = None):
         self.uid = uid
         if path is None:
             path = DOCUMENTS_PATH / sanitize_str(uid)
         self.path = Path(path)
-        self.mapping = {} # A mapping of filenames to their URLs
+        self.src = src
+        self.mapping = {}  # A mapping of filenames to their URLs
 
     @property
     def images_path(self):
         return self.path / "images"
-    
+
     @property
     def cropped_images_path(self):
         return self.path / "cropped"
-    
+
     @property
     def annotations_path(self):
         return self.path / "annotations"
-    
+
     def extend_mapping(self, mapping: dict):
         """
         Extend the mapping of the document with a new mapping
@@ -43,7 +45,7 @@ class Document:
         self.mapping.update(mapping)
         with open(self.path / "mapping.json", "w") as f:
             json.dump(self.mapping, f)
-    
+
     def load_mapping(self):
         """
         Load the mapping of the document from a JSON file
@@ -89,12 +91,13 @@ class Document:
             download_image(img_url, self.images_path, img_name)
         self.extend_mapping(images_dict)
 
-    def download(self, images_src: Optional[str]=None):
+    def download(self, images_src: Optional[str] = None):
         """
         Download a document from its source definition
         """
+        console(self.src, color="green")
         if images_src is None:
-            images_src = self.uid
+            images_src = self.src
 
         if all([urlparse(images_src).scheme, urlparse(images_src).netloc]):
             if images_src.endswith(".zip"):
@@ -114,4 +117,5 @@ class Document:
         """
         Iterate over the images in the document
         """
-        return list(self.images_path.glob("*.jpg"))
+        # return list(self.images_path.glob("*.jpg"))
+        return get_img_paths(self.images_path)
