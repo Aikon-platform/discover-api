@@ -1,4 +1,5 @@
 import functools
+import json
 
 from flask import request, send_from_directory, jsonify
 from slugify import slugify
@@ -7,7 +8,6 @@ from dramatiq.results import ResultMissing, ResultFailure
 import traceback
 
 from .utils import hash_str
-from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
@@ -42,8 +42,6 @@ def receive_task(req, additional_params=None):
     param = req.get_json() if req.is_json else req.form.to_dict()
     if not param:
         raise ValueError("No data in request: Task aborted!")
-
-    console(param, color="cyan")
 
     experiment_id = param.get('experiment_id')
     tracking_url = param.get("tracking_url")

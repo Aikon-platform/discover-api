@@ -4,8 +4,8 @@ from typing import Optional
 
 from .. import config
 from .const import EXT_QUEUE, DEMO_NAME
-from .lib.regions import ExtractRegions
-from ..shared.utils.logging import notifying, TLogger, LoggerHelper
+from .regions import ExtractRegions
+from ..shared.utils.logging import notifying, TLogger, LoggerHelper, pprint, console
 
 
 @dramatiq.actor(

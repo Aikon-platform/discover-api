@@ -4,12 +4,10 @@ import time
 
 from flask import request, jsonify, Blueprint
 
-from ..main import app
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
 from .const import ANNO_PATH, MODEL_PATH, IMG_PATH, EXT_XACCEL_PREFIX
-from ..shared.utils.fileutils import delete_path, sanitize_str
-from ..shared.utils.logging import console
+from ..shared.utils.fileutils import delete_path
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -26,20 +24,6 @@ def start_regions_extraction(client_id):
     }
     Extract regions for images from a list of IIIF URLs.
     """
-
-    # if request.is_json:
-    #     json_param = request.get_json()
-    # else:
-    #     json_param = request.form.to_dict()
-    #
-    # if not json_param:
-    #     return "No data in request: Regions extraction task aborted!"
-    #
-    # console(json_param, color="cyan")
-    # experiment_id = json_param.get('experiment_id')
-    # notify_url = json_param.get('notify_url') or json_param.get('callback')
-    # tracking_url = json_param.get("tracking_url")
-
     experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(
         request, ["documents", "model"]
     )
