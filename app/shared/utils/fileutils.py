@@ -82,6 +82,10 @@ def create_dir(path: Path):
 
 
 def check_dir(path):
+    """
+    Check if a directory exists, if not create it
+    Returns True if the directory existed, False otherwise
+    """
     path = Path(path)
     if not path.exists():
         create_dir(path)
