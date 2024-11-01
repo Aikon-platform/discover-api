@@ -5,7 +5,7 @@ from typing import Optional
 from .. import config
 from .const import EXT_QUEUE, DEMO_NAME
 from .regions import ExtractRegions
-from ..shared.utils.logging import notifying, TLogger, LoggerHelper, pprint, console
+from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
 @dramatiq.actor(
@@ -36,9 +36,10 @@ def extract_objects(
         tracking_url=tracking_url,
         notifier=notifier,
     )
-    regions_extraction_task.run_task()
-
-    # TODO turn txt result into json
+    success = regions_extraction_task.run_task()
+    if success:
+        # json to be dispatch to frontend with @notifying
+        return regions_extraction_task.annotations
 
     # json to be dispatch to frontend with @notifying
     return {"result_url": f"{config.BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}

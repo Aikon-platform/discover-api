@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Optional
@@ -23,6 +24,8 @@ class ExtractRegions(LoggedTask):
         self.documents = documents
         self._model = model
         self._extraction_model: Optional[str] = None
+        self.result_dir = Path()
+        self.annotations = {}
 
     @property
     def model(self) -> str:
@@ -71,18 +74,19 @@ class ExtractRegions(LoggedTask):
     def process_img(
         self,
         img_path: Path,
-        annotation_file: Path,
+        extraction_ref: str,
         img_number: int
     ) -> bool:
         filename = img_path.name
         try:
             self.print_and_log(f"====> Processing {filename} 🔍")
-            extract(
+            anno = extract(
                 weights=self.weights,
                 source=img_path,
-                anno_file=str(annotation_file),
+                anno_file=self.result_dir / f"{extraction_ref}.txt",
                 img_nb=img_number,
             )
+            self.annotations[extraction_ref].append(anno)
             return True
         except Exception as e:
             self.handle_error(
@@ -94,12 +98,13 @@ class ExtractRegions(LoggedTask):
     def process_doc_imgs(
         self,
         dataset_path: Path,
-        annotation_file: Path
+        extraction_ref: str
     ) -> bool:
         images = get_img_paths(dataset_path)
+        self.annotations[extraction_ref] = []
         try:
             for i, image in enumerate(images, 1):
-                success = self.process_img(image, annotation_file, i)
+                success = self.process_img(image, extraction_ref, i)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:
@@ -124,15 +129,20 @@ class ExtractRegions(LoggedTask):
                 dataset_dir_name=doc_id,
             )
 
-            annotation_dir = ANNO_PATH / dataset_ref
-            os.makedirs(annotation_dir, exist_ok=True)
             # TODO check which name to use / which directory structure is better
-            annotation_file = annotation_dir / f"{self.extraction_model}_{self.experiment_id}.txt"
+            self.result_dir = ANNO_PATH / dataset_ref
+            os.makedirs(self.result_dir, exist_ok=True)
+
+            extraction_ref = f"{self.extraction_model}_{self.experiment_id}"
+            annotation_file = self.result_dir / f"{extraction_ref}.txt"
             empty_file(annotation_file)
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc_url} 🕵️")
-            success = self.process_doc_imgs(IMG_PATH / image_dir, annotation_file)
+            success = self.process_doc_imgs(IMG_PATH / image_dir, extraction_ref)
             if success:
+                with open(self.result_dir / f"{extraction_ref}.json", 'w') as f:
+                    json.dump(self.annotations[extraction_ref], f, indent=2)
+
                 success = self.send_annotations(
                     self.experiment_id,
                     annotation_file,
