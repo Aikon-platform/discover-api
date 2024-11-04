@@ -119,7 +119,7 @@ def compute_cos_score(doc1, doc2, output_file=None):
             img2_index = doc2_imgs.index(img2)
             score = sim[img1_index, img2_index]
 
-            pair_score = np.array([[round(score, 5), os.path.basename(img1), os.path.basename(img2)]])
+            pair_score = np.array([[round(score, 5)*100, os.path.basename(img1), os.path.basename(img2)]])
             scores_npy = np.vstack([scores_npy, pair_score])
 
     if output_file:
