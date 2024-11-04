@@ -104,6 +104,33 @@ def compute_cos_pairs(doc1, doc2):
     return cos_pairs
 
 
+def compute_cos_score(doc1, doc2, output_file=None):
+    doc1_feat, doc1_imgs = doc1
+    doc2_feat, doc2_imgs = doc2
+
+    sim = cosine_similarity(doc1_feat, doc2_feat)  # sim has shape (n_img_doc1, n_img_doc2)
+    sim_pairs = doc_sim_pairs(sim, doc1_imgs, doc2_imgs)
+
+    scores_npy = np.empty((0, 3), dtype=object)
+
+    for i, pairs in enumerate(sim_pairs):
+        for (img1, img2) in pairs:
+            img1_index = doc1_imgs.index(img1)
+            img2_index = doc2_imgs.index(img2)
+            score = sim[img1_index, img2_index]
+
+            pair_score = np.array([[round(score, 5), os.path.basename(img1), os.path.basename(img2)]])
+            scores_npy = np.vstack([scores_npy, pair_score])
+
+    if output_file:
+        try:
+            np.save(output_file, scores_npy)
+        except Exception as e:
+            console(f"Failed to save {output_file}.npy", e=e)
+
+    return scores_npy
+
+
 def segswap_similarity(cos_pairs, output_file=None):
     param = torch.load(get_model_path("hard_mining_neg5"))
     backbone = load_backbone(param)
@@ -353,16 +380,23 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
             self.print_and_log(f"Error when extracting features", e=e)
             return False
 
-        try:
-            self.print_and_log(f"Computing cosine scores for {doc_pair}")
-            cos_pairs = compute_cos_pairs(doc1, doc2)
-        except Exception as e:
-            self.print_and_log(f"Error when computing cosine similarity", e=e)
-            raise Exception
-        try:
-            self.print_and_log(f"Computing segswap scores for {doc_pair}")
-            segswap_similarity(cos_pairs, output_file=score_file)
-        except Exception as e:
-            self.print_and_log(f"Error when computing segswap scores", e=e)
-            raise Exception
+        if torch.cuda.is_available():
+            try:
+                self.print_and_log(f"Computing cosine scores for {doc_pair}")
+                cos_pairs = compute_cos_pairs(doc1, doc2)
+            except Exception as e:
+                self.print_and_log(f"Error when computing cosine similarity", e=e)
+                raise Exception
+            try:
+                self.print_and_log(f"Computing segswap scores for {doc_pair}")
+                segswap_similarity(cos_pairs, output_file=score_file)
+            except Exception as e:
+                self.print_and_log(f"Error when computing segswap scores", e=e)
+                raise Exception
+        else:
+            try:
+                compute_cos_score(doc1, doc2, output_file=score_file)
+            except Exception as e:
+                self.print_and_log(f"Error when computing cosine similarity scores", e=e)
+                raise Exception
         return True

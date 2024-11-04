@@ -7,7 +7,7 @@ from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
 @dramatiq.actor(time_limit=1000 * 60 * 60, max_retries=0, queue_name=EXT_QUEUE)
-@notifying
+# @notifying
 def extract_objects(
     experiment_id: str,
     documents: dict,
