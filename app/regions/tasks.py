@@ -23,6 +23,7 @@ def extract_objects(
     tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
+    **kwargs
 ):
     current_task = CurrentMessage.get_current_message()
     current_task_id = current_task.message_id

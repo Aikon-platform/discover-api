@@ -25,6 +25,7 @@ def train_dti(
     parameters: Optional[dict] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
+    **kwargs
 ):
     """
     Train a DTI model
