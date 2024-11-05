@@ -9,7 +9,8 @@ Env.read_env(env_file=f"{BASE_DIR}/.env")
 
 INSTALLED_APPS = ENV("INSTALLED_APPS").split(",")
 
-API_DATA_FOLDER = Path(ENV("API_DATA_FOLDER", default=f"{BASE_DIR}/data"))
+data_path = Path(ENV("API_DATA_FOLDER", default=f"{BASE_DIR}/data"))
+API_DATA_FOLDER = data_path if data_path.is_absolute() else (BASE_DIR / data_path).resolve()
 
 # prefix url for exposing results: each app has => /<prefix>/<app_name> (must match docker-confs/nginx.conf)
 XACCEL_PREFIX = ENV("XACCEL_PREFIX", default="/media")
