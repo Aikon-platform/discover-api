@@ -55,7 +55,7 @@ class ExtractRegions(LoggedTask):
     ) -> bool:
         if not self.notify_url:
             self.error_list.append("Notify URL not provided")
-            return False
+            return True
 
         with open(annotation_file, "r") as f:
             annotation_file = f.read()

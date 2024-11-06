@@ -19,7 +19,7 @@ blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 @shared_routes.error_wrapper
 def start_regions_extraction(client_id):
     """
-    manifests = {
+    documents = {
         "wit3": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json",
         "wit87": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json",
         "wit2": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"
