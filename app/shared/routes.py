@@ -43,10 +43,10 @@ def receive_task(req, additional_params=None):
     if not param:
         raise ValueError("No data in request: Task aborted!")
 
-    experiment_id = param.get('experiment_id')
-    tracking_url = param.get("tracking_url")
+    experiment_id = param.get('experiment_id', "")
+    tracking_url = param.get("tracking_url", "")
     # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
-    notify_url = param.get('notify_url') or param.get('callback')
+    notify_url = param.get('notify_url', None) or param.get('callback', None)
 
     # task_kwargs = {}
     # for param_name in additional_params:

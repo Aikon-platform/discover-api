@@ -58,7 +58,6 @@ def save_img(
         console(f"Failed to save {img_filename} as JPEG", e=e)
         return False
 
-@DeprecationWarning
 def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
     return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
 

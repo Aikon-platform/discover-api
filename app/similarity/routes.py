@@ -22,6 +22,7 @@ blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 @shared_routes.error_wrapper
 def start_similarity(client_id):
     """
+    TODO use shared_routes.receive_task
     documents = {
         "wit3_man186_anno181": "https://eida.obspm.fr/eida/wit3_man186_anno181/list/",
         "wit87_img87_anno87": "https://eida.obspm.fr/eida/wit87_img87_anno87/list/",
@@ -55,7 +56,7 @@ def start_similarity(client_id):
         "client_id": client_id,
     }
     # which url to send back the similarity results and updates on the task
-    notify_url = json_param.get("callback", None)
+    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(
