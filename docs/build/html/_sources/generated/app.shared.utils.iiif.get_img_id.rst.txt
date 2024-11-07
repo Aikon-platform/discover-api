@@ -1,0 +1,6 @@
+app.shared.utils.iiif.get\_img\_id
+==================================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autofunction:: get_img_id

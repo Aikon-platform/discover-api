@@ -17,19 +17,27 @@ blueprint = Blueprint("vectorization", __name__, url_prefix="/vectorization")
 @shared_routes.error_wrapper
 def start_vectorization(client_id):
     """
+    Start the vectorization task.
+
     TODO update that to fit what is sent by the frontend
-    {
-        "doc_id": "wit17_img17_anno17"
-        "model": "0036"
-        "callback": "https://domain-name.com/receive-vecto",
-        "tracking_url": "url for updates",
-        "images": {
-            "img_name": "https://domain-name.com/image_name.jpg",
-            "img_name": "https://other-domain.com/image_name.jpg",
-            "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
-            "img_name": "..."
+
+    Expected parameters:
+    
+    .. code-block:: json
+    
+        {
+            "doc_id": "wit17_img17_anno17"
+            "model": "0036"
+            "callback": "https://domain-name.com/receive-vecto",
+            "tracking_url": "url for updates",
+            "images": {
+                "img_name": "https://domain-name.com/image_name.jpg",
+                "img_name": "https://other-domain.com/image_name.jpg",
+                "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
+                "img_name": "..."
+            }
         }
-    }
+    
     A list of images to download + information
     """
     if not request.is_json:

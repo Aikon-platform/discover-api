@@ -1,3 +1,62 @@
+"""
+Routes for the DTI clustering app.
+
+Routes:
+
+- POST ``/clustering/start``
+    Start a new DTI clustering task.
+    
+    - Parameters:
+        - dataset_url [required]: the URL of the zipped dataset to be used.
+        - experiment_id [optional]: a unique identifier for this clustering task.
+        - dataset_id [optional]: a unique identifier for the dataset to be used.
+        - notify_url [optional]: the URL to be called when the task is finished.
+        - parameters [optional]: a JSON object containing the parameters to be used.
+    - Response: JSON object containing the task ID and result URL.
+
+- POST ``/clustering/<tracking_id>/cancel``
+    Cancel a DTI clustering task.
+    
+    - Parameters:
+        - tracking_id: the task ID.
+    - Response: JSON object indicating the cancellation status.
+
+- GET ``/clustering/<tracking_id>/status``
+    Get the status of a DTI clustering task.
+    
+    - Parameters:
+        - tracking_id: the task ID.
+    - Response: JSON object containing the task status.
+
+- GET ``/clustering/<tracking_id>/result``
+    Get the result of a DTI clustering task.
+    
+    - Parameters:
+        - tracking_id: the task ID.
+    - Response: The result file in ZIP format.
+
+- GET ``/clustering/qsizes``
+    Get the sizes of the task queues.
+    
+    - Response: JSON object containing the sizes of the task queues.
+
+- GET ``/clustering/monitor``
+    Monitor the DTI clustering tasks.
+    
+    - Response: JSON object containing monitoring information.
+
+- POST ``/clustering/monitor/clear``
+    Clear the directories related to DTI clustering tasks.
+    
+    - Response: JSON object indicating the number of cleared runs, datasets, and results.
+
+- POST ``/clustering/monitor/clear/<tracking_id>/``
+    Clear the directories related to a specific DTI clustering task.
+    
+    - Parameters:
+        - tracking_id: the task ID.
+    - Response: JSON object indicating the number of cleared runs, datasets, and results for the specified task.
+"""
 from flask import request, send_from_directory, Blueprint
 from slugify import slugify
 import uuid
@@ -24,6 +83,7 @@ def start_clustering():
     Start a new DTI clustering task
 
     Accepts the following POST parameters:
+
     - dataset_url [required]: the URL of the zipped dataset to be used
     - experiment_id [optional]: a unique identifier for this clustering task
     - dataset_id [optional]: a unique identifier for the dataset to be used
@@ -31,6 +91,7 @@ def start_clustering():
     - parameters [optional]: a JSON object containing the parameters to be used
 
     The notify_url will be called with a JSON object containing the following keys:
+    
     - tracking_id: the task ID
     - result_url: the URL from which to fetch the results
     """

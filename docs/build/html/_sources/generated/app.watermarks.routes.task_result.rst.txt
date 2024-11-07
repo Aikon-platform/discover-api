@@ -1,0 +1,6 @@
+app.watermarks.routes.task\_result
+==================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: task_result

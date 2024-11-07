@@ -1,0 +1,6 @@
+app.regions.routes.qsizes\_regions\_extraction
+==============================================
+
+.. currentmodule:: app.regions.routes
+
+.. autofunction:: qsizes_regions_extraction

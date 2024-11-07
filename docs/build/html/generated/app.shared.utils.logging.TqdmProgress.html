@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>app.shared.utils.logging.TqdmProgress &#8212; Discover-demo API  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="../_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=27fed22d" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="app.shared.utils.modular" href="app.shared.utils.modular.html" />
+    <link rel="prev" title="app.shared.utils.logging.LoggingTaskMixin" href="app.shared.utils.logging.LoggingTaskMixin.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="app-shared-utils-logging-tqdmprogress">
+<h1>app.shared.utils.logging.TqdmProgress<a class="headerlink" href="#app-shared-utils-logging-tqdmprogress" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="app.shared.utils.logging.TqdmProgress">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">app.shared.utils.logging.</span></span><span class="sig-name descname"><span class="pre">TqdmProgress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">_</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">__</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#app.shared.utils.logging.TqdmProgress" title="Link to this definition">¶</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="app.shared.utils.logging.TqdmProgress.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">iterable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#app.shared.utils.logging.TqdmProgress.__init__" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#app.shared.utils.logging.TqdmProgress.__init__" title="app.shared.utils.logging.TqdmProgress.__init__"><code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code></a>(iterable, *args, **kwargs)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">clear</span></code>([nolock])</p></td>
+<td><p>Clear current bar display.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">close</span></code>()</p></td>
+<td><p>Cleanup and (if leave=False) close the progressbar.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">display</span></code>([msg, pos])</p></td>
+<td><p>Use <cite>self.sp</cite> to display <cite>msg</cite> in the specified <cite>pos</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">external_write_mode</span></code>([file, nolock])</p></td>
+<td><p>Disable tqdm within context and refresh tqdm when exits.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_interval</span></code>(t)</p></td>
+<td><p>Formats a number of seconds as a clock time, [H:]MM:SS</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_meter</span></code>(n, total, elapsed[, ncols, ...])</p></td>
+<td><p>Return a string-based progress bar given some parameters</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_num</span></code>(n)</p></td>
+<td><p>Intelligent scientific notation (.3g).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_sizeof</span></code>(num[, suffix, divisor])</p></td>
+<td><p>Formats a number (greater than unity) with SI Order of Magnitude prefixes.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_lock</span></code>()</p></td>
+<td><p>Get the global lock.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">moveto</span></code>(n)</p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">pandas</span></code>(**tqdm_kwargs)</p></td>
+<td><p>Registers the current <cite>tqdm</cite> class with</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">refresh</span></code>([nolock, lock_args])</p></td>
+<td><p>Force refresh the display of this bar.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code>([total])</p></td>
+<td><p>Resets to 0 iterations for repeated use.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_description</span></code>([desc, refresh])</p></td>
+<td><p>Set/modify description of the progress bar.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_description_str</span></code>([desc, refresh])</p></td>
+<td><p>Set/modify description without ': ' appended.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_lock</span></code>(lock)</p></td>
+<td><p>Set the global lock.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_postfix</span></code>([ordered_dict, refresh])</p></td>
+<td><p>Set/modify postfix (additional stats) with automatic formatting based on datatype.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_postfix_str</span></code>([s, refresh])</p></td>
+<td><p>Postfix without dictionary expansion, similar to prefix handling.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">status_printer</span></code>(file)</p></td>
+<td><p>Manage the printing and in-place updating of a line of characters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">unpause</span></code>()</p></td>
+<td><p>Restart tqdm timer from last print time.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">update</span></code>([n])</p></td>
+<td><p>Manually update the progress bar, useful for streams such as reading files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">wrapattr</span></code>(stream, method[, total, bytes])</p></td>
+<td><p>stream  : file-like object. method  : str, &quot;read&quot; or &quot;write&quot;. The result of <cite>read()</cite> and     the first argument of <cite>write()</cite> should have a <cite>len()</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">write</span></code>(s[, file, end, nolock])</p></td>
+<td><p>Print a message via tqdm (without overlap with bars).</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Attributes</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">format_dict</span></code></p></td>
+<td><p>Public API for read-only member access.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">monitor</span></code></p></td>
+<td><p></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">monitor_interval</span></code></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Discover-demo API</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api.html">API</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="app.html">app</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="app.config.html">app.config</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.dticlustering.html">app.dticlustering</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.main.html">app.main</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.regions.html">app.regions</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="app.shared.html">app.shared</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="app.shared.const.html">app.shared.const</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.shared.dataset.html">app.shared.dataset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.shared.routes.html">app.shared.routes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="app.shared.tasks.html">app.shared.tasks</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="app.shared.utils.html">app.shared.utils</a><ul class="current">
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.get_device.html">app.shared.utils.get_device</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.hash_str.html">app.shared.utils.hash_str</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.bbox.html">app.shared.utils.bbox</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.download.html">app.shared.utils.download</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.fileutils.html">app.shared.utils.fileutils</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.iiif.html">app.shared.utils.iiif</a></li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.img.html">app.shared.utils.img</a></li>
+<li class="toctree-l5 current"><a class="reference internal" href="app.shared.utils.logging.html">app.shared.utils.logging</a><ul class="current">
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.console.html">app.shared.utils.logging.console</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.exc_str.html">app.shared.utils.logging.exc_str</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.get_color.html">app.shared.utils.logging.get_color</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.get_time.html">app.shared.utils.logging.get_time</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.notifying.html">app.shared.utils.logging.notifying</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.pprint.html">app.shared.utils.logging.pprint</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.send_update.html">app.shared.utils.logging.send_update</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.ConsoleColors.html">app.shared.utils.logging.ConsoleColors</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.JobLogger.html">app.shared.utils.logging.JobLogger</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.LoggedResults.html">app.shared.utils.logging.LoggedResults</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.LoggerHelper.html">app.shared.utils.logging.LoggerHelper</a></li>
+<li class="toctree-l6"><a class="reference internal" href="app.shared.utils.logging.LoggingTaskMixin.html">app.shared.utils.logging.LoggingTaskMixin</a></li>
+<li class="toctree-l6 current"><a class="current reference internal" href="#">app.shared.utils.logging.TqdmProgress</a><ul>
+<li class="toctree-l7"><a class="reference internal" href="#app.shared.utils.logging.TqdmProgress"><code class="docutils literal notranslate"><span class="pre">TqdmProgress</span></code></a><ul>
+<li class="toctree-l8"><a class="reference internal" href="#app.shared.utils.logging.TqdmProgress.__init__"><code class="docutils literal notranslate"><span class="pre">TqdmProgress.__init__()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="app.shared.utils.modular.html">app.shared.utils.modular</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="app.similarity.html">app.similarity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.vectorization.html">app.vectorization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="app.watermarks.html">app.watermarks</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="../api.html">API</a><ul>
+  <li><a href="app.html">app</a><ul>
+  <li><a href="app.shared.html">app.shared</a><ul>
+  <li><a href="app.shared.utils.html">app.shared.utils</a><ul>
+  <li><a href="app.shared.utils.logging.html">app.shared.utils.logging</a><ul>
+      <li>Previous: <a href="app.shared.utils.logging.LoggingTaskMixin.html" title="previous chapter">app.shared.utils.logging.LoggingTaskMixin</a></li>
+      <li>Next: <a href="app.shared.utils.modular.html" title="next chapter">app.shared.utils.modular</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Ségolène Albouy, Robin Champenois.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../_sources/generated/app.shared.utils.logging.TqdmProgress.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

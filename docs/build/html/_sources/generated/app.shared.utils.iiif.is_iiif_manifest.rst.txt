@@ -1,0 +1,6 @@
+app.shared.utils.iiif.is\_iiif\_manifest
+========================================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autofunction:: is_iiif_manifest

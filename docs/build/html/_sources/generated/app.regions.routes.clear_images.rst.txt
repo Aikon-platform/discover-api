@@ -1,0 +1,6 @@
+app.regions.routes.clear\_images
+================================
+
+.. currentmodule:: app.regions.routes
+
+.. autofunction:: clear_images

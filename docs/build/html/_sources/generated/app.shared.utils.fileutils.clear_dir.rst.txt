@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.clear\_dir
+=====================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: clear_dir

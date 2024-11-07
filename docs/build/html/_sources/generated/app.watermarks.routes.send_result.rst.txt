@@ -1,0 +1,6 @@
+app.watermarks.routes.send\_result
+==================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: send_result

@@ -1,0 +1,6 @@
+app.shared.utils.iiif.get\_id
+=============================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autofunction:: get_id

@@ -22,19 +22,28 @@ blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 @shared_routes.error_wrapper
 def start_similarity(client_id):
     """
-    documents = {
-        "wit3_man186_anno181": "https://eida.obspm.fr/eida/wit3_man186_anno181/list/",
-        "wit87_img87_anno87": "https://eida.obspm.fr/eida/wit87_img87_anno87/list/",
-        "wit2_img2_anno2": "https://eida.obspm.fr/eida/wit2_img2_anno2/list/"
-    }
+
+    .. code-block:: python
+
+        documents = {
+            "wit3_man186_anno181": "https://eida.obspm.fr/eida/wit3_man186_anno181/list/",
+            "wit87_img87_anno87": "https://eida.obspm.fr/eida/wit87_img87_anno87/list/",
+            "wit2_img2_anno2": "https://eida.obspm.fr/eida/wit2_img2_anno2/list/"
+        }
+
     Compute similarity for images from a list of URLs.
+    
     Each URL corresponds to a document and contains a list of images to download:
-    {
-        "img_name": "https://domain-name.com/image_name.jpg",
-        "img_name": "https://other-domain.com/image_name.jpg",
-        "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
-        "img_name": "..."
-    }
+
+    .. code-block:: json
+
+        {
+            "img_name": "https://domain-name.com/image_name.jpg",
+            "img_name": "https://other-domain.com/image_name.jpg",
+            "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
+            "img_name": "..."
+        }
+    
     Each document is compared to itself and other documents resulting in a list a comparison pairs
     """
 
@@ -116,18 +125,19 @@ def clear_old_similarity():
 def clear_doc(doc_id: str):
     """
     Clear all images, features and scores related to a given document
-    doc_id = "{doc_id}"
-    TODO: re-united doc_id / tracking_id
     """
+
+    # doc_id = "{doc_id}"
+    # TODO: re-united doc_id / tracking_id
 
     return {
         "cleared_img_dir": clear_dir(
-            IMG_PATH, path_to_clear=f"*{doc_id}*", condition=True
+            IMG_PATH, path_to_clear=f"*{doc_id}*", force_deletion=True
         ),
         "cleared features": clear_dir(
-            FEATS_PATH, path_to_clear=f"*{doc_id}*.pt", condition=True
+            FEATS_PATH, path_to_clear=f"*{doc_id}*.pt", force_deletion=True
         ),
         "cleared_results": clear_dir(
-            SIM_RESULTS_PATH, path_to_clear=f"*{doc_id}*.npy", condition=True
+            SIM_RESULTS_PATH, path_to_clear=f"*{doc_id}*.npy", force_deletion=True
         ),
     }

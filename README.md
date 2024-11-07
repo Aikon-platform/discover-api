@@ -59,6 +59,21 @@ And the server:
 3. If necessary, configure a new xaccel redirection in the [nginx configuration file](docker-confs/nginx.conf)
 4. Add the demo name (i.e. folder name) to the list `INSTALLED_APPS` in [`.env`](.env)
 
+### Updating the documentation
+
+You need to install `sphinx` and the `furo` theme:
+
+```bash
+./venv/bin/pip install sphinx furo
+```
+
+Then you can generate the documentation with `make`:
+
+```bash
+cd docs
+make html
+```
+
 ## Production
 
 ### Deploy

@@ -1,0 +1,6 @@
+app.watermarks.routes.sources
+=============================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: sources

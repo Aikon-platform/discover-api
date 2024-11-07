@@ -1,0 +1,6 @@
+app.similarity.routes.result\_similarity
+========================================
+
+.. currentmodule:: app.similarity.routes
+
+.. autofunction:: result_similarity

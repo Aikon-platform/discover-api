@@ -1,0 +1,6 @@
+app.shared.utils.iiif.get\_canvas\_img
+======================================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autofunction:: get_canvas_img

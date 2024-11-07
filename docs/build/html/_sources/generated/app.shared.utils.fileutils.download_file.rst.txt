@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.download\_file
+=========================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: download_file

@@ -1,0 +1,38 @@
+app.shared.utils.logging.ConsoleColors
+======================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: ConsoleColors
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ConsoleColors.__init__
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~ConsoleColors.black
+      ~ConsoleColors.blue
+      ~ConsoleColors.bold
+      ~ConsoleColors.cyan
+      ~ConsoleColors.end
+      ~ConsoleColors.green
+      ~ConsoleColors.magenta
+      ~ConsoleColors.red
+      ~ConsoleColors.underline
+      ~ConsoleColors.white
+      ~ConsoleColors.yellow
+   
+   

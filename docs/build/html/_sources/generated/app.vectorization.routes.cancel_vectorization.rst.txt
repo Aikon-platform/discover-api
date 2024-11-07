@@ -1,0 +1,6 @@
+app.vectorization.routes.cancel\_vectorization
+==============================================
+
+.. currentmodule:: app.vectorization.routes
+
+.. autofunction:: cancel_vectorization

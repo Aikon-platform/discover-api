@@ -1,0 +1,30 @@
+app.shared.utils.iiif.IIIFDownloader
+====================================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autoclass:: IIIFDownloader
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~IIIFDownloader.__init__
+      ~IIIFDownloader.check_url
+      ~IIIFDownloader.download_manifest
+      ~IIIFDownloader.get_dir_name
+      ~IIIFDownloader.get_formatted_size
+      ~IIIFDownloader.get_manifest_id
+      ~IIIFDownloader.run
+      ~IIIFDownloader.save_iiif_img
+      ~IIIFDownloader.save_img
+   
+   
+
+   
+   
+   

@@ -1,0 +1,6 @@
+app.shared.utils.img.download\_image
+====================================
+
+.. currentmodule:: app.shared.utils.img
+
+.. autofunction:: download_image

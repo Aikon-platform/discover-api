@@ -1,0 +1,58 @@
+app.dticlustering.training.LoggedSpritesTrainer
+===============================================
+
+.. currentmodule:: app.dticlustering.training
+
+.. autoclass:: LoggedSpritesTrainer
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggedSpritesTrainer.__init__
+      ~LoggedSpritesTrainer.check_cluster
+      ~LoggedSpritesTrainer.distance_eval
+      ~LoggedSpritesTrainer.evaluate
+      ~LoggedSpritesTrainer.instance_seg_qualitative_eval
+      ~LoggedSpritesTrainer.instance_seg_quantitative_eval
+      ~LoggedSpritesTrainer.load_from_tag
+      ~LoggedSpritesTrainer.log_images
+      ~LoggedSpritesTrainer.log_train_metrics
+      ~LoggedSpritesTrainer.log_val_metrics
+      ~LoggedSpritesTrainer.print_and_log_info
+      ~LoggedSpritesTrainer.print_memory_usage
+      ~LoggedSpritesTrainer.qualitative_eval
+      ~LoggedSpritesTrainer.quantitative_eval
+      ~LoggedSpritesTrainer.run
+      ~LoggedSpritesTrainer.run_val
+      ~LoggedSpritesTrainer.save
+      ~LoggedSpritesTrainer.save_backgrounds
+      ~LoggedSpritesTrainer.save_masked_prototypes
+      ~LoggedSpritesTrainer.save_masks
+      ~LoggedSpritesTrainer.save_metric_plots
+      ~LoggedSpritesTrainer.save_prototypes
+      ~LoggedSpritesTrainer.save_training_metrics
+      ~LoggedSpritesTrainer.save_transformed_images
+      ~LoggedSpritesTrainer.segmentation_qualitative_eval
+      ~LoggedSpritesTrainer.segmentation_quantitative_eval
+      ~LoggedSpritesTrainer.single_train_batch_run
+      ~LoggedSpritesTrainer.update_scheduler
+      ~LoggedSpritesTrainer.update_visualizer_images
+      ~LoggedSpritesTrainer.update_visualizer_metrics
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~LoggedSpritesTrainer.output_proto_dir
+      ~LoggedSpritesTrainer.score_name
+   
+   

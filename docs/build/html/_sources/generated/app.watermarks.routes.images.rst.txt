@@ -1,0 +1,6 @@
+app.watermarks.routes.images
+============================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: images

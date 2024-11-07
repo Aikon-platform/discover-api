@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.sanitize\_url
+========================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: sanitize_url

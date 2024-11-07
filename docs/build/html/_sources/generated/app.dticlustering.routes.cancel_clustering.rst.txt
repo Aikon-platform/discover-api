@@ -1,0 +1,6 @@
+app.dticlustering.routes.cancel\_clustering
+===========================================
+
+.. currentmodule:: app.dticlustering.routes
+
+.. autofunction:: cancel_clustering

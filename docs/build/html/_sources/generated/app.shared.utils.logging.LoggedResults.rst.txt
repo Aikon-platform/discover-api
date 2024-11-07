@@ -1,0 +1,51 @@
+app.shared.utils.logging.LoggedResults
+======================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: LoggedResults
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggedResults.__init__
+      ~LoggedResults.after_ack
+      ~LoggedResults.after_declare_actor
+      ~LoggedResults.after_declare_delay_queue
+      ~LoggedResults.after_declare_queue
+      ~LoggedResults.after_enqueue
+      ~LoggedResults.after_nack
+      ~LoggedResults.after_process_boot
+      ~LoggedResults.after_process_message
+      ~LoggedResults.after_skip_message
+      ~LoggedResults.after_worker_boot
+      ~LoggedResults.after_worker_shutdown
+      ~LoggedResults.before_ack
+      ~LoggedResults.before_consumer_thread_shutdown
+      ~LoggedResults.before_declare_actor
+      ~LoggedResults.before_declare_queue
+      ~LoggedResults.before_delay_message
+      ~LoggedResults.before_enqueue
+      ~LoggedResults.before_nack
+      ~LoggedResults.before_process_message
+      ~LoggedResults.before_worker_boot
+      ~LoggedResults.before_worker_shutdown
+      ~LoggedResults.before_worker_thread_shutdown
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~LoggedResults.actor_options
+      ~LoggedResults.forks
+   
+   

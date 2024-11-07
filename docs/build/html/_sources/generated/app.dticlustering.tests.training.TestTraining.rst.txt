@@ -1,0 +1,98 @@
+app.dticlustering.tests.training.TestTraining
+=============================================
+
+.. currentmodule:: app.dticlustering.tests.training
+
+.. autoclass:: TestTraining
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TestTraining.__init__
+      ~TestTraining.addClassCleanup
+      ~TestTraining.addCleanup
+      ~TestTraining.addTypeEqualityFunc
+      ~TestTraining.assertAlmostEqual
+      ~TestTraining.assertAlmostEquals
+      ~TestTraining.assertCountEqual
+      ~TestTraining.assertDictContainsSubset
+      ~TestTraining.assertDictEqual
+      ~TestTraining.assertEqual
+      ~TestTraining.assertEquals
+      ~TestTraining.assertFalse
+      ~TestTraining.assertGreater
+      ~TestTraining.assertGreaterEqual
+      ~TestTraining.assertIn
+      ~TestTraining.assertIs
+      ~TestTraining.assertIsInstance
+      ~TestTraining.assertIsNone
+      ~TestTraining.assertIsNot
+      ~TestTraining.assertIsNotNone
+      ~TestTraining.assertLess
+      ~TestTraining.assertLessEqual
+      ~TestTraining.assertListEqual
+      ~TestTraining.assertLogs
+      ~TestTraining.assertMultiLineEqual
+      ~TestTraining.assertNoLogs
+      ~TestTraining.assertNotAlmostEqual
+      ~TestTraining.assertNotAlmostEquals
+      ~TestTraining.assertNotEqual
+      ~TestTraining.assertNotEquals
+      ~TestTraining.assertNotIn
+      ~TestTraining.assertNotIsInstance
+      ~TestTraining.assertNotRegex
+      ~TestTraining.assertNotRegexpMatches
+      ~TestTraining.assertRaises
+      ~TestTraining.assertRaisesRegex
+      ~TestTraining.assertRaisesRegexp
+      ~TestTraining.assertRegex
+      ~TestTraining.assertRegexpMatches
+      ~TestTraining.assertSequenceEqual
+      ~TestTraining.assertSetEqual
+      ~TestTraining.assertTrue
+      ~TestTraining.assertTupleEqual
+      ~TestTraining.assertWarns
+      ~TestTraining.assertWarnsRegex
+      ~TestTraining.assert_
+      ~TestTraining.countTestCases
+      ~TestTraining.debug
+      ~TestTraining.defaultTestResult
+      ~TestTraining.doClassCleanups
+      ~TestTraining.doCleanups
+      ~TestTraining.fail
+      ~TestTraining.failIf
+      ~TestTraining.failIfAlmostEqual
+      ~TestTraining.failIfEqual
+      ~TestTraining.failUnless
+      ~TestTraining.failUnlessAlmostEqual
+      ~TestTraining.failUnlessEqual
+      ~TestTraining.failUnlessRaises
+      ~TestTraining.id
+      ~TestTraining.run
+      ~TestTraining.setUp
+      ~TestTraining.setUpClass
+      ~TestTraining.shortDescription
+      ~TestTraining.skipTest
+      ~TestTraining.subTest
+      ~TestTraining.tearDown
+      ~TestTraining.tearDownClass
+      ~TestTraining.test_run_kmeans_training
+      ~TestTraining.test_run_sprites_training
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TestTraining.longMessage
+      ~TestTraining.maxDiff
+   
+   

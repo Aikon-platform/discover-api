@@ -1,0 +1,6 @@
+app.watermarks.routes.index
+===========================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: index

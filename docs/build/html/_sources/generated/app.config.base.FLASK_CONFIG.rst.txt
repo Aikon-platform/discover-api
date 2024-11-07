@@ -1,0 +1,22 @@
+app.config.base.FLASK\_CONFIG
+=============================
+
+.. currentmodule:: app.config.base
+
+.. autoclass:: FLASK_CONFIG
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~FLASK_CONFIG.__init__
+   
+   
+
+   
+   
+   

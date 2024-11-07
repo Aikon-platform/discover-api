@@ -1,16 +1,20 @@
+"""
+Tools to download and save images
+
+Many of the functions in this module are deprecated, better use the Document/Dataset interface
+"""
+
 import os
 import sys
 from pathlib import Path
 from typing import List
 
 import requests
-import urllib.request
-import json
 import shutil
 
 from PIL import Image
 
-from .fileutils import get_all_files
+from .fileutils import get_all_files, TPath
 from ..const import UTILS_DIR
 from .logging import console
 
@@ -18,23 +22,34 @@ from .logging import console
 MAX_SIZE = 244
 
 
-def get_json(url):
-    with urllib.request.urlopen(url) as url:
-        return json.loads(url.read().decode())
+def get_json(url: str) -> dict:
+    """
+    Get a JSON object from a URL
+    """
+    req = requests.get(url)
+    return req.json()
 
 
 def save_img(
     img: Image,
-    img_filename,
-    img_path,
-    max_dim=MAX_SIZE,
-    img_format="JPEG",
+    img_filename: str,
+    img_path: TPath,
+    max_dim: int = MAX_SIZE,
+    img_format: str = "JPEG",
 ):
     """
     Save an image to a file
     Resize the image if it is larger than the max_dim
     Convert the image to RGB if it is not already in that mode
     Filename should not include the extension
+
+    :param img: PIL Image object
+    :param img_filename: The filename of the image
+    :param img_path: The directory to save the image
+    :param max_dim: The maximum dimension of the image (default: 244)
+    :param img_format: The format to save the image as (default: "JPEG")
+
+    :return: The saved image or False if the image could not be saved
     """
     try:
         if img.mode != "RGB":
@@ -58,16 +73,19 @@ def save_img(
         console(f"Failed to save {img_filename} as JPEG", e=e)
         return False
 
-@DeprecationWarning
-def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
-    return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
 
-
-def download_image(img_url, target_dir, target_filename, max_dim=MAX_SIZE):
+def download_image(
+    img_url: str, target_dir: TPath, target_filename: str, max_dim: int = MAX_SIZE
+) -> None:
     """
     Download an image from a URL and save it to a target file
     If the image is not valid, a placeholder image is saved instead
     Filename should not include the extension
+
+    :param img_url: The URL of the image
+    :param target_dir: The directory to save the image
+    :param target_filename: The filename of the image
+    :param max_dim: The maximum dimension of the image (default: 244)
     """
     try:
         with requests.get(img_url, stream=True) as response:
@@ -91,16 +109,25 @@ def download_image(img_url, target_dir, target_filename, max_dim=MAX_SIZE):
         console(f"[download_img] {img_url} image was not downloaded", e=e)
 
 
-def download_images(url, doc_id, img_path, max_dim=MAX_SIZE):
+@DeprecationWarning
+def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
+    return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
+
+
+@DeprecationWarning
+def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZE):
     """
-    e.g.
-    url = https://eida.obspm.fr/eida/wit1_man191_anno188/list/
-    images = {
-        "img_name": "https://domain-name.com/image_name.jpg",
-        "img_name": "https://other-domain.com/image_name.jpg",
-        "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
-        "img_name": "..."
-    }
+    Download images from a URL containing a list of images
+
+    .. code-block:: python
+
+        url = https://eida.obspm.fr/eida/wit1_man191_anno188/list/
+        images = {
+            "img_name": "https://domain-name.com/image_name.jpg",
+            "img_name": "https://other-domain.com/image_name.jpg",
+            "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
+            "img_name": "..."
+        }
     """
 
     images = get_json(url)
@@ -121,24 +148,14 @@ def download_images(url, doc_id, img_path, max_dim=MAX_SIZE):
 
     return paths
 
-
+@DeprecationWarning
 def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")) -> list[Path]:
     """
     Get all image paths in a directory
     """
-    # img_dir = Path(img_dir)
-    # images = []
-    # for file_ in os.listdir(img_dir):
-    #     if file_.endswith(img_ext):
-    #         images.append(os.path.join(img_dir, file_))
-    #     else:
-    #         sys.stderr.write(
-    #             f"Image format is not compatible in {file_}. Skipping this file.\n"
-    #         )
-    # return sorted(images)
     return get_all_files(img_dir, img_ext)
 
-
+@DeprecationWarning
 def get_imgs_in_dirs(img_dirs) -> list[str]:
     images = []
     for img_dir in img_dirs:

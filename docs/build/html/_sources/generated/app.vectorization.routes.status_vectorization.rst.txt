@@ -1,0 +1,6 @@
+app.vectorization.routes.status\_vectorization
+==============================================
+
+.. currentmodule:: app.vectorization.routes
+
+.. autofunction:: status_vectorization

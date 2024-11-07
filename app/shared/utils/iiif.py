@@ -1,3 +1,7 @@
+"""
+Utility functions to handle and download IIIF resources
+"""
+
 import glob
 import os
 import time
@@ -6,22 +10,28 @@ import requests
 from pathlib import Path
 from PIL import Image, UnidentifiedImageError
 from urllib.parse import urlparse
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 
 # TODO change to not only use IMG_PATH from regions
 from ...regions.const import IMG_PATH
-from .fileutils import check_dir, sanitize_str, sanitize_url
+from .fileutils import check_dir, sanitize_str, sanitize_url, TPath
 from .logging import console
 
 
-def is_iiif_manifest(json_content):
+def is_iiif_manifest(json_content: dict) -> bool:
+    """
+    Check if a JSON content is a valid IIIF manifest
+    """
     try:
         return "@context" in json_content
     except (requests.RequestException, ValueError, KeyError):
         return False
 
 
-def get_json(url):
+def get_json(url: str) -> Optional[dict]:
+    """
+    Get JSON content from a URL
+    """
     try:
         response = requests.get(url)
         if response.ok:
@@ -33,7 +43,10 @@ def get_json(url):
         return None
 
 
-def get_img_rsrc(iiif_img):
+def get_img_rsrc(iiif_img: dict) -> Optional[dict]:
+    """
+    Get the image resource from a IIIF image
+    """
     try:
         img_rscr = iiif_img["resource"]
     except KeyError:
@@ -44,33 +57,15 @@ def get_img_rsrc(iiif_img):
     return img_rscr
 
 
-def get_canvas_img(canvas_img, only_img_url=False):
-    img_url = get_id(canvas_img["resource"]["service"])
-    if only_img_url:
-        return img_url
-    return get_img_id(canvas_img["resource"]), img_url
-
-
-def get_item_img(item_img, only_img_url=False):
-    img_url = get_id(item_img["body"]["service"][0])
-    if only_img_url:
-        return img_url
-    return get_img_id(item_img), img_url
-
-
-def get_img_id(img):
-    img_id = get_id(img)
-    if ".jpg" in img_id:
-        try:
-            return img_id.split("/")[-5]
-        except IndexError:
-            return None
-    return img_id.split("/")[-1]
-
-
-def get_iiif_resources(manifest, only_img_url=False):
+def get_iiif_resources(manifest: dict) -> List[dict]:
     """
     Get all image resources from a IIIF manifest
+
+    Args:
+        manifest (dict): The IIIF manifest
+
+    Returns:
+        A list of image resources
     """
     try:
         # Usually images URL are contained in the "canvases" field
@@ -92,7 +87,16 @@ def get_iiif_resources(manifest, only_img_url=False):
     return img_info
 
 
-def get_reduced_size(size, min_size=1500):
+def get_reduced_size(size: Union[int, str], min_size: int=1500) -> str:
+    """
+    Adapt the size of an image to a given size
+
+    - If the image is larger than 2*min_size, return the size/2
+    - If the image is larger than min_size, return min_size
+    - Otherwise return ""
+
+    (Used when images are in error)
+    """
     size = int(size)
     if size < min_size:
         return ""
@@ -101,7 +105,7 @@ def get_reduced_size(size, min_size=1500):
     return str(min_size)
 
 
-def get_id(dic):
+def get_id(dic: dict) -> Optional[str]:
     """
     Get the id of a IIIF resource
     """
@@ -124,12 +128,10 @@ def get_id(dic):
 
 
 class IIIFDownloader:
-    """Download all image resources from a list of manifest urls."""
+    """
+    Download all image resources from a list of manifest urls.
 
-    def __init__(self, manifest_url, target_path=None, img_dir=None, width=None, height=None, sleep=0.25, max_dim=None):
-        """
-        Args:
-
+    Args:
         manifest_url (str): URL of the IIIF manifest
         target_path (str): Path where to save the images (if None, use img_dir/manifest_id)
         img_dir (str|Path): Path where to save the images (ignored if target_path is set)
@@ -137,7 +139,19 @@ class IIIFDownloader:
         height (int): Height of the images to download (optional)
         sleep (float): Time to sleep between each download (default: 0.25s)
         max_dim (int): Maximal height of the images to download (optional)
-        """
+    """
+
+    def __init__(
+        self,
+        manifest_url: str,
+        target_path: TPath = None,
+        img_dir: TPath = None,
+        width: int = None,
+        height: int = None,
+        sleep: float = 0.25,
+        max_dim: int=None,
+    ):
+        """ """
         self.manifest_url = manifest_url
         self.manifest_id = ""  # Prefix to be used for img filenames
 
@@ -152,13 +166,25 @@ class IIIFDownloader:
         self.max_dim = max_dim  # Maximal height in px
 
     def run(self) -> List[Tuple[str, str]]:
+        """
+        Check the URL and download all images from a IIIF manifest
+
+        If the URL is not valid, raise a ValueError
+        """
         manifest = self.check_url()
         return self.download_manifest(manifest)
 
     def get_dir_name(self):
-        return sanitize_str(self.manifest_url).replace("manifest", "").replace("json", "")
+        return (
+            sanitize_str(self.manifest_url).replace("manifest", "").replace("json", "")
+        )
 
-    def check_url(self):
+    def check_url(self) -> dict:
+        """
+        Check if the URL is valid and load the manifest
+
+        If the URL is not valid, raise a ValueError
+        """
         try:
             manifest = get_json(self.manifest_url)
             if not manifest:
@@ -206,19 +232,37 @@ class IIIFDownloader:
 
         return f"{width or ''},{height or ''}"
 
-    def save_iiif_img(self, img_rscr, i, size="full", re_download=False) -> Tuple[bool, Optional[str], Optional[str]]:
+    def save_iiif_img(
+        self, img_rscr: dict, i: int, size: str="full", re_download: bool=False
+    ) -> Tuple[bool, Optional[str], Optional[str]]:
         """
         Save an image from a IIIF resource, at a given size
+
+        If the image is not valid, try to download it at a reduced size
+
+        Args:
+
+            img_rscr (dict): The image resource
+            i (int): The index of the image
+            size (str): The size of the image to download (default: full)
+            re_download (bool): Whether to re-download the image (default: False)
+
+        Returns:
+
+            Tuple (bool, str, str):
+                - A boolean indicating if the image was downloaded
+                - The name of the image file (None if source raised an error)
+                - The URL of the image (None if source raised an error)
         """
-        if ".jpg" in get_img_id(img_rscr):
-            img_name = get_img_id(img_rscr)
-        else:
-            img_name = f"{self.manifest_id}_{i:04d}.jpg"
+        img_name = f"{self.manifest_id}_{i:04d}.jpg"
 
         img_url = get_id(img_rscr["service"])
         iiif_url = sanitize_url(f"{img_url}/full/{size}/0/default.jpg")
 
-        if glob.glob(os.path.join(self.manifest_dir_path, f"*_{i:04d}.jpg")) and not re_download:
+        if (
+            glob.glob(os.path.join(self.manifest_dir_path, f"*_{i:04d}.jpg"))
+            and not re_download
+        ):
             # if the img is already downloaded, don't download it again
             return False, img_name, iiif_url
 
@@ -229,15 +273,21 @@ class IIIFDownloader:
                 # img.verify()
             except (UnidentifiedImageError, SyntaxError):
                 if size == "full":
+                    # Maybe the image is too large, try to download it at a reduced size
                     size = get_reduced_size(img_rscr["width"])
-                    return self.save_iiif_img(img_rscr, i, self.get_formatted_size(size))
+                    return self.save_iiif_img(
+                        img_rscr, i, self.get_formatted_size(size)
+                    )
                 else:
                     console(f"{iiif_url} is not a valid img file")
                     return False, None, None
             except (IOError, OSError):
                 if size == "full":
+                    # Maybe the image is truncated or corrupted, try to download it at a reduced size
                     size = get_reduced_size(img_rscr["width"])
-                    return self.save_iiif_img(img_rscr, i, self.get_formatted_size(size))
+                    return self.save_iiif_img(
+                        img_rscr, i, self.get_formatted_size(size)
+                    )
                 else:
                     console(f"{iiif_url} is a truncated or corrupted image")
                     return False, None, None
@@ -245,7 +295,10 @@ class IIIFDownloader:
             self.save_img(img, img_name, f"Failed to save {iiif_url}")
         return (True, img_name, iiif_url)
 
-    def save_img(self, img: Image, img_filename, error_msg="Failed to save img"):
+    def save_img(self, img: Image, img_filename: TPath, error_msg: str="Failed to save img") -> bool:
+        """
+        Save an image to disk
+        """
         try:
             img.save(self.manifest_dir_path / img_filename)
             return True
@@ -253,7 +306,10 @@ class IIIFDownloader:
             console(f"{error_msg}")
         return False
 
-    def get_manifest_id(self, manifest):
+    def get_manifest_id(self, manifest: dict) -> str:
+        """
+        Get the ID of a IIIF manifest
+        """
         manifest_id = get_id(manifest)
         if manifest_id is None:
             return self.get_dir_name()

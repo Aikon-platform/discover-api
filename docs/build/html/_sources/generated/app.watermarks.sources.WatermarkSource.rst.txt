@@ -1,0 +1,32 @@
+app.watermarks.sources.WatermarkSource
+======================================
+
+.. currentmodule:: app.watermarks.sources
+
+.. autoclass:: WatermarkSource
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~WatermarkSource.__init__
+      ~WatermarkSource.list_available
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~WatermarkSource.features
+      ~WatermarkSource.features_file
+      ~WatermarkSource.metadata
+      ~WatermarkSource.metadata_file
+   
+   

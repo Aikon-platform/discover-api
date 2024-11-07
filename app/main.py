@@ -1,3 +1,7 @@
+"""
+A script that initializes the Flask app and the Dramatiq broker.
+"""
+
 import os
 
 from . import config

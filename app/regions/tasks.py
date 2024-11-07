@@ -1,3 +1,6 @@
+"""
+Region extraction tasks
+"""
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional
@@ -24,6 +27,16 @@ def extract_objects(
     logger: TLogger = LoggerHelper,
     notifier=None,
 ):
+    """
+    Extract objects from a dataset using a model
+
+    :param experiment_id: the experiment id
+    :param dataset: the dataset UID to process
+    :param model: the model to use for extraction
+    :param notify_url: the URL to notify the frontend
+    :param tracking_url: the URL to track the task
+    :param logger: the logger to use
+    """
     current_task = CurrentMessage.get_current_message()
     current_task_id = current_task.message_id
     dataset = Dataset(dataset, load=True)

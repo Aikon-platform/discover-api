@@ -1,0 +1,6 @@
+app.shared.utils.logging.console
+================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autofunction:: console

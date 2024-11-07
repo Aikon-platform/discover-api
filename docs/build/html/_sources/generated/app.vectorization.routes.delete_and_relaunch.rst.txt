@@ -1,0 +1,6 @@
+app.vectorization.routes.delete\_and\_relaunch
+==============================================
+
+.. currentmodule:: app.vectorization.routes
+
+.. autofunction:: delete_and_relaunch

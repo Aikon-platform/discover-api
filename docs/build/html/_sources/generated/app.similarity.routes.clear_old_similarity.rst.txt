@@ -1,0 +1,6 @@
+app.similarity.routes.clear\_old\_similarity
+============================================
+
+.. currentmodule:: app.similarity.routes
+
+.. autofunction:: clear_old_similarity

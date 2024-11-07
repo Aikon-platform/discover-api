@@ -1,0 +1,6 @@
+app.dticlustering.routes.clear\_run
+===================================
+
+.. currentmodule:: app.dticlustering.routes
+
+.. autofunction:: clear_run

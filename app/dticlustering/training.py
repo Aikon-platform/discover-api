@@ -1,3 +1,6 @@
+"""
+Training tools to adapt DTI research lib to the API
+"""
 from yaml import load, Loader, dump, Dumper
 from pathlib import Path
 import os, torch
@@ -190,13 +193,20 @@ def run_kmeans_training(
     logger: TLogger = LoggerHelper,
 ) -> Path:
     """
-    Main function to run DTI clustering training
+    Main function to run DTI clustering training.
 
-    Parameters:
-    - clustering_id: the ID of the clustering task
-    - dataset_id: the ID of the dataset
-    - parameters: an object containing the training parameters (for now: n_prototypes, transformation_sequence)
-    - logger: a logger object
+    Args:
+        clustering_id (str): The ID of the clustering task.
+        dataset_id (str): The ID of the dataset.
+        parameters (dict): An object containing the training parameters. 
+            Expected keys are:
+            
+            - n_prototypes: Number of prototypes.
+            - transformation_sequence: Sequence of transformations.
+        logger (TLogger, optional): A logger object. Defaults to LoggerHelper.
+
+    Returns:
+        Path: The path to the output directory.
     """
     # Load config template
     train_config = load(open(KMEANS_CONFIG_FILE), Loader=Loader)
@@ -236,13 +246,22 @@ def run_sprites_training(
     logger: TLogger = LoggerHelper,
 ) -> Path:
     """
-    Main function to run DTI sprites training
 
-    Parameters:
-    - clustering_id: the ID of the clustering task
-    - dataset_id: the ID of the dataset
-    - parameters: an object containing the training parameters (for now: n_prototypes, transformation_sequence, background_option)
-    - logger: a logger object
+    Main function to run DTI sprites training.
+
+    Args:
+        clustering_id (str): The ID of the clustering task.
+        dataset_id (str): The ID of the dataset.
+        parameters (dict): An object containing the training parameters. 
+            Expected keys are:
+
+            - n_prototypes: Number of prototypes.
+            - transformation_sequence: Sequence of transformations.
+            - background_option: Option for background handling.
+        logger (TLogger, optional): A logger object. Defaults to LoggerHelper.
+
+    Returns:
+        Path: The path to the output directory.
     """
     # Load config template
     train_config = load(open(SPRITES_CONFIG_FILE), Loader=Loader)

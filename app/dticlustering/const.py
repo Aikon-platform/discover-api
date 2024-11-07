@@ -1,3 +1,6 @@
+"""
+App-specific constants for the dticlustering app.
+"""
 from ..config.base import BASE_DIR, API_DATA_FOLDER, XACCEL_PREFIX
 
 from .lib.src.utils.path import (

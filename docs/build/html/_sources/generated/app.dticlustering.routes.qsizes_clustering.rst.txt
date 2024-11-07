@@ -1,0 +1,6 @@
+app.dticlustering.routes.qsizes\_clustering
+===========================================
+
+.. currentmodule:: app.dticlustering.routes
+
+.. autofunction:: qsizes_clustering

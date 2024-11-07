@@ -1,0 +1,6 @@
+app.shared.routes.start\_task
+=============================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: start_task

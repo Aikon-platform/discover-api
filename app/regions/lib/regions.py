@@ -1,3 +1,6 @@
+"""
+Region extractor
+"""
 import os
 import platform
 import sys
@@ -9,7 +12,6 @@ import torch
 from ..const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from ...shared.tasks import LoggedTask
 from ...shared.utils.fileutils import empty_file
-from ...shared.utils.download import download_dataset
 from ...shared.dataset import Document, Dataset
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
@@ -35,7 +37,6 @@ from .yolov5.utils.general import (
     xyxy2xywh,
 )
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
-from ...shared.utils.img import get_img_paths
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -76,6 +77,40 @@ def detect(
     anno_file="annotation.txt",  # annotation in which write the output
     img_nb=1,  # increment of the image
 ):
+    """
+    Run inference with YOLOv5
+
+    Args:
+        weights (str or Path): Model path or triton URL.
+        source (str or Path): File/dir/URL/glob/screen/0(webcam).
+        data (str or Path): Dataset.yaml path.
+        imgsz (tuple): Inference size (height, width).
+        conf_thres (float): Confidence threshold.
+        iou_thres (float): NMS IOU threshold.
+        max_det (int): Maximum detections per image.
+        device (str): CUDA device, i.e. 0 or 0,1,2,3 or cpu.
+        view_img (bool): Show results.
+        save_txt (bool): Save results to *.txt.
+        save_conf (bool): Save confidences in --save-txt labels.
+        save_crop (bool): Save cropped prediction boxes.
+        nosave (bool): Do not save images/videos.
+        classes (list): Filter by class: --class 0, or --class 0 2 3.
+        agnostic_nms (bool): Class-agnostic NMS.
+        augment (bool): Augmented inference.
+        visualize (bool): Visualize features.
+        update (bool): Update all models.
+        project (str or Path): Save results to project/name.
+        name (str): Save results to project/name.
+        exist_ok (bool): Existing project/name ok, do not increment.
+        line_thickness (int): Bounding box thickness (pixels).
+        hide_labels (bool): Hide labels.
+        hide_conf (bool): Hide confidences.
+        half (bool): Use FP16 half-precision inference.
+        dnn (bool): Use OpenCV DNN for ONNX inference.
+        vid_stride (int): Video frame-rate stride.
+        anno_file (str): Annotation file in which to write the output.
+        img_nb (int): Increment of the image.
+    """
     source = str(source)
     save_img = not nosave and not source.endswith(".txt")  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -248,6 +283,9 @@ def detect(
 
 
 class ExtractRegions(LoggedTask):
+    """
+    Task to extract regions from a dataset
+    """
     def __init__(
         self,
         dataset: Dataset,
@@ -257,24 +295,32 @@ class ExtractRegions(LoggedTask):
     ):
         super().__init__(*args, **kwargs)
         self.dataset = dataset
+        """The dataset to process"""
+
         self._model = model
         self._extraction_model: Optional[str] = None
 
     @property
     def model(self) -> str:
+        """The model to use for extraction"""
         return DEFAULT_MODEL if self._model is None else self._model
 
     @property
     def weights(self) -> Path:
+        """The path to the model weights"""
         return MODEL_PATH / self.model
 
     @property
     def extraction_model(self) -> str:
+        """The model used for extraction (without the extension)"""
         if self._extraction_model is None:
             self._extraction_model = self.model.split(".")[0]
         return self._extraction_model
 
     def check_doc(self) -> bool:
+        """
+        Check if there are documents to process
+        """
         # TODO improve check regarding documents content
         if not self.dataset.documents:
             return False
@@ -285,6 +331,9 @@ class ExtractRegions(LoggedTask):
         experiment_id: str,
         annotation_file: Path
     ) -> bool:
+        """
+        Send annotations to the frontend
+        """
         # TODO remove and use @notifying only
         if not self.notify_url:
             return False
@@ -309,6 +358,9 @@ class ExtractRegions(LoggedTask):
         annotation_file: Path,
         img_number: int
     ) -> bool:
+        """
+        Process an image
+        """
         filename = img_path.name
         try:
             self.print_and_log(f"====> Processing {filename} 🔍")
@@ -331,6 +383,9 @@ class ExtractRegions(LoggedTask):
         doc: Document,
         annotation_file: Path
     ) -> bool:
+        """
+        Process all images in a document
+        """
         images = doc.list_images()
         try:
             for i, image in enumerate(images, 1):
@@ -349,6 +404,9 @@ class ExtractRegions(LoggedTask):
         self,
         doc: Document,
     ) -> bool:
+        """
+        Process a document and extract regions from its images into an annotation file
+        """
         try:
             self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
@@ -378,6 +436,9 @@ class ExtractRegions(LoggedTask):
             return False
 
     def run_task(self) -> bool:
+        """
+        Process all documents in the dataset
+        """
         if not self.check_doc():
             self.print_and_log_warning(
                 "[task.extract_regions] No documents to annotate"

@@ -1,0 +1,6 @@
+app.shared.utils.bbox.base36\_to\_int
+=====================================
+
+.. currentmodule:: app.shared.utils.bbox
+
+.. autofunction:: base36_to_int

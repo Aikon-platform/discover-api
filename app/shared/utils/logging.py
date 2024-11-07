@@ -1,3 +1,7 @@
+"""
+A module for logging progress
+"""
+
 import functools
 import json
 import logging
@@ -22,10 +26,6 @@ from typing import (
 import requests
 
 
-"""
-A module for logging progress
-"""
-
 T = TypeVar("T")
 
 
@@ -47,7 +47,9 @@ def pprint(o):
 
 class ConsoleColors:
     """
-    Last digit
+    Color codes for console output
+
+    Last digit:
     0	black
     1	red
     2	green
@@ -79,49 +81,59 @@ def get_color(color=None):
     return getattr(ConsoleColors, color, "\033[94m")
 
 
-# def log_failed_img(img_path, img_url):
-#     from app.shared.const import IMG_LOG
-#     if not os.path.isfile(IMG_LOG):
-#         f = open(IMG_LOG, "x")
-#         f.close()
-#
-#     with open(IMG_LOG, "a") as f:
-#         f.write(f"{img_path} {img_url}\n")
-
-
 base_logger = logging.getLogger("DEMO_API")
+"""The base logger for the application"""
 
 
 class TqdmProgress(tqdm):
-    # __init__ that simply extracts a vc_callback from the kwargs
+    """
+    A TQDM progress bar that can be used to monitor the progress of an iterable, sending updates to a callback
+    """
+
     def __init__(self, iterable, *args, **kwargs):
+        # extract a vc_callback from the kwargs
         self._vc_progress_callback = kwargs.pop("vc_progress_callback", None)
         self._vc_close_callback = kwargs.pop("vc_end_callback", None)
         super().__init__(iterable, *args, **kwargs)
 
-    # Overwrite update to call the callback
-    def update(self, n=1):
+    def update(self, n: int = 1):
+        # Overwrite update to call the callback
         displayed = super().update(n)
         if displayed and self._vc_progress_callback is not None:
             self._vc_progress_callback(self)
+        return displayed
 
-    # Overwrite close to call the callback
     def close(self):
-        super().close()
+        # Overwrite close to call the callback
+        closed = super().close()
         if self._vc_close_callback is not None:
             self._vc_close_callback(self)
+        return closed
 
 
 class LoggerHelper:
+    """
+    A helper static class to log progress and errors
+    """
+
     def __init__(self):
         raise ValueError("This class is not meant to be instanced")
 
     @staticmethod
     def info(*s, **kwargs) -> None:
+        """
+        Log an info message
+        """
         base_logger.info(" ".join(str(p) for p in s))
 
     @staticmethod
-    def warning(*s, exception: Optional[Exception] = None, **kwargs) -> None:
+    def warning(*s, exception: bool = False, **kwargs) -> None:
+        """
+        Log a warning message
+
+        :param s: The messages to log
+        :param exception: Add the exception to the log
+        """
         text = " ".join(str(p) for p in s)
 
         if exception:
@@ -130,7 +142,13 @@ class LoggerHelper:
         base_logger.warning(text)
 
     @staticmethod
-    def error(*s, exception: Optional[Exception] = None, **kwargs):
+    def error(*s, exception: bool = False, **kwargs):
+        """
+        Log an error message
+
+        :param s: The messages to log
+        :param exception: Add the exception to the log
+        """
         text = " ".join(str(p) for p in s)
 
         if exception:
@@ -139,7 +157,16 @@ class LoggerHelper:
         base_logger.error(text)
 
     @classmethod
-    def progress(cls, current=0, total=None, title="", **kwargs) -> None:
+    def progress(
+        cls, current: int = 0, total: int = None, title: str = "", **kwargs
+    ) -> None:
+        """
+        Log the progress of a task
+
+        :param current: The current progress
+        :param total: The total progress
+        :param title: The title of the task
+        """
         base_logger.info(f"Progress {title} {current}/{total}")
 
     @classmethod
@@ -150,6 +177,14 @@ class LoggerHelper:
         total: Optional[int] = None,
         rate_limit: float = 1.0,
     ) -> Iterable[T]:
+        """
+        Monitor the progress of iterating an iterable (through tqdm)
+
+        :param iterable: The iterable to monitor
+        :param title: The title of the task
+        :param total: The total number of items in the iterable
+        :param rate_limit: The minimum interval between updates
+        """
         cls.progress(0, total, title=title)
 
         def progress_callback(prog: TqdmProgress):
@@ -174,6 +209,10 @@ TLogger = Union[TJobLogger, TLoggerHelper]
 
 
 class JobLogger:
+    """
+    A class to log the progress of a job and send it back to the frontend
+    """
+
     LOGGERS: Dict[str, "JobLogger"] = {}
 
     def __init__(self, message: dramatiq.Message, description=None):
@@ -189,7 +228,10 @@ class JobLogger:
         self.description = description
         self._result_backends = []
 
-    def register_backend(self, backend: ResultBackend):
+    def register_backend(self, backend: ResultBackend) -> None:
+        """
+        Register a result backend to store the results of the job
+        """
         self._result_backends.append(backend)
 
     @staticmethod
@@ -200,6 +242,12 @@ class JobLogger:
     def getLogger(cls: Type[TJobLogger], create: bool = False) -> TLogger:
         """
         Return or create the appropriate logger for the job
+
+        Only one logger is created per job, and it is stored in a class variable
+
+        :param create: Whether to create a new logger if it does not exist
+
+        :return: The logger for the job (or the helper if no job is running)
         """
         current_task = CurrentMessage.get_current_message()
         if not current_task:
@@ -216,6 +264,9 @@ class JobLogger:
     def clearLogger(
         cls: Type[TJobLogger], job_id: Optional[str] = None
     ) -> Optional[TLogger]:
+        """
+        Clear the logger for the job
+        """
         current_task = CurrentMessage.get_current_message()
         if job_id is None:
             if not current_task:
@@ -229,10 +280,16 @@ class JobLogger:
         return None
 
     def terminate(self) -> Dict[str, str]:
+        """
+        Terminate the job and return the final state
+        """
         self.clearLogger(self._id)
         return self.get_state(with_warnings=True)
 
-    def get_state(self, with_warnings: bool = False):
+    def get_state(self, with_warnings: bool = False) -> Dict[str, Any]:
+        """
+        Get the state of the current task
+        """
         state = {"id": self._id}
 
         if self.description:
@@ -267,8 +324,11 @@ class JobLogger:
 
     def _send_state(self, state: str = "PROGRESS", with_warnings: bool = False) -> None:
         """
-        Update the state of the current task
+        Update the broker result state of the current task
         Skips warnings unless otherwise specified (they can be many)
+
+        :param state: The state of the task
+        :param with_warnings: Whether to include warnings in the state
         """
         to_send = {"status": state, **self.get_state(with_warnings=with_warnings)}
 
@@ -276,6 +336,9 @@ class JobLogger:
             backend.store_result(self._message, to_send, 60 * 60 * 24 * 1000)
 
     def info(self, *s, **kwargs):
+        """
+        Log an info message
+        """
         text = " ".join(str(k) for k in s)
         self._latest_infos.append(text)
         self._latest_infos = self._latest_infos[-10:]
@@ -286,9 +349,17 @@ class JobLogger:
         self,
         *s,
         collapse: Optional[str] = None,
-        exception: Optional[Exception] = None,
+        exception: bool = False,
         send: bool = False,
     ) -> None:
+        """
+        Log a warning message
+
+        :param s: The messages to log
+        :param collapse: The type of warning (to group similar warnings)
+        :param exception: Add the exception to the log
+        :param send: Whether to send the state to the frontend right now
+        """
         text = " ".join(str(k) for k in s)
 
         if exception:
@@ -305,7 +376,13 @@ class JobLogger:
         if send:
             self._send_state(with_warnings=True)
 
-    def error(self, *s, exception: Optional[Exception] = None) -> None:
+    def error(self, *s, exception: bool = False) -> None:
+        """
+        Log an error message (and send the state to the frontend)
+
+        :param s: The messages to log
+        :param exception: Add the exception to the log
+        """
         text = " ".join(str(k) for k in s)
 
         if exception:
@@ -318,15 +395,26 @@ class JobLogger:
 
     def progress(
         self,
-        current=0,
-        total=None,
-        title="",
+        current: int = 0,
+        total: int = None,
+        title: str = "",
         key: Optional[str] = None,
-        end=False,
+        end: bool = False,
         display: bool = False,
         send: bool = True,
         **kwargs,
     ) -> None:
+        """
+        Log the progress of a task
+
+        :param current: The current progress
+        :param total: The total progress
+        :param title: The title of the task
+        :param key: The key to identify the task
+        :param end: Whether to terminate the progress tracking
+        :param display: Whether to display the progress in the console
+        :param send: Whether to send the state to the frontend (default: True)
+        """
         if key is None:
             key = title
 
@@ -360,6 +448,11 @@ class JobLogger:
     ) -> TqdmProgress:
         """
         Monitor the progress of iterating an iterable (through tqdm)
+
+        :param iterable: The iterable to monitor
+        :param title: The title of the task
+        :param total: The total number of items in the iterable
+        :param rate_limit: The minimum interval between updates
         """
 
         def progress_callback(prog: TqdmProgress):
@@ -382,7 +475,9 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     """
     A decorator to notify the task of the progress of a function
     Sends back to frontend the results returned be the task when it is done
+    Gives the task a logger to log its progress as a kwarg
     """
+    @functools.wraps(func)
     def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fct)
         def execute(*args, notify_url: Optional[str] = None, **kwargs):
@@ -417,6 +512,9 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
 
 
 class LoggedResults(Results):
+    """
+    A class to store the results of a task in Dramatiq backend
+    """
     def before_process_message(self, broker, message):
         # store a result saying Progress
         store_results, result_ttl = self._lookup_options(broker, message)
@@ -425,8 +523,13 @@ class LoggedResults(Results):
             logger.register_backend(self.backend)
 
 
-def console(msg, color="bold", e: Optional[Exception] = None):
-    base_logger.info(f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n")
+def console(msg, color="bold", e: bool = False):
+    """
+    Print a pretty message to the console
+    """
+    base_logger.info(
+        f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
+    )
     if e:
         base_logger.info(
             f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
@@ -434,11 +537,14 @@ def console(msg, color="bold", e: Optional[Exception] = None):
 
 
 class LoggingTaskMixin:
+    """
+    A class mixin to log the progress of a task
+    """
     def __init__(self, logger: TLogger, *args, **kwargs):
         self.jlogger = logger
         super().__init__(*args, **kwargs)
 
-    def print_and_log(self, s, e: Optional[Exception] = None, **kwargs) -> None:
+    def print_and_log(self, s, e: bool = False, **kwargs) -> None:
         console(s, e=e, **kwargs)
         if e:
             self.jlogger.error(s, exception=e)

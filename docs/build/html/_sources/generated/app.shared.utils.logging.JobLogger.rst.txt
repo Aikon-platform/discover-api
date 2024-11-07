@@ -1,0 +1,39 @@
+app.shared.utils.logging.JobLogger
+==================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: JobLogger
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~JobLogger.__init__
+      ~JobLogger.clearLogger
+      ~JobLogger.error
+      ~JobLogger.getLogger
+      ~JobLogger.getLoggingRedisKey
+      ~JobLogger.get_state
+      ~JobLogger.info
+      ~JobLogger.iterate
+      ~JobLogger.progress
+      ~JobLogger.register_backend
+      ~JobLogger.terminate
+      ~JobLogger.warning
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~JobLogger.LOGGERS
+   
+   

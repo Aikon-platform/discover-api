@@ -1,0 +1,6 @@
+app.watermarks.tasks.auto\_load\_models
+=======================================
+
+.. currentmodule:: app.watermarks.tasks
+
+.. autofunction:: auto_load_models

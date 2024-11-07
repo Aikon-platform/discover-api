@@ -1,0 +1,6 @@
+app.shared.routes.get\_client\_id
+=================================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: get_client_id

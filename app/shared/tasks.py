@@ -1,3 +1,7 @@
+"""
+Util functions for tasks
+"""
+
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional, Callable, Dict, Any, List
@@ -8,6 +12,10 @@ from ..shared.utils.logging import notifying, TLogger, LoggerHelper, send_update
 
 
 class LoggedTask(LoggingTaskMixin):
+    """
+    Base class for tasks that need to log their progress and errors
+    """
+
     def __init__(
         self,
         logger: TLogger,
@@ -67,6 +75,9 @@ def abstract_task(
     logger: TLogger = LoggerHelper,
     notifier=None,
 ):
+    """
+    Template for a task (see the source code)
+    """
     current_task = CurrentMessage.get_current_message()
     current_task_id = current_task.message_id
 

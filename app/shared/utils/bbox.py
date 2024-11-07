@@ -1,3 +1,7 @@
+"""
+Utilities for smart bounding box handling
+"""
+
 from typing import List, Tuple, Dict, Optional, TypeVar, Type, Iterable, Iterator
 from collections.abc import Sequence
 
@@ -42,7 +46,7 @@ TBbox = Tuple[float, float, float, float]
 class Segment:
     """
     A bounding box segment (x, y, w, h) in relative (0-1) format,
-    Or None for full size
+    or None for full size
     """
     __slots__ = ("left", "top", "width", "height", "precision", "_fullpage")
 
@@ -87,10 +91,16 @@ class Segment:
 
     @classmethod
     def from_bbox(cls: Type[TSegment], array: TBbox, precision: int = 2) -> TSegment:
+        """
+        Create a segment from a bounding box tuple
+        """
         return cls(*array, precision=precision)
 
     @classmethod
     def unserialize(cls: Type[TSegment], string: str) -> TSegment:
+        """
+        Create a segment from a serialized string
+        """
         precision = len(string) // 4
 
         if precision == 0:
@@ -109,6 +119,9 @@ class Segment:
 
     @classmethod
     def auto_cast(cls: Type[TSegment], bbox) -> TSegment:
+        """
+        Cast to segment from various input types (str, tuple, Segment, None)
+        """
         if isinstance(bbox, cls):
             return bbox
 
@@ -127,6 +140,9 @@ class Segment:
         return bbox
 
     def serialize(self, precision: Optional[int] = None) -> Optional[str]:
+        """
+        Serialize the segment to a string, using the given precision in base36 encoding
+        """
         if precision is None:
             precision = self.precision
 

@@ -1,0 +1,6 @@
+app.regions.routes.cancel\_regions\_extraction
+==============================================
+
+.. currentmodule:: app.regions.routes
+
+.. autofunction:: cancel_regions_extraction

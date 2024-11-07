@@ -1,0 +1,6 @@
+app.shared.utils.logging.get\_color
+===================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autofunction:: get_color

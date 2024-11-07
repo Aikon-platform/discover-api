@@ -1,5 +1,8 @@
+"""
+Module-specific constants for the regions app
+"""
 from pathlib import Path
-from ..shared.utils.fileutils import create_dirs_if_not, create_file_if_not
+from ..shared.utils.fileutils import create_dirs_if_not
 from ..config.base import ENV, BASE_DIR, XACCEL_PREFIX, API_DATA_FOLDER
 
 DEMO_NAME = "regions"

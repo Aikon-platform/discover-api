@@ -1,0 +1,6 @@
+app.shared.routes.receive\_task
+===============================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: receive_task

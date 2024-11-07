@@ -1,0 +1,6 @@
+app.shared.utils.iiif.get\_reduced\_size
+========================================
+
+.. currentmodule:: app.shared.utils.iiif
+
+.. autofunction:: get_reduced_size

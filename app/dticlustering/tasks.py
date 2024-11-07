@@ -1,3 +1,22 @@
+"""
+Tasks for DTI clustering
+
+**train_dti**
+This function is a Dramatiq actor that handles the training of a DTI model. 
+It downloads the dataset, prepares it, and runs the training process based on the provided parameters.
+
+- experiment_id (str): The ID of the clustering task.
+- dataset_id (str): The ID of the dataset.
+- dataset_url (str): The URL of the zipped dataset to be downloaded.
+- parameters (Optional[dict]): A JSON object containing the training parameters.
+- logger (TLogger): A logger object.
+- notifier: An optional notifier object.
+
+Returns:
+
+- dict: A dictionary containing the result URL of the trained model.
+"""
+
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional

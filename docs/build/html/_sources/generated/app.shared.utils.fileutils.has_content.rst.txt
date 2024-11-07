@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.has\_content
+=======================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: has_content

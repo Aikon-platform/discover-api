@@ -1,3 +1,7 @@
+"""
+Download a dataset from front (deprecated?)
+"""
+
 from pathlib import Path
 
 import requests
@@ -14,7 +18,8 @@ from ..const import IMG_PATH
 def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None, sub_dir=None, dataset_ref=None):
     """
     Download a dataset from front
-    TODO improve this function
+    
+    TODO improve this function / Use dataset.documents.Document.download()
     """
     if not datasets_dir_path:
         datasets_dir_path = IMG_PATH

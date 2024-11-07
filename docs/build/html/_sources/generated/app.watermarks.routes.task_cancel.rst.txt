@@ -1,0 +1,6 @@
+app.watermarks.routes.task\_cancel
+==================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: task_cancel

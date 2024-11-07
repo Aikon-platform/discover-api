@@ -1,0 +1,37 @@
+app.shared.utils.bbox.Segment
+=============================
+
+.. currentmodule:: app.shared.utils.bbox
+
+.. autoclass:: Segment
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~Segment.__init__
+      ~Segment.auto_cast
+      ~Segment.from_bbox
+      ~Segment.serialize
+      ~Segment.unserialize
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~Segment.left
+      ~Segment.top
+      ~Segment.width
+      ~Segment.height
+      ~Segment.precision
+      ~Segment.is_full
+   
+   

@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.create\_files\_if\_not
+=================================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: create_files_if_not

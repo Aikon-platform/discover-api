@@ -1,0 +1,6 @@
+app.shared.utils.img.save\_img
+==============================
+
+.. currentmodule:: app.shared.utils.img
+
+.. autofunction:: save_img

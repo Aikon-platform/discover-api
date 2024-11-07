@@ -1,0 +1,25 @@
+app.vectorization.vectorization.ComputeVectorization
+====================================================
+
+.. currentmodule:: app.vectorization.vectorization
+
+.. autoclass:: ComputeVectorization
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~ComputeVectorization.__init__
+      ~ComputeVectorization.check_dataset
+      ~ComputeVectorization.run_task
+      ~ComputeVectorization.task_update
+   
+   
+
+   
+   
+   

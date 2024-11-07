@@ -1,0 +1,6 @@
+app.shared.utils.get\_device
+============================
+
+.. currentmodule:: app.shared.utils
+
+.. autofunction:: get_device

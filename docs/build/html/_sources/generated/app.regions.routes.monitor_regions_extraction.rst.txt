@@ -1,0 +1,6 @@
+app.regions.routes.monitor\_regions\_extraction
+===============================================
+
+.. currentmodule:: app.regions.routes
+
+.. autofunction:: monitor_regions_extraction
