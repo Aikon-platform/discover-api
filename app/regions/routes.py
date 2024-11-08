@@ -58,13 +58,12 @@ import time
 
 from flask import request, jsonify, Blueprint
 
-from ..main import app
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
 from .const import ANNO_PATH, MODEL_PATH, IMG_PATH, EXT_XACCEL_PREFIX
-from ..shared.utils.fileutils import delete_path, sanitize_str
-from ..shared.utils.logging import console
+from ..shared.utils.fileutils import delete_path
 from ..shared.dataset import Dataset
+from ..shared.utils.logging import console
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -94,31 +93,17 @@ def start_regions_extraction():
 
     :return: The tracking_id of the task
     """
-
-    # if request.is_json:
-    #     json_param = request.get_json()
-    # else:
-    #     json_param = request.form.to_dict()
-    #
-    # if not json_param:
-    #     return "No data in request: Regions extraction task aborted!"
-    #
-    # console(json_param, color="cyan")
-    # experiment_id = json_param.get('experiment_id')
-    # notify_url = json_param.get('notify_url') or json_param.get('callback')
-    # tracking_url = json_param.get("tracking_url")
-
     experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(
         request, ["dataset", "documents", "model"]
     )
-
-    dataset = param.get('dataset')
 
     documents = param.get('documents', {})
     if type(documents) is str:
         documents = json.loads(documents)
 
-    dataset = Dataset(dataset, documents=documents)
+    # dataset = param.get('dataset')
+    dataset_id = "".join(list(documents.keys())[0])
+    dataset = Dataset(dataset_id, documents=documents)
     dataset.save()
 
     model = param.get('model')
@@ -127,7 +112,7 @@ def start_regions_extraction():
         extract_objects,
         experiment_id,
         {
-            "dataset": dataset,
+            "dataset_uid": dataset.uid,
             "model": model,
             "notify_url": notify_url,
             "tracking_url": tracking_url,

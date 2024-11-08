@@ -20,14 +20,15 @@ def start_vectorization(client_id):
     Start the vectorization task.
 
     TODO update that to fit what is sent by the frontend
+    TODO use shared_routes.receive_task
 
     Expected parameters:
     
     .. code-block:: json
-    
+
         {
-            "doc_id": "wit17_img17_anno17"
-            "model": "0036"
+            "experiment_id": "wit17_img17_anno17"
+            "model": "0045" # epoch number
             "callback": "https://domain-name.com/receive-vecto",
             "tracking_url": "url for updates",
             "images": {
@@ -48,7 +49,7 @@ def start_vectorization(client_id):
     experiment_id = json_param.get("experiment_id")
     documents = json_param.get("documents", {})
     model = json_param.get("model", None)
-    notify_url = json_param.get("callback", None)
+    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(

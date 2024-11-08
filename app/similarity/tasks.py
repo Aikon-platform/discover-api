@@ -15,6 +15,7 @@ def compute_similarity(
     notify_url: Optional[str] = None,
     tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
+    **kwargs
 ):
     """
     Run similarity retrieval task on all pairs of documents

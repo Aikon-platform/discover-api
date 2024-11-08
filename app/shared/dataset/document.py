@@ -11,8 +11,8 @@ import json
 
 from ..const import DOCUMENTS_PATH
 from ..utils.iiif import IIIFDownloader, get_json
-from ..utils.fileutils import sanitize_str
-from ..utils.img import download_image
+from ..utils.fileutils import sanitize_str, has_content
+from ..utils.img import download_images, MAX_SIZE, download_image, get_img_paths
 from ..utils.logging import console
 
 
@@ -42,13 +42,13 @@ class Document:
             - mapping.json
     """
 
-    def __init__(self, uid: str, path: Path | str = None):
+    def __init__(self, uid: str, path: Path | str = None, src: Optional[str] = None):
         self.uid = uid
         if path is None:
             path = DOCUMENTS_PATH / sanitize_str(uid)
         self.path = Path(path)
-
-        self._mapping = None
+        self.src = src
+        self._mapping = None  # A mapping of filenames to their URLs
 
     @property
     def images_path(self):
@@ -137,8 +137,9 @@ class Document:
         - If images_src is a dictionary of URLs, or refer to a JSON file containing a dictionary of URLs, 
           download the images from the URLs (mapping is then dict key -> local image path)
         """
+        console(self.src, color="green")
         if images_src is None:
-            images_src = self.uid
+            images_src = self.src
 
         if all([urlparse(images_src).scheme, urlparse(images_src).netloc]):
             if images_src.endswith(".zip"):
@@ -160,4 +161,5 @@ class Document:
         """
         Iterate over the images in the document
         """
-        return list(self.images_path.glob("*.jpg"))
+        # return list(self.images_path.glob("*.jpg"))
+        return get_img_paths(self.images_path)

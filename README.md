@@ -191,7 +191,7 @@ The front server decrypts the traffic and redirects it to `localhost:8001`.
 sudo apt-get update
 sudo apt-get install spiped
 sudo mkdir /etc/spiped
-sudo dd if=/dev/urandom of=/etc/spiped/discover.key bs=32 count=1 # Genereate key
+sudo dd if=/dev/urandom of=/etc/spiped/discover.key bs=32 count=1 # Generate key
 sudo chmod 644 /etc/spiped/discover.key
 ```
 

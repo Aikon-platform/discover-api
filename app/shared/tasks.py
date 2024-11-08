@@ -40,9 +40,13 @@ class LoggedTask(LoggingTaskMixin):
         if self.tracking_url:
             send_update(self.experiment_id, self.tracking_url, event, message)
         if self.notifier:
-            self.notifier(event, message=message)
             if event == "ERROR":
-                raise Exception(message)
+                if message and isinstance(message, list):
+                    msg = ", ".join(message)
+                else:
+                    msg = message or "Unknown error"
+                self.notifier(event, message=msg)
+                raise Exception(f"Task {self.experiment_id} failed with error: {msg}")
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
         self.print_and_log_error(f"[task.{self.__class__.__name__}] {message}", e=exception)
@@ -74,6 +78,7 @@ def abstract_task(
     tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
+    **kwargs
 ):
     """
     Template for a task (see the source code)

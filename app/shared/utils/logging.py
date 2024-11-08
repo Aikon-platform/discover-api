@@ -33,6 +33,21 @@ def exc_str(e: Exception):
     return f"[{e.__class__.__name__}] {e}\nStack Trace:\n{traceback.format_exc()}\n"
 
 
+def sanitize(v):
+    """
+    Helper function to convert non-serializable values to string representations.
+    """
+    if isinstance(v, (str, int, float, bool, type(None))):
+        return v
+    elif isinstance(v, (list, tuple)):
+        return [sanitize(x) for x in v]
+    elif isinstance(v, dict):
+        return {str(k): sanitize(val) for k, val in v.items()}
+    else:
+        # For custom objects, include class name in representation
+        return f"{v.__class__.__name__}({str(v)})"
+
+
 def pprint(o):
     if isinstance(o, str):
         try:
@@ -40,9 +55,21 @@ def pprint(o):
         except ValueError:
             return o
     elif isinstance(o, dict) or isinstance(o, list):
-        return json.dumps(o, indent=4, sort_keys=True)
-    else:
-        return str(o)
+        try:
+            return json.dumps(o, indent=4, sort_keys=True)
+        except TypeError:
+            try:
+                if isinstance(o, dict):
+                    sanitized = {
+                        str(k): sanitize(v)
+                        for k, v in o.items()
+                    }
+                else:
+                    sanitized = [sanitize(v) for v in o]
+                return json.dumps(sanitized, indent=4, sort_keys=True)
+            except Exception:
+                return str(o)
+    return str(o)
 
 
 class ConsoleColors:
@@ -480,10 +507,11 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
     @functools.wraps(func)
     def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(fct)
-        def execute(*args, notify_url: Optional[str] = None, **kwargs):
+        def execute(*args, **kwargs):
             logger = JobLogger.getLogger(create=True)
             logger.info(f"Starting task {fct.__name__}")
             current_task_id = getattr(logger, "_id", None)
+            notify_url = kwargs.get("notify_url", None)
 
             def notify(event: str, **data):
                 if notify_url:
@@ -523,17 +551,16 @@ class LoggedResults(Results):
             logger.register_backend(self.backend)
 
 
-def console(msg, color="bold", e: bool = False):
-    """
-    Print a pretty message to the console
-    """
-    base_logger.info(
-        f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
-    )
+def console(msg, color="bold", e: bool=False, log=True):
+    msg = f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
     if e:
-        base_logger.info(
-            f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
-        )
+        msg += f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
+
+    if log:
+        base_logger.info(msg)
+        return
+    print(msg)
+
 
 
 class LoggingTaskMixin:

@@ -3,11 +3,12 @@ The Dataset class, which represents a dataset of documents
 """
 
 from pathlib import Path
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Dict
 import json
 
 from ..const import DATASETS_PATH
 from .document import Document
+from ..utils.logging import console
 
 
 class Dataset:
@@ -37,9 +38,11 @@ class Dataset:
         if path is None:
             path = DATASETS_PATH / uid
         self.path = Path(path)
-        self.documents = [Document(doc) for doc in documents] if documents else None
         if load:
             self.load()
+        else:
+            console(documents, color="red")
+            self.documents = [Document(uid, src=src) for uid, src in documents.items()] if documents else None
 
     @property
     def results_path(self) -> Path:
@@ -54,7 +57,8 @@ class Dataset:
         """
         self.path.mkdir(parents=True, exist_ok=True)
         with open(self.path / "documents.json", "w") as f:
-            json.dump([doc.uid for doc in self.documents], f)
+            # json.dump([doc.uid for doc in self.documents], f)
+            json.dump({doc.uid: doc.src for doc in self.documents}, f)
 
     def load(self) -> None:
         """
@@ -62,7 +66,7 @@ class Dataset:
         """
         with open(self.path / "documents.json", "r") as f:
             documents = json.load(f)
-        self.documents = [Document(doc) for doc in documents]
+        self.documents = [Document(uid, src=src) for uid, src in documents.items()]
 
     def list_images(self) -> List[str]:
         """

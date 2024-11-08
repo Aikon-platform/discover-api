@@ -20,13 +20,18 @@ CONTAINER_HOST="0.0.0.0"
 CONTAINER_NAME="demoapi"
 
 rebuild_image() {
-    docker build --rm -t "$CONTAINER_NAME" . -f Dockerfile --build-arg USERID=$DEMO_UID
+    # Add error checking for the build process
+    if ! docker build --rm -t "$CONTAINER_NAME" . -f Dockerfile --build-arg USERID=$DEMO_UID; then
+        echo "Docker build failed"
+        exit 1
+    fi
     cd ../
 }
 
 # if container exists and stop it
 if docker ps -a --format '{{.Names}}' | grep -Eq "$CONTAINER_NAME"; then
     docker stop "$CONTAINER_NAME"
+    docker rm "$CONTAINER_NAME"
 fi
 
 if [ "$1" = "rebuild" ]; then
@@ -39,9 +44,13 @@ if [ "$1" = "pull" ]; then
     rebuild_image
 fi
 
-docker rm "$CONTAINER_NAME"
-
-# Run Docker container
-docker run -d --gpus "$DEVICE_NB" --name "$CONTAINER_NAME" \
-   -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p "$CONTAINER_HOST":8001:8001 \
-   --restart unless-stopped --ipc=host "$CONTAINER_NAME"
+# Only run the container if it exists
+if docker image inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
+    # Run Docker container
+    docker run -d --gpus "$DEVICE_NB" --name "$CONTAINER_NAME" \
+       -v "$DATA_FOLDER":/data/ -v "$CUDA_HOME":/cuda/ -p "$CONTAINER_HOST":8001:8001 \
+       --restart unless-stopped --ipc=host "$CONTAINER_NAME"
+else
+    echo "Image $CONTAINER_NAME does not exist. Build failed or not yet built."
+    exit 1
+fi

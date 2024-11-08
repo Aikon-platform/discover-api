@@ -22,6 +22,9 @@ blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 @shared_routes.error_wrapper
 def start_similarity(client_id):
     """
+    Compute similarity for images from a list of URLs.
+
+    TODO use shared_routes.receive_task
 
     .. code-block:: python
 
@@ -30,8 +33,6 @@ def start_similarity(client_id):
             "wit87_img87_anno87": "https://eida.obspm.fr/eida/wit87_img87_anno87/list/",
             "wit2_img2_anno2": "https://eida.obspm.fr/eida/wit2_img2_anno2/list/"
         }
-
-    Compute similarity for images from a list of URLs.
     
     Each URL corresponds to a document and contains a list of images to download:
 
@@ -64,7 +65,7 @@ def start_similarity(client_id):
         "client_id": client_id,
     }
     # which url to send back the similarity results and updates on the task
-    notify_url = json_param.get("callback", None)
+    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(

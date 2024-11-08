@@ -3,6 +3,7 @@ The main routes that handle the API requests regarding starting and monitoring t
 """
 
 import functools
+import json
 
 from flask import request, send_from_directory, jsonify, Request
 from slugify import slugify
@@ -13,7 +14,6 @@ import traceback
 from typing import Tuple
 
 from .utils import hash_str
-from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
@@ -59,12 +59,10 @@ def receive_task(req:Request) -> Tuple[str, str, str, dict]:
     if not param:
         raise ValueError("No data in request: Task aborted!")
 
-    console(param, color="cyan")
-
-    experiment_id = param.get('experiment_id')
-    tracking_url = param.get("tracking_url")
+    experiment_id = param.get('experiment_id', "")
+    tracking_url = param.get("tracking_url", "")
     # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
-    notify_url = param.get('notify_url') or param.get('callback')
+    notify_url = param.get('notify_url', None) or param.get('callback', None)
 
     # task_kwargs = {}
     # for param_name in additional_params:

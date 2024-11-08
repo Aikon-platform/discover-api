@@ -180,7 +180,8 @@ def pipeline(
     experiment_id: str = "",
     compare_to: Optional[str] = None,
     logger: TLogger = LoggerHelper,
-    notifier=None
+    notifier=None,
+    **kwargs
 ):
     image = Image.open(image_path)
     compare_to = WatermarkSource(compare_to) if compare_to else None

@@ -167,7 +167,7 @@ set_redis() {
 # NOTE uncomment to use Redis password
 # set_redis $REDIS_PASSWORD
 
-echoTitle "DOWNLOADING DTI SUBMODULE"
+echoTitle "DOWNLOADING SUBMODULES"
 git submodule init
 git submodule update
 
