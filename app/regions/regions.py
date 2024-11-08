@@ -3,15 +3,17 @@ import os
 from pathlib import Path
 from typing import Optional
 import requests
+import torch
+from torchvision import transforms
+from PIL import Image
 
 from .const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
-from .lib.extract import extract
+from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset
-from ..shared.utils.fileutils import empty_file
+from ..shared.utils.fileutils import empty_file, TPath
 from ..shared.utils.download import download_dataset
 from ..shared.utils.img import get_img_paths
-
 
 class ExtractRegions(LoggedTask):
     def __init__(
@@ -27,6 +29,15 @@ class ExtractRegions(LoggedTask):
         self._extraction_model: Optional[str] = None
         self.result_dir = Path()
         self.annotations = {}
+
+    def initialize(self):
+        if self.model.startswith(("rcnn", "fasterrcnn")):
+            self.extractor = FasterRCNNExtractor(self.weights)
+        else:
+            self.extractor = YOLOExtractor(self.weights)
+
+    def terminate(self):
+        del self.extractor
 
     @property
     def model(self) -> str:
@@ -80,12 +91,7 @@ class ExtractRegions(LoggedTask):
         filename = img_path.name
         try:
             self.print_and_log(f"====> Processing {filename} 🔍")
-            anno = extract(
-                weights=self.weights,
-                source=img_path,
-                anno_file=self.result_dir / f"{extraction_ref}.txt",
-                img_nb=img_number,
-            )
+            anno = self.extractor.extract_one(img_path)
             self.annotations[extraction_ref].append(anno)
             return True
         except Exception as e:
@@ -173,6 +179,7 @@ class ExtractRegions(LoggedTask):
         )
 
         try:
+            self.initialize()
             all_successful = True
             for doc in self.dataset.documents:
                 success = self.process_doc(doc)
@@ -186,3 +193,5 @@ class ExtractRegions(LoggedTask):
             self.handle_error(str(e))
             self.task_update("ERROR", self.error_list)
             return False
+        finally:
+            self.terminate()
