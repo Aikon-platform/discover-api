@@ -17,6 +17,7 @@ from PIL import Image
 from .fileutils import get_all_files, TPath
 from ..const import UTILS_DIR
 from .logging import console
+import warnings
 
 
 MAX_SIZE = 244
@@ -109,12 +110,15 @@ def download_image(
         console(f"[download_img] {img_url} image was not downloaded", e=e)
 
 
-@DeprecationWarning
 def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
+    warnings.warn(
+        "download_img is deprecated, use Document.download() instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
 
 
-@DeprecationWarning
 def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZE):
     """
     Download images from a URL containing a list of images
@@ -129,7 +133,11 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZ
             "img_name": "..."
         }
     """
-
+    warnings.warn(
+        "download_images is deprecated, use Document.download() instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     images = get_json(url)
     if len(images.items()) == 0:
         console(f"{url} does not contain any images.", color="yellow")
@@ -148,14 +156,12 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZ
 
     return paths
 
-@DeprecationWarning
 def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")) -> list[Path]:
     """
     Get all image paths in a directory
     """
     return get_all_files(img_dir, img_ext)
 
-@DeprecationWarning
 def get_imgs_in_dirs(img_dirs) -> list[str]:
     images = []
     for img_dir in img_dirs:

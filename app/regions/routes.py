@@ -93,9 +93,7 @@ def start_regions_extraction():
 
     :return: The tracking_id of the task
     """
-    experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(
-        request, ["dataset", "documents", "model"]
-    )
+    experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(request)
 
     documents = param.get('documents', {})
     if type(documents) is str:
@@ -163,7 +161,7 @@ def get_models():
 
     try:
         for filename in os.listdir(MODEL_PATH):
-            if filename.endswith(".pt"):
+            if filename.endswith((".pt", ".pth")):
                 full_path = os.path.join(MODEL_PATH, filename)
                 modification_date = os.path.getmtime(full_path)
                 models_info[filename] = time.ctime(modification_date)
