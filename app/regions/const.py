@@ -19,4 +19,5 @@ MODEL_PATH = EXT_DATA_FOLDER / "models"
 
 create_dirs_if_not([IMG_PATH, ANNO_PATH, MODEL_PATH])
 
+# TODO retrieve available model instead
 DEFAULT_MODEL = "best_eida.pt"
