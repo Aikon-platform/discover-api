@@ -211,7 +211,7 @@ class IIIFDownloader:
                     if img_name is not None:
                         all_img_mapping.append((img_name, img_url))
                     if is_downloaded:
-                        # Gallica is not accepting more than 5 downloads of >1000px / min after
+                        # Gallica is not accepting more than 5 downloads of >1000px per min
                         time.sleep(12 if "gallica" in self.manifest_url else 0.25)
                         time.sleep(self.sleep)
         return all_img_mapping
