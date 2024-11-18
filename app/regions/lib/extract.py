@@ -140,7 +140,7 @@ class YOLOExtractor(BaseExtractor):
         return DetectMultiBackend(self.weights, device=self.device, fp16=False)
     
     def prepare_image(self, im):
-        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(0) # no need to swap axes
+        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(0)  # no need to swap axes
 
     @smart_inference_mode()
     def process_detections(
@@ -214,6 +214,7 @@ class YOLOExtractor(BaseExtractor):
                 self.process_detections(det, im, im0s, names, save_img, source, writer)
 
         return writer.annotations
+
 
 class FasterRCNNExtractor(BaseExtractor):
     DEFAULT_IMG_SIZE = [512, 800, 1400, 2000]  # used for multiscale inference

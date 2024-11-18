@@ -18,6 +18,7 @@ from ...shared.utils.logging import console
 def load_model(model_path, feat_net, feat_set, device):
     """
     Load a pre-trained model for features extraction
+    # TODO ADD CLIP
     """
     if feat_net == "resnet34" and feat_set == "imagenet":
         model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1).to(

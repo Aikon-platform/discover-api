@@ -51,12 +51,13 @@ class Segment:
     __slots__ = ("left", "top", "width", "height", "precision", "_fullpage")
 
     def __init__(
-            self,
-            left: Optional[float],
-            top: Optional[float] = None,
-            width: Optional[float] = None,
-            height: Optional[float] = None,
-            precision: int = 2):
+        self,
+        left: Optional[float],
+        top: Optional[float] = None,
+        width: Optional[float] = None,
+        height: Optional[float] = None,
+        precision: int = 2
+    ):
 
         self._fullpage = left is None
 
@@ -222,9 +223,9 @@ class IIIFPageSegmentationItem:
 
     def __eq__(self, other):
         return (
-                self.page_uid == other.page_uid and
-                self.label == other.label and
-                self.bbox == other.bbox
+            self.page_uid == other.page_uid and
+            self.label == other.label and
+            self.bbox == other.bbox
         )
 
     def __str__(self):

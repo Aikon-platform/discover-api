@@ -11,9 +11,7 @@ from .const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset
-from ..shared.utils.fileutils import empty_file, TPath
-from ..shared.utils.download import download_dataset
-from ..shared.utils.img import get_img_paths
+
 
 class ExtractRegions(LoggedTask):
     def __init__(

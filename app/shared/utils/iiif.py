@@ -87,7 +87,7 @@ def get_iiif_resources(manifest: dict) -> List[dict]:
     return img_info
 
 
-def get_reduced_size(size: Union[int, str], min_size: int=1500) -> str:
+def get_reduced_size(size: Union[int, str], min_size: int = 1500) -> str:
     """
     Adapt the size of an image to a given size
 
@@ -142,14 +142,14 @@ class IIIFDownloader:
     """
 
     def __init__(
-        self,
-        manifest_url: str,
-        target_path: TPath = None,
-        img_dir: TPath = None,
-        width: int = None,
-        height: int = None,
-        sleep: float = 0.25,
-        max_dim: int=None,
+            self,
+            manifest_url: str,
+            target_path: TPath = None,
+            img_dir: TPath = None,
+            width: int = None,
+            height: int = None,
+            sleep: float = 0.25,
+            max_dim: int = None,
     ):
         """ """
         self.manifest_url = manifest_url
@@ -233,7 +233,7 @@ class IIIFDownloader:
         return f"{width or ''},{height or ''}"
 
     def save_iiif_img(
-        self, img_rscr: dict, i: int, size: str="full", re_download: bool=False
+            self, img_rscr: dict, i: int, size: str = "full", re_download: bool = False
     ) -> Tuple[bool, Optional[str], Optional[str]]:
         """
         Save an image from a IIIF resource, at a given size
@@ -260,8 +260,8 @@ class IIIFDownloader:
         iiif_url = sanitize_url(f"{img_url}/full/{size}/0/default.jpg")
 
         if (
-            glob.glob(os.path.join(self.manifest_dir_path, f"*_{i:04d}.jpg"))
-            and not re_download
+                glob.glob(os.path.join(self.manifest_dir_path, f"*_{i:04d}.jpg"))
+                and not re_download
         ):
             # if the img is already downloaded, don't download it again
             return False, img_name, iiif_url
@@ -293,9 +293,9 @@ class IIIFDownloader:
                     return False, None, None
 
             self.save_img(img, img_name, f"Failed to save {iiif_url}")
-        return (True, img_name, iiif_url)
+        return True, img_name, iiif_url
 
-    def save_img(self, img: Image, img_filename: TPath, error_msg: str="Failed to save img") -> bool:
+    def save_img(self, img: Image, img_filename: TPath, error_msg: str = "Failed to save img") -> bool:
         """
         Save an image to disk
         """
