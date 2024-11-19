@@ -16,6 +16,7 @@ from typing import Optional, Tuple, List, Union
 from ...regions.const import IMG_PATH
 from .fileutils import check_dir, sanitize_str, sanitize_url, TPath
 from .logging import console
+import warnings
 
 
 def is_iiif_manifest(json_content: dict) -> bool:
@@ -156,6 +157,7 @@ class IIIFDownloader:
         self.manifest_id = ""  # Prefix to be used for img filenames
 
         if target_path is None:
+            warnings.warn("Using img_dir is deprecated, please use target_path instead", DeprecationWarning)
             if img_dir is None:
                 img_dir = IMG_PATH
             target_path = Path(img_dir) / self.get_dir_name()

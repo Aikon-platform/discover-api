@@ -92,7 +92,7 @@ class Document:
         Download images from a IIIF manifest
         """
         self.images_path.mkdir(parents=True, exist_ok=True)
-        downloader = IIIFDownloader(manifest_url, img_dir=self.images_path)
+        downloader = IIIFDownloader(manifest_url, target_path=self.images_path)
         mapping = downloader.run()
         self._extend_mapping(mapping)
 

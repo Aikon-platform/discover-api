@@ -3,17 +3,11 @@ import os
 from pathlib import Path
 from typing import Optional
 import requests
-import torch
-from torchvision import transforms
-from PIL import Image
 
-from .const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
+from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset
-from ..shared.utils.fileutils import empty_file, TPath
-from ..shared.utils.download import download_dataset
-from ..shared.utils.img import get_img_paths
 
 class ExtractRegions(LoggedTask):
     def __init__(
@@ -139,14 +133,14 @@ class ExtractRegions(LoggedTask):
             os.makedirs(self.result_dir, exist_ok=True)
 
             extraction_ref = f"{self.extraction_model}_{self.experiment_id}"
-            annotation_file = self.result_dir / f"{extraction_ref}.txt"
+            annotation_file = self.result_dir / f"{extraction_ref}.json"
             with open(annotation_file, 'w'):
                 pass
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
             success = self.process_doc_imgs(doc, extraction_ref)
             if success:
-                with open(self.result_dir / f"{extraction_ref}.json", 'w') as f:
+                with open(annotation_file, 'w') as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
 
                 success = self.send_annotations(
