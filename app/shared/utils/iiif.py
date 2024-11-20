@@ -16,6 +16,7 @@ from typing import Optional, Tuple, List, Union
 from ...regions.const import IMG_PATH
 from .fileutils import check_dir, sanitize_str, sanitize_url, TPath
 from .logging import console
+import warnings
 
 
 def is_iiif_manifest(json_content: dict) -> bool:
@@ -156,6 +157,7 @@ class IIIFDownloader:
         self.manifest_id = ""  # Prefix to be used for img filenames
 
         if target_path is None:
+            warnings.warn("Using img_dir is deprecated, please use target_path instead", DeprecationWarning)
             if img_dir is None:
                 img_dir = IMG_PATH
             target_path = Path(img_dir) / self.get_dir_name()
@@ -203,9 +205,10 @@ class IIIFDownloader:
         all_img_mapping = []
         if manifest is not None:
             console(f"Processing {self.manifest_url}...")
-            if not check_dir(self.manifest_dir_path):
+            if not check_dir(self.manifest_dir_path) or True: # TODO find a better way to avoid re-downloading
                 i = 1
                 for rsrc in get_iiif_resources(manifest):
+                    console(rsrc)
                     is_downloaded, img_name, img_url = self.save_iiif_img(rsrc, i)
                     i += 1
                     if img_name is not None:
@@ -256,7 +259,14 @@ class IIIFDownloader:
         """
         img_name = f"{self.manifest_id}_{i:04d}.jpg"
 
-        img_url = get_id(img_rscr["service"])
+        if "service" in img_rscr:
+            img_url = get_id(img_rscr["service"])
+        elif get_id(img_rscr).endswith(("/full/full/0/default.jpg", "/full/max/0/default.jpg")):
+            img_url = get_id(img_rscr).rsplit("/", 4)[0]
+        else:
+            console(f"Invalid image resource: {img_rscr}", color="red")
+            return False, None, None
+
         iiif_url = sanitize_url(f"{img_url}/full/{size}/0/default.jpg")
 
         if (

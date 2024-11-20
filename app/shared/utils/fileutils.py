@@ -12,8 +12,11 @@ from datetime import datetime
 from os.path import exists
 from pathlib import Path
 from slugify import slugify
-from typing import Union, Optional, Set, List
+from typing import Union, Optional, Set, List, Tuple, Generator, Iterable
 from flask import Response
+from stat import S_IFREG
+from stream_zip import ZIP_32, stream_zip
+import re
 
 from .logging import console
 
@@ -188,15 +191,7 @@ def sanitize_str(string:str) -> str:
     Sanitize a URL string to make it a valid filename
     (remove http, https, www, /, ., :, spaces)
     """
-    return (
-        string.replace("/", "")
-        .replace(".", "")
-        .replace("https", "")
-        .replace("http", "")
-        .replace("www", "")
-        .replace(" ", "_")
-        .replace(":", "")
-    )
+    return re.sub(r"^https?\:\/\/|www\.|\.|\:|\s", "", string.strip()).replace("/", "^").replace(" ", "_")
 
 
 def empty_file(path: TPath) -> None:
@@ -289,3 +284,24 @@ def get_all_files(
         pass
 
     return sorted(files)
+
+def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
+    """
+    Zip files on the fly
+
+    Args:
+        files: List of tuples (filename, path)
+    """
+    def contents(path: TPath) -> Generator[bytes, None, None]:
+        with open(path, 'rb') as f:
+            while chunk := f.read(65536):
+                yield chunk
+    
+    def iter_files() -> Generator[Tuple[str, int, int, int, Generator[bytes, None, None]], None, None]:
+        for name, path in files:
+            if not os.path.exists(path):
+                continue
+            dt = datetime.fromtimestamp(os.path.getmtime(path))
+            yield (name, dt, S_IFREG | 0o600, ZIP_32, contents(path))
+
+    return stream_zip(iter_files())

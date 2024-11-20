@@ -3,17 +3,21 @@ import os
 from pathlib import Path
 from typing import Optional
 import requests
-import torch
-from torchvision import transforms
-from PIL import Image
 
-from .const import DEFAULT_MODEL, ANNO_PATH, MODEL_PATH, IMG_PATH
+from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset
 
 
 class ExtractRegions(LoggedTask):
+    """
+    Task to extract regions from a dataset
+
+    Args:
+        dataset (Dataset): The dataset to process
+        model (str, optional): The model to use for extraction (default: DEFAULT_MODEL)
+    """
     def __init__(
         self,
         dataset: Dataset,
@@ -29,12 +33,18 @@ class ExtractRegions(LoggedTask):
         self.annotations = {}
 
     def initialize(self):
+        """
+        Initialize the extractor, based on the model's name prefix
+        """
         if self.model.startswith(("rcnn", "fasterrcnn")):
             self.extractor = FasterRCNNExtractor(self.weights)
         else:
             self.extractor = YOLOExtractor(self.weights)
 
     def terminate(self):
+        """
+        Clear memory
+        """
         del self.extractor
 
     @property
@@ -62,6 +72,9 @@ class ExtractRegions(LoggedTask):
         experiment_id: str,
         annotation_file: Path,
     ) -> bool:
+        """
+        Deprecated, used by AIKON
+        """
         if not self.notify_url:
             self.error_list.append("Notify URL not provided")
             return True
@@ -84,12 +97,16 @@ class ExtractRegions(LoggedTask):
         self,
         img_path: Path,
         extraction_ref: str,
-        img_number: int
+        doc_uid: str
     ) -> bool:
+        """
+        Process a single image, appends the annotations to self.annotations[extraction_ref]
+        """
         filename = img_path.name
         try:
             self.print_and_log(f"====> Processing {filename} 🔍")
             anno = self.extractor.extract_one(img_path)
+            anno["doc_uid"] = doc_uid
             self.annotations[extraction_ref].append(anno)
             return True
         except Exception as e:
@@ -104,11 +121,14 @@ class ExtractRegions(LoggedTask):
         doc: Document,
         extraction_ref: str
     ) -> bool:
+        """
+        Process all images in a document, store the annotations in self.annotations[extraction_ref] (clears it first)
+        """
         images = doc.list_images()
         self.annotations[extraction_ref] = []
         try:
             for i, image in enumerate(images, 1):
-                success = self.process_img(image, extraction_ref, i)
+                success = self.process_img(image, extraction_ref, doc.uid)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:
@@ -123,6 +143,9 @@ class ExtractRegions(LoggedTask):
         self,
         doc: Document
     ) -> bool:
+        """
+        Process a whole document, download it, process all images, save annotations
+        """
         try:
             self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
@@ -136,15 +159,17 @@ class ExtractRegions(LoggedTask):
             self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
 
-            extraction_ref = f"{self.extraction_model}_{self.experiment_id}"
-            annotation_file = self.result_dir / f"{extraction_ref}.txt"
+            extraction_ref = f"{self.extraction_model}+{self.experiment_id}"
+            annotation_file = self.result_dir / f"{extraction_ref}.json"
             with open(annotation_file, 'w'):
                 pass
+
+            extraction_ref = f"{doc.uid}@@{extraction_ref}"
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
             success = self.process_doc_imgs(doc, extraction_ref)
             if success:
-                with open(self.result_dir / f"{extraction_ref}.json", 'w') as f:
+                with open(annotation_file, 'w') as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
 
                 success = self.send_annotations(
@@ -161,6 +186,9 @@ class ExtractRegions(LoggedTask):
             return False
 
     def run_task(self) -> bool:
+        """
+        Run the extraction task
+        """
         if not self.check_doc():
             self.print_and_log_warning(
                 "[task.extract_regions] No dataset to annotate"

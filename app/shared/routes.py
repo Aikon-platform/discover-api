@@ -11,13 +11,13 @@ from dramatiq import Actor, Broker
 from dramatiq_abort import abort
 from dramatiq.results import ResultMissing, ResultFailure
 import traceback
-from typing import Tuple
+from typing import Tuple, Optional
 
+from .dataset import Dataset, Document
 from .utils import hash_str
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
-
 
 def error_wrapper(func):
     """
@@ -47,9 +47,27 @@ def get_client_id(func):
     return decorator
 
 
-def receive_task(req:Request) -> Tuple[str, str, str, dict]:
+def receive_task(req:Request, save_dataset: bool=True) -> Tuple[str, str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
+
+    Expected request format:
+
+    .. code-block:: json
+
+        {
+            "experiment_id": "experiment_id",
+            "notify_url": "http://example.com/callback",
+            "tracking_url": "http://example.com/tracking",
+            "documents": "[
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json"},
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json"},
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"}
+                {"type": "url_list", "src": "https://example.com/urls.txt"},
+                {"type": "zip", "src": "https://example.com/zipfile.zip"},
+            ]",
+            "model": "model.pt"
+        }
 
     :param req: The Flask request object
 
@@ -64,11 +82,24 @@ def receive_task(req:Request) -> Tuple[str, str, str, dict]:
     # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
     notify_url = param.get('notify_url', None) or param.get('callback', None)
 
+    dataset = None
+    documents = param.get("documents", [])
+    if type(documents) is str:
+        documents = json.loads(documents)
+
+    print(documents)
+
+    if documents:
+        dataset_id = hash_str("".join(d.get("src", "") for d in documents))
+        dataset = Dataset(dataset_id, documents=documents)
+        if save_dataset:
+            dataset.save()
+
     # task_kwargs = {}
     # for param_name in additional_params:
     #     task_kwargs[param_name] = param.get(param_name, None)
 
-    return experiment_id, notify_url, tracking_url, param
+    return experiment_id, notify_url, tracking_url, dataset, param
 
 
 def start_task(task_fct:Actor, experiment_id:str, task_kwargs: dict) -> dict:

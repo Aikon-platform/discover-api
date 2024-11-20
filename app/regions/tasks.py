@@ -54,7 +54,10 @@ def extract_objects(
     success = regions_extraction_task.run_task()
     if success:
         # json to be dispatch to frontend with @notifying
-        return regions_extraction_task.annotations
+        return {
+            "dataset_url": dataset.get_absolute_url(),
+            "annotations": regions_extraction_task.annotations
+        }
 
     # json to be dispatch to frontend with @notifying
-    return {"result_url": f"{config.BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}
+    return {"error": regions_extraction_task.error_list}

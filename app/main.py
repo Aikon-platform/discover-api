@@ -44,4 +44,5 @@ broker.add_middleware(results)
 dramatiq.set_broker(broker)
 
 # Import routes and tasks
+auto_import_apps(app, ["shared.dataset"], __package__) # import shared dataset routes
 auto_import_apps(app, config.INSTALLED_APPS, __package__)
