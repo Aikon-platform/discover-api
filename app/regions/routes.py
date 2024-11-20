@@ -79,30 +79,17 @@ def start_regions_extraction():
     .. code-block:: json
 
         {
-            "experiment_id": "experiment_id",
-            "notify_url": "http://example.com/callback",
-            "tracking_url": "http://example.com/tracking",
-            "dataset": "af7b247bae7b4b3e8b7b4b3e",
-            "documents": [
-                "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json",
-                "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json",
-                "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"
-            ],
+            ...(tasking.routes.receive_task request)...
             "model": "model.pt"
         }
 
     :return: The tracking_id of the task
     """
-    experiment_id, notify_url, tracking_url, param = shared_routes.receive_task(request)
+    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request)
 
     documents = param.get('documents', {})
     if type(documents) is str:
         documents = json.loads(documents)
-
-    # dataset = param.get('dataset')
-    dataset_id = "".join(list(documents.keys())[0])
-    dataset = Dataset(dataset_id, documents=documents)
-    dataset.save()
 
     model = param.get('model')
 

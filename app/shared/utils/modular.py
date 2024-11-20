@@ -17,4 +17,7 @@ def auto_import_apps(flask_app: Flask, INSTALLED_APPS: List[str], package: str):
         if hasattr(module, "blueprint"):
             flask_app.register_blueprint(module.blueprint)
 
-        module = import_module(f".{app}.tasks", package=package)
+        try:
+            module = import_module(f".{app}.tasks", package=package)
+        except ModuleNotFoundError:
+            pass

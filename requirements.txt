@@ -8,6 +8,8 @@ django-environ
 python-slugify
 pytest
 tox
+stream-zip
+stream-unzip
 
 addict
 cython

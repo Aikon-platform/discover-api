@@ -216,7 +216,7 @@ class YOLOExtractor(BaseExtractor):
         return writer.annotations
 
 class FasterRCNNExtractor(BaseExtractor):
-    DEFAULT_IMG_SIZE = [512, 800, 1400, 2000]  # used for multiscale inference
+    DEFAULT_IMG_SIZE = [800, 1400, 2000]  # used for multiscale inference
 
     def get_model(self):
         model = torch.load(self.weights, map_location=self.device).eval()
@@ -234,6 +234,8 @@ class FasterRCNNExtractor(BaseExtractor):
         boxes[:, :4] = scale_boxes(im.shape[2:], boxes[:, :4], im0s.size[::-1]).round()
 
         for box, score in zip(boxes, scores):
+            if score < 0.3:
+                break
             x1, y1, x2, y2 = box
             writer.add_region(int(x1), int(y1), int(x2 - x1), int(y2 - y1), float(score))
 
@@ -254,7 +256,7 @@ class FasterRCNNExtractor(BaseExtractor):
             boxes = preds[0]["boxes"].cpu().numpy()
             scores = preds[0]["scores"].cpu().numpy()
 
-            if scores[0] > 0.3:
+            if scores[0] > 0.4:
                 break
 
         self.process_detections(boxes, scores, im0s, im, writer)
