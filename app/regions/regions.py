@@ -128,7 +128,7 @@ class ExtractRegions(LoggedTask):
         self.annotations[extraction_ref] = []
         try:
             for i, image in enumerate(images, 1):
-                success = self.process_img(image, extraction_ref, doc.uid)
+                success = self.process_img(image.path, extraction_ref, doc.uid)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:
@@ -216,7 +216,7 @@ class ExtractRegions(LoggedTask):
             self.task_update(status, self.error_list if self.error_list else None)
             return all_successful
         except Exception as e:
-            self.handle_error(str(e))
+            self.handle_error(f"Error {e} processing dataset", exception=e)
             self.task_update("ERROR", self.error_list)
             return False
         finally:

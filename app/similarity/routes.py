@@ -1,3 +1,57 @@
+"""
+Routes for the similarity API.
+
+Routes:
+
+- POST ``/similarity/start``:
+    Starts the similarity process for a dataset.
+    
+    - Parameters:
+        - ``experiment_id``: The ID of the experiment.
+        - ``notify_url``: The URL to notify when the task is done.
+        - ``tracking_url``: The URL to track the task.
+        - ``dataset``: The dataset UID to process.
+        - ``documents``: The documents to put into the dataset.
+        - ``model``: The model to use for the extraction.
+    - Response: JSON object containing the task ID and experiment ID.
+
+- POST ``/similarity/<tracking_id>/cancel``:
+    Cancel a similarity task.
+    
+    - Parameters:
+        - ``tracking_id``: The task ID.
+    - Response: JSON object indicating the cancellation status.
+
+- GET ``/similarity/<tracking_id>/status``:
+    Get the status of a similarity task.
+    
+    - Response: JSON object containing the status of the task.
+
+- GET ``/similarity/qsizes``:
+    List the queues of the broker and the number of tasks in each queue.
+    
+    - Response: JSON object containing the queue sizes.
+
+- GET ``/similarity/monitor``:
+    Monitor the tasks of the broker.
+    
+    - Response: JSON object containing the monitoring information.
+
+- GET ``/similarity/models``:
+    Get the list of available models.
+    
+    - Response: JSON object containing the models and their modification dates.
+
+- POST ``/similarity/clear``:
+    Clear the images of a dataset.
+
+    - Parameters:
+        - ``dataset_id``: The ID of the dataset.
+    - Response: JSON object indicating the number of cleared image directories.
+
+
+"""
+
 from flask import request, Blueprint
 from slugify import slugify
 
@@ -22,57 +76,49 @@ blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 @shared_routes.error_wrapper
 def start_similarity(client_id):
     """
-    Compute similarity for images from a list of URLs.
+    Compute similarity for a dataset of images.
 
-    TODO use shared_routes.receive_task
-
-    .. code-block:: python
-
-        documents = {
-            "wit3_man186_anno181": "https://eida.obspm.fr/eida/wit3_man186_anno181/list/",
-            "wit87_img87_anno87": "https://eida.obspm.fr/eida/wit87_img87_anno87/list/",
-            "wit2_img2_anno2": "https://eida.obspm.fr/eida/wit2_img2_anno2/list/"
-        }
-    
-    Each URL corresponds to a document and contains a list of images to download:
+    Expected request format:
 
     .. code-block:: json
 
         {
-            "img_name": "https://domain-name.com/image_name.jpg",
-            "img_name": "https://other-domain.com/image_name.jpg",
-            "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
-            "img_name": "..."
+            ...(tasking.routes.receive_task request)...
+            "crops": [ # optional
+                {
+                    "document": "wit3_man186_anno181",
+                    "source": "imagename.jpg",
+                    "crop_id": "crop_id",
+                    "relative": [x, y, w, h]
+                }, ...
+            ],
+            "algorithm": "algorithm",
+            "feat_net": "model.pt",
+            "feat_set": "set",
+            "feat_layer": "layer",
+            "segswap_prefilter": true, # if algorithm is "segswap"
+            "segswap_n": 0, # if algorithm is "segswap"
         }
-    
-    Each document is compared to itself and other documents resulting in a list a comparison pairs
     """
 
     if not request.is_json:
         return "No JSON in request: Similarity task aborted!"
 
-    json_param = request.get_json()
-    console(json_param, color="cyan")
+    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request)
 
-    experiment_id = json_param.get("experiment_id")
-    # dict of document ids with a URL containing a list of images
-    dataset = json_param.get("documents", {})
     parameters = {
         # which feature extraction backbone to use
-        "feat_net": json_param.get("model", FEAT_NET),
-        "feat_set": json_param.get("feat_set", FEAT_SET),
-        "feat_layer": json_param.get("feat_layer", FEAT_LAYER),
+        "feat_net": param.get("model", FEAT_NET),
+        "feat_set": param.get("feat_set", FEAT_SET),
+        "feat_layer": param.get("feat_layer", FEAT_LAYER),
         "client_id": client_id,
     }
-    # which url to send back the similarity results and updates on the task
-    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
-    tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(
         compute_similarity,
         experiment_id,
         {
-            "dataset": dataset,
+            "dataset": dataset.uid,
             "parameters": parameters,
             "notify_url": notify_url,
             "tracking_url": tracking_url,

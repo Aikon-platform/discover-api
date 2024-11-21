@@ -4,8 +4,8 @@ The Dataset class, which represents a dataset of documents
 
 from flask import url_for
 from pathlib import Path
-from typing import List, Union, Optional, Dict
-import json
+from typing import List, Union, Optional, Dict, Tuple
+import json, orjson
 
 from ... import config
 from ..const import DATASETS_PATH
@@ -13,6 +13,7 @@ from ..utils.logging import console
 from ..utils import hash_str
 
 from .document import Document
+from .utils import Image
 
 
 class Dataset:
@@ -34,28 +35,49 @@ class Dataset:
                 - ...
     """
 
-    def __init__(self, uid:str=None, path: Union[Path, str]=None, documents: Optional[List[dict]]=None, load:bool=False):
+    def __init__(self, uid:str=None, path: Union[Path, str]=None, documents: Optional[List[dict]]=None, load:bool=False, crops: Optional[List[dict]]=None):
         """
         Create a new dataset
         """
-        if isinstance(documents, dict): # legacy format
+        if isinstance(documents, dict): # legacy AIKON format
             documents = [{"uid": uid, "src": src, "type": "url_list"} for uid, src in documents.items()]
 
-        if uid is None:
-            uid = hash_str("".join([doc["src"] for doc in documents]))
+        crops_uid = None
+        if crops:
+            crops_uid = hash_str(orjson.dumps(crops))
 
-        self.uid = uid
+        self.crops = crops
+
+        if uid is None:
+            assert documents is not None, "Documents must be provided when no UID is provided"
+            base_uid = hash_str("".join([doc["src"] for doc in documents]))
+        else:
+            assert documents is None, "Documents are not supported when providing a custom UID"
+            assert crops is None, "Crops are not supported when providing a custom UID"
+            if "@" in uid:
+                base_uid, crops_uid = uid.split("@", 1)
+            else:
+                base_uid = uid
+
+        self.crops_uid = crops_uid
+        self.base_uid = base_uid
 
         if path is None:
-            path = DATASETS_PATH / uid
+            path = DATASETS_PATH / self.base_uid
         self.path = Path(path)
 
-        # TODO Check consistency when reusing a dataset
+        # TODO Check consistency when a dataset is used twice
 
         if load:
             self.load()
         else:
-            self.documents = [Document.from_dict(doc) for doc in documents] if documents else None
+            self.documents: Optional[List[Document]] = [Document.from_dict(doc) for doc in documents] if documents else None
+
+    @property
+    def uid(self) -> str:
+        if self.crops_uid:
+            return f"{self.base_uid}@{self.crops_uid}"
+        return self.base_uid
 
     def to_dict(self, with_url: bool=False) -> Dict:
         """
@@ -76,31 +98,54 @@ class Dataset:
         """
         return self.path / "results"
     
+    @property
+    def infos_path(self) -> Path:
+        """
+        The path to the info file of the dataset
+        """
+        return self.path / "info.json"
+    
+    @property
+    def crops_path(self) -> Optional[Path]:
+        """
+        The path to the crops file of the dataset
+        """
+        if not self.crops_uid:
+            return None
+        return self.path / f"crops_{self.crops_uid}.json"
+    
     def get_absolute_url(self) -> str:
         """
         Get the absolute URL of the dataset
         """
         return f"{config.BASE_URL}/datasets/dataset/{self.uid}"
-        return url_for("datasets.dataset_info", uid=self.uid, _external=True)
 
     def save(self) -> None:
         """
         Save the dataset to disk
         """
         self.path.mkdir(parents=True, exist_ok=True)
-        with open(self.path / "info.json", "w") as f:
+        with open(self.infos_path, "wb") as f:
             # json.dump([doc.uid for doc in self.documents], f)
-            json.dump(self.to_dict(), f)
+            f.write(orjson.dumps(self.to_dict(), f))
+        if self.crops:
+            with open(self.crops_path, "wb") as f:
+                f.write(orjson.dumps(self.crops))
 
     def load(self) -> None:
         """
         Load the dataset from disk
         """
-        with open(self.path / "info.json", "r") as f:
-            documents = json.load(f)["documents"]
+        with open(self.infos_path, "rb") as f:
+            documents = orjson.loads(f.read())["documents"]
+
         self.documents = [Document.from_dict(doc) for doc in documents]
 
-    def list_images(self) -> List[str]:
+        if self.crops_uid:
+            with open(self.crops_path, "rb") as f:
+                self.crops = orjson.loads(f.read())
+
+    def list_images(self) -> List[Image]:
         """
         List all images in the dataset, iterating over all documents
 
@@ -108,5 +153,24 @@ class Dataset:
         """
         images = []
         for document in self.documents:
-            images.extend(document.list_images())
+            images.extend(document.list_images(self.crops))
         return images
+
+    def prepare(self) -> List[Image]:
+        """
+        Prepare the dataset for processing
+
+        Returns:
+            A mapping of filenames to URLs
+        """
+        im_list = []
+        crop_list = []
+        for document in self.documents:
+            im_list.extend(document.download())
+
+            if self.crops:
+                crop_list.extend(document.prepare_crops(self.crops))
+        
+        if self.crops:
+            return crop_list
+        return im_list

@@ -10,6 +10,7 @@ from zipfile import ZipFile
 from urllib.parse import urlparse
 from typing import List, Optional
 import json
+from PIL import Image as PImage
 
 from ... import config
 from ..const import DOCUMENTS_PATH
@@ -17,7 +18,7 @@ from ..utils.iiif import IIIFDownloader, get_json
 from ..utils.fileutils import sanitize_str, has_content
 from ..utils.img import download_images, MAX_SIZE, download_image, get_img_paths
 from ..utils.logging import console
-
+from .utils import Image
 
 class Document:
     """
@@ -109,7 +110,9 @@ class Document:
     
     @property
     def mapping(self):
-        """A mapping of filenames to their URLs"""
+        """
+        A mapping filenames -> UID/URL
+        """
         if self._mapping is None:
             self._load_mapping()
         return self._mapping
@@ -189,9 +192,45 @@ class Document:
         else:
             raise ValueError(f"Unknown document type: {self.dtype}")
 
-    def list_images(self) -> List[Path]:
+    def list_images(self) -> List[Image]:
         """
         Iterate over the images in the document
         """
-        # return list(self.images_path.glob("*.jpg"))
-        return get_img_paths(self.images_path)
+        return [
+            Image(id=img_path.stem, src=self.mapping.get(img_path.name, img_path.relative_to(self.images_path)), path=img_path, document=self)
+            for img_path in get_img_paths(self.images_path)
+        ]
+
+    def prepare_crops(self, crops: List[dict]) -> List[Image]:
+        """
+        Prepare crops for the document
+
+        Args:
+            crops: A list of crops {crop_id, document, source, relative: {x, y, w, h}}
+
+        Returns:
+            A mapping of crop_id -> crop_path
+        """
+        source = None
+        img = None
+        rev_mapping = {v: k for k, v in self.mapping.items()}
+        liste = []
+
+        for crop in crops:
+            if crop["document"] != self.uid:
+                continue
+            crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
+
+            liste.append(Image(id=crop["crop_id"], src=crop_path.name, path=crop_path, document=self))
+            if crop_path.exists():
+                continue
+            if source != crop["source"]:
+                source = crop["source"]
+                img = PImage.open(self.images_path / rev_mapping.get(source, source)).convert("RGB")
+            x, y, w, h = crop["relative"]
+            x1, y1 = x * img.width, y * img.height
+            x2, y2 = x1 + w * img.width, y1 + h * img.height
+            im = img.crop((x1, y1, x2, y2))
+            im.save(crop_path)
+
+        return liste

@@ -3,12 +3,14 @@ from typing import Optional
 import requests
 import numpy as np
 import torch
+from torch.utils.data import Dataset as TorchDataset
 import cv2
 from PIL import Image
 from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from sklearn.metrics.pairwise import cosine_similarity
+from scipy.spatial.distance import pdist, squareform
 
 from ..const import SCORES_PATH, IMG_PATH
 from .const import (
@@ -19,161 +21,96 @@ from .const import (
     FEAT_SET,
     FEAT_LAYER,
 )
-from .dataset import IllusDataset
-from .features import extract_features
-from .segswap import load_backbone, load_encoder, resize, compute_score
+from .dataset import FileListDataset
+from .features import FeatureExtractor
+from . import segswap
 
 from .utils import get_model_path, doc_pairs
 
+from ...shared.dataset import Dataset, Document
 from ...shared.utils import get_device
 from ...shared.utils.fileutils import has_content
 from ...shared.utils.img import download_images
 from ...shared.utils.logging import LoggingTaskMixin, console, send_update
+from ...shared.tasks import LoggedTask
 
-
-def get_doc_feat(doc_id, feat_net=FEAT_NET, feat_set=FEAT_SET, feat_layer=FEAT_LAYER):
-    device = get_device()
-    img_dataset = IllusDataset(
-        img_dirs=IMG_PATH / doc_id,
-        transform=["resize", "normalize"],
-        device=device,
-    )
-
-    data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
-
-    features = (
-        extract_features(data_loader, doc_id, device, feat_net, feat_set, feat_layer)
-        .cpu()
-        .numpy()
-    )
-    if not len(features) or type(features) is not np.ndarray:
-        raise ValueError(f"No feature extracted for {doc_id}")
-    return features, img_dataset.get_image_paths()
-
-
-def doc_sim_pairs(sim_scores, query_doc, sim_doc, is_doc_1=True):
-    sim_pairs = []
-    tr_ = transforms.Resize((224, 224))
-    for i, query_img in enumerate(query_doc):
-        # # TODO is it necessary to perform those operations?
-        img = cv2.imread(query_img)
-        img = torch.from_numpy(img).permute(2, 0, 1)
-        tr_img = tr_(img).permute(1, 2, 0).numpy()
-        cv2.imwrite(query_img, tr_img)
-
-        query_scores = sim_scores[:][i] if is_doc_1 else sim_scores[i, :]
-        # set 0 as similarity score for the query image to itself
-        query_scores = [
-            0.0 if query_img == sim_img else img_score
-            for sim_img, img_score in zip(query_doc, query_scores)
-        ]
-
-        top_indices = np.argsort(query_scores)[-COS_TOPK:][::-1]
-        sim_pairs.append(
-            [
-                (query_img, sim_doc[j]) if is_doc_1 else (sim_doc[j], query_img)
-                for j in top_indices
-            ]
-        )
-
-    return sim_pairs
-
-
-def compute_cos_pairs(doc1, doc2):
-    doc1_feat, doc1_imgs = doc1
-    doc2_feat, doc2_imgs = doc2
-
-    sim = cosine_similarity(
-        doc1_feat, doc2_feat
-    )  # sim has shape (n_img_doc1, n_img_doc2)
-    sim_pairs = doc_sim_pairs(sim, doc1_imgs, doc2_imgs)
-    cos_pairs = np.array(sim_pairs)
-
+def compute_cosine_similarity(features: np.ndarray, topk: int=COS_TOPK):
     """
-    # If we don't assume that all the best matching images of doc2 in doc1
-    # are already contained in best matching images of doc1 in doc2
-    # (might be the case if an image is never ranked as a COS_TOPK best match)
-    sim_pairs += doc_sim_pairs(sim, doc2_imgs, doc1_imgs, False)
+    Compute the cosine similarity between all pairs of images in the dataset
 
-    # Remove duplicates pairs with list(set())
-    cos_pairs = np.array(list(set(sim_pairs)))
+    Args:
+        features (np.ndarray): The features of the images (n_img, n_feat)
+        topk (int): The number of best matches to return
+
+    Returns:
+        A list of unique pairs (k_i, k_j, sim) where k_i and k_j are feature indices
     """
+    mat = squareform(pdist(features, metric="cosine"))
+    tops = np.argsort(mat, axis=1)[:, :topk]
+    all_pairs = set(
+        (min(i, j), max(i, j), mat[i, j]) for i, row in enumerate(tops) for j in row if i != j
+    )
+    return sorted(all_pairs)
 
-    # cos_pairs = [[(img1doc1, img1doc2), (img1doc1, img2doc2), ...] # COS_TOPK best matching images for img1doc1
-    #             [(img2doc1, img4doc2), (img2doc1, img8doc2), ...]] # COS_TOPK best matching images for img2doc1
-    return cos_pairs
+def _convert_to_pairs(cosine_pairs, image_list: list[str]):
+    # Legacy format ? should be basenames but we need to trace documents back ??
+    return np.array([(round(sim, 5)*100, image_list[i], image_list[j]) for i, j, sim in cosine_pairs])
 
+@torch.no_grad()
+def compute_segswap_similarity(source_images: list[str], pairs: list[tuple[int, int]], device="cuda"):
+    """
+    Compute the similarity between pairs of images using the SegSwap algorithm
 
-def compute_cos_score(doc1, doc2, output_file=None):
-    doc1_feat, doc1_imgs = doc1
-    doc2_feat, doc2_imgs = doc2
+    Args:
+        source_images (list[str]): The list of image paths
+        pairs (list[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
+        output_file (str): The file to save the similarity scores (default: None)
+        device (str): The device to run the computation on
 
-    sim = cosine_similarity(doc1_feat, doc2_feat)  # sim has shape (n_img_doc1, n_img_doc2)
-    sim_pairs = doc_sim_pairs(sim, doc1_imgs, doc2_imgs)
-
-    scores_npy = np.empty((0, 3), dtype=object)
-
-    for i, pairs in enumerate(sim_pairs):
-        for (img1, img2) in pairs:
-            img1_index = doc1_imgs.index(img1)
-            img2_index = doc2_imgs.index(img2)
-            score = sim[img1_index, img2_index]
-
-            pair_score = np.array([[round(score, 5)*100, os.path.basename(img1), os.path.basename(img2)]])
-            scores_npy = np.vstack([scores_npy, pair_score])
-
-    if output_file:
-        try:
-            np.save(output_file, scores_npy)
-        except Exception as e:
-            console(f"Failed to save {output_file}.npy", e=e)
-
-    return scores_npy
-
-
-def segswap_similarity(cos_pairs, output_file=None):
-    param = torch.load(get_model_path("hard_mining_neg5"))
-    backbone = load_backbone(param)
-    encoder = load_encoder(param)
+    Returns:
+        A list of pairs (k_i, k_j, sim)
+    """
+    param = torch.load(get_model_path("hard_mining_neg5"), map_location=device)
+    backbone = segswap.load_backbone(param).to(device)
+    encoder = segswap.load_encoder(param).to(device)
 
     feat_size = MAX_SIZE // SEG_STRIDE
     mask = np.ones((feat_size, feat_size), dtype=bool)
     y_grid, x_grid = np.where(mask)
 
-    # dtype = [("score", float), ("doc1", "U100"), ("doc2", "U100")]
-    # scores_npy = np.empty((0, 3), dtype=dtype)
-    scores_npy = np.empty((0, 3), dtype=object)
+    batch_size = COS_TOPK
+    batched_pairs = [
+        pairs[i : i + batch_size] for i in range(0, len(pairs), batch_size)
+    ]
 
-    norm_mean, norm_std = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
-    transformINet = transforms.Compose(
-        [transforms.ToTensor(), transforms.Normalize(norm_mean, norm_std)]
+    img_dataset = FileListDataset(
+        img_dirs=source_images,
+        transform=transforms.Compose([
+            transforms.Resize((segswap.MAX_SIZE, segswap.MAX_SIZE)), 
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+        ),
+        device=device,
     )
 
-    """
-    first_imgs = cos_pairs[:, 0]
-    # get a unique list of all the first img in pairs of cosine similar images
-    query_imgs = np.unique(first_imgs)
-    for q_img in query_imgs:
-        img_pairs = cos_pairs(np.char.startswith(first_imgs, q_img))
-    """
-
-    # img_pairs = [(img1doc1, img1doc2), (img1doc1, img2doc2), ...] # pairs for img1doc1
-    for img_pairs in cos_pairs:
-        q_img = os.path.basename(img_pairs[0, 0])
-
-        qt_img = resize(Image.open(img_pairs[0, 0]).convert("RGB"))
-        q_tensor = transformINet(qt_img).cuda()
-        sim_imgs = img_pairs[:, 1]
-
-        # tensor1 = []
-        tensor1 = [q_tensor] * len(sim_imgs)
+    out_scores = []
+    p_i = None
+    # TODO make a dataloader
+    for batch in batched_pairs:
+        tensor1 = []
         tensor2 = []
-        for s_img in sim_imgs:  # sim_imgs[:SEG_TOPK]
-            st_img = resize(Image.open(s_img).convert("RGB"))
-            # tensor1.append(q_tensor)  # NOTE: maybe not necessary to duplicate same img tensor
-            tensor2.append(transformINet(st_img).cuda())
+        pairs = []
+        for i, j, *_ in batch:
+            if p_i != i: # Avoid loading several times (cos_pairs are supposed sorted)
+                q_tensor = img_dataset[i]
+                p_i = i
+            
+            r_tensor = img_dataset[j]
 
-        score = compute_score(
+            tensor1.append(q_tensor)
+            tensor2.append(r_tensor)
+            pairs.append((i, j))
+
+        scores = segswap.compute_score(
             torch.stack(tensor1),
             torch.stack(tensor2),
             backbone,
@@ -182,74 +119,122 @@ def segswap_similarity(cos_pairs, output_file=None):
             x_grid,
         )
 
-        # q_scores = np.empty(len(score), dtype=dtype)
+        out_scores.extend([(pairs[i][0], pairs[i][1], float(score)) for i, score in enumerate(scores)])
 
-        for i in range(len(score)):
-            s_img = sim_imgs[i]
-            pair_score = np.array(
-                [[round(score[i], 5), q_img, os.path.basename(s_img)]]
-            )
-            scores_npy = np.vstack([scores_npy, pair_score])
-            # q_scores[i]["score"] = round(score[i], 5)
-            # q_scores[i]["doc1"] = q_img
-            # q_scores[i]["doc2"] = os.path.basename(sim_imgs[i])
+    return out_scores
 
-        # scores_npy = np.append(scores_npy, q_scores)
-
-    if output_file:
-        try:
-            # np.save(output_file, scores_npy, allow_pickle=False)
-            np.save(output_file, scores_npy)
-        except Exception as e:
-            console(f"Failed to save {output_file}.npy", e=e)
-
-    # scores_npy = [(score, img1doc1, img1doc2), # each cosine pair of image is given a score
-    #               (score, img1doc1, img2doc2),
-    #               (score, img2doc1, img4doc2),
-    #               (score, img2doc1, img8doc2),
-    #                ...                        ]
-
-    return scores_npy
-
-
-class ComputeSimilarity:
+class ComputeSimilarity(LoggedTask):
+    """
+    Compute the similarity between images inside a dataset
+    """
     def __init__(
         self,
-        experiment_id: str,
-        dataset: dict,
+        dataset: Dataset,
         parameters: Optional[dict] = None,
-        notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
+        *args, **kwargs
     ):
-        self.experiment_id = experiment_id
-        self.dataset = dataset
-        self.notify_url = notify_url
-        self.tracking_url = tracking_url
+        super().__init__(*args, **kwargs)
 
-        self.client_id = parameters.get("client_id") if parameters else "default"
+        self.dataset = dataset
+
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
         self.feat_set = parameters.get("feat_set", FEAT_SET) if parameters else FEAT_SET
         self.feat_layer = (
             parameters.get("feat_layer", FEAT_LAYER) if parameters else FEAT_LAYER
         )
-        self.doc_ids = []
-        self.computed_pairs = []
+        self.topk = parameters.get("topk", COS_TOPK)
+        self.algorithm = parameters.get("algorithm", "cosine")
+        self.device = get_device()
+
+    @torch.no_grad()
+    def get_features(self, source_images: list[str]):
+        """
+        Extract features from a list of images
+        """
+        extractor = FeatureExtractor(
+            feat_net=self.feat_net,
+            feat_set=self.feat_set,
+            feat_layer=self.feat_layer,
+            device=self.device,
+        )
+
+        img_dataset = FileListDataset(
+            img_dirs=source_images,
+            transform=transforms.Compose([
+                transforms.Resize((224, 224)), 
+                transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])]
+            ),
+            device=self.device,
+        )
+
+        data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
+
+        features = extractor.extract_features(data_loader, cache_dir=self.dataset.path / "features")
+
+        if not features.numel():
+            self.print_and_log_warning("[task.similarity] No features extracted")
+            self.task_update("ERROR", "[API ERROR] No features extracted")
+            return
+        
+        del extractor
+
+        return features
+
+    @torch.no_grad()
+    def compute_similarity(self):
+        source_images = self.dataset.prepare()
+        source_paths = [str(i.path) for i in source_images]
+        self.print_and_log(
+            f"[task.similarity] {len(source_images)} images downloaded and/or cropped"
+        )
+
+        features = self.get_features(source_paths)
+
+        pairs = compute_cosine_similarity(features.cpu().numpy(), topk=self.topk)
+
+        if self.algorithm == "segswap":
+            self.print_and_log(
+                f"[task.similarity] Computing SegSwap similarity for {len(pairs)} pairs"
+            )
+            pairs = compute_segswap_similarity(source_paths, pairs, device=self.device)
+
+        self.print_and_log(
+            f"[task.similarity] Computed similarity for {len(pairs)} pairs"
+        )
+
+        # TODO save and return pairs based on source_image
 
     def run_task(self):
-        pass
+        if not self.check_dataset():
+            self.print_and_log_warning("[task.similarity] No documents to compare")
+            self.task_update("ERROR", "[API ERROR] No documents to compare")
+            return
+        
+        self.print_and_log(
+            f"[task.similarity] Similarity task triggered for {list(self.dataset.keys())} with {self.feat_net}!"
+        )
+        self.task_update("STARTED")
+
+        try:
+            self.initialize()
+
+            self.compute_similarity()
+
+            self.print_and_log(
+                f"[task.similarity] Successfully computed similarity scores"
+            )
+            self.task_update("SUCCESS")
+    
+        except Exception as e:
+            self.handle_error("Error initializing similarity task", e)
+            self.task_update("ERROR", self.error_list)
+            return False
+        finally:
+            self.terminate()
 
     def check_dataset(self):
         # TODO add more checks
-        if len(list(self.dataset.keys())) == 0:
-            return False
-        return True
-
-    def task_update(self, event, message=None):
-        if self.tracking_url:
-            send_update(self.experiment_id, self.tracking_url, event, message)
-            return True
-        else:
-            return False
+        return len(self.dataset.documents) > 0
 
     def send_scores(self, doc_pair, score_file):
         if not self.notify_url:
@@ -274,56 +259,6 @@ class ComputeSimilarity:
                 },
             )
             response.raise_for_status()
-
-
-class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
-    def run_task(self):
-        if not self.check_dataset():
-            self.print_and_log_warning(f"[task.similarity] No documents to compare")
-            self.task_update("ERROR", "[API ERROR] No documents to compare")
-            return
-
-        self.print_and_log(
-            f"[task.similarity] Similarity task triggered for {list(self.dataset.keys())} with {self.feat_net}!"
-        )
-        self.task_update("STARTED")
-
-        try:
-            self.download_documents()
-            self.compute_and_send_scores()
-
-            self.print_and_log(
-                f"[task.similarity] Successfully send similarity scores for {self.doc_ids}"
-            )
-            self.task_update("SUCCESS")
-            return True
-
-        except Exception as e:
-            self.task_update(
-                "ERROR",
-                f"[API ERROR] Failed to compute and send similarity scores: {e}",
-            )
-
-    def download_documents(self):
-        # _, _, docs_ids = download_dataset(self.dataset, datasets_dir_path=IMG_PATH, dataset_dir_name=self.client_id)
-        # self.doc_ids = docs_ids
-        for doc_id, url in self.dataset.items():
-            self.print_and_log(
-                f"[task.similarity] Processing {doc_id}...", color="blue"
-            )
-            try:
-                doc_id = f"{self.client_id}_{doc_id}"
-                self.doc_ids.append(doc_id)
-                if not has_content(f"{IMG_PATH}/{doc_id}/"):
-                    self.print_and_log(
-                        f"[task.similarity] Downloading {doc_id} images..."
-                    )
-                    download_images(url, doc_id, IMG_PATH, MAX_SIZE)
-            except Exception as e:
-                self.print_and_log(
-                    f"[task.similarity] Unable to download images for {doc_id}", e
-                )
-                raise Exception
 
     def compute_and_send_scores(self):
         for doc_pair in doc_pairs(self.doc_ids):
@@ -368,35 +303,3 @@ class LoggedComputeSimilarity(LoggingTaskMixin, ComputeSimilarity):
             return None
         return score_file
 
-    def compute_pairs(self, doc_pair, score_file):
-        try:
-            doc1 = get_doc_feat(
-                doc_pair[0], self.feat_net, self.feat_set, self.feat_layer
-            )
-            doc2 = get_doc_feat(
-                doc_pair[1], self.feat_net, self.feat_set, self.feat_layer
-            )
-        except Exception as e:
-            self.print_and_log(f"Error when extracting features", e=e)
-            return False
-
-        if torch.cuda.is_available():
-            try:
-                self.print_and_log(f"Computing cosine scores for {doc_pair}")
-                cos_pairs = compute_cos_pairs(doc1, doc2)
-            except Exception as e:
-                self.print_and_log(f"Error when computing cosine similarity", e=e)
-                raise Exception
-            try:
-                self.print_and_log(f"Computing segswap scores for {doc_pair}")
-                segswap_similarity(cos_pairs, output_file=score_file)
-            except Exception as e:
-                self.print_and_log(f"Error when computing segswap scores", e=e)
-                raise Exception
-        else:
-            try:
-                compute_cos_score(doc1, doc2, output_file=score_file)
-            except Exception as e:
-                self.print_and_log(f"Error when computing cosine similarity scores", e=e)
-                raise Exception
-        return True

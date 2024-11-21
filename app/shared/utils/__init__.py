@@ -5,12 +5,14 @@ This module contains all the shared functions and classes used by the other modu
 import hashlib
 
 
-def hash_str(string: str) -> str:
+def hash_str(string: str|bytes) -> str:
     """
     Hashes a string using the SHA-256 algorithm.
     """
+    if isinstance(string, str):
+        string = string.encode("utf-8")
     hash_object = hashlib.sha256()
-    hash_object.update(string.encode("utf-8"))
+    hash_object.update(string)
     return hash_object.hexdigest()
 
 

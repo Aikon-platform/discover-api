@@ -85,11 +85,7 @@ def start_regions_extraction():
 
     :return: The tracking_id of the task
     """
-    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request)
-
-    documents = param.get('documents', {})
-    if type(documents) is str:
-        documents = json.loads(documents)
+    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request, use_crops=False)
 
     model = param.get('model')
 

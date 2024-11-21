@@ -47,7 +47,7 @@ def get_client_id(func):
     return decorator
 
 
-def receive_task(req:Request, save_dataset: bool=True) -> Tuple[str, str, str, Optional[Dataset], dict]:
+def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> Tuple[str, str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
 
@@ -87,11 +87,14 @@ def receive_task(req:Request, save_dataset: bool=True) -> Tuple[str, str, str, O
     if type(documents) is str:
         documents = json.loads(documents)
 
-    print(documents)
+    crops = None
+    if use_crops and "crops" in param:
+        crops = param.get("crops", [])
+        if type(crops) is str:
+            crops = json.loads(crops)
 
     if documents:
-        dataset_id = hash_str("".join(d.get("src", "") for d in documents))
-        dataset = Dataset(dataset_id, documents=documents)
+        dataset = Dataset(documents=documents)
         if save_dataset:
             dataset.save()
 
