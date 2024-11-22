@@ -1,4 +1,6 @@
-from flask import request, Blueprint
+import os
+
+from flask import request, Blueprint, jsonify
 from slugify import slugify
 
 from .tasks import compute_similarity
@@ -8,7 +10,7 @@ from .const import (
     IMG_PATH,
     FEATS_PATH,
     SIM_RESULTS_PATH,
-    SIM_XACCEL_PREFIX,
+    SIM_XACCEL_PREFIX, MODEL_PATH,
 )
 
 from .lib.const import FEAT_NET, FEAT_SET, FEAT_LAYER
@@ -142,3 +144,36 @@ def clear_doc(doc_id: str):
             SIM_RESULTS_PATH, path_to_clear=f"*{doc_id}*.npy", force_deletion=True
         ),
     }
+
+
+@blueprint.route("models", methods=['GET'])
+def get_models():
+    # TODO make it dynamic with the models in the folder
+    models_info = {
+        "vit": {
+            "name": "Vision Transformer",
+            "model": "dino_vitbase8_pretrain",
+            "desc": "A transformer model for image classification.",
+        },
+        "resnet": {
+            "name": "ResNet 34",
+            "model": "resnet34",
+            "desc": "A deep residual network for image classification.",
+        },
+        "moco": {
+            "name": "MoCo v2 800ep",
+            "model": "moco_v2_800ep_pretrain",
+            "desc": "A contrastive learning model for image classification.",
+        },
+        "dino": {
+            "name": "DINO DeiT-Small 16",
+            "model": "dino_deitsmall16_pretrain",
+            "desc": "A Vision Transformer model for image classification.",
+        },
+    }
+
+    try:
+        return jsonify(models_info)
+    except Exception:
+        return jsonify("No models.")
+
