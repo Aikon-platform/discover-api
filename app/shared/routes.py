@@ -15,6 +15,7 @@ from typing import Tuple, Optional
 
 from .dataset import Dataset, Document
 from .utils import hash_str
+from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
@@ -66,7 +67,22 @@ def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> 
                 {"type": "url_list", "src": "https://example.com/urls.txt"},
                 {"type": "zip", "src": "https://example.com/zipfile.zip"},
             ]",
-            "model": "model.pt"
+            "crops": [ # optional
+                {
+                    "doc_uid": "wit3_man186_anno181",
+                    "source": "imagename.jpg",
+                    "crops": [
+                        {
+                            "crop_id": "crop_id",
+                            "relative": [x, y, w, h]
+                        }, ...
+                    ]
+                }, ...
+            ],
+            "parameters": {
+                "model": "model.pt"
+                ...
+            },
         }
 
     :param req: The Flask request object
@@ -76,6 +92,8 @@ def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> 
     param = req.get_json() if req.is_json else req.form.to_dict()
     if not param:
         raise ValueError("No data in request: Task aborted!")
+
+    print(f"Received task: {param}")
 
     experiment_id = param.get('experiment_id', "")
     tracking_url = param.get("tracking_url", "")
@@ -94,7 +112,7 @@ def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> 
             crops = json.loads(crops)
 
     if documents:
-        dataset = Dataset(documents=documents)
+        dataset = Dataset(documents=documents, crops=crops)
         if save_dataset:
             dataset.save()
 
@@ -102,7 +120,7 @@ def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> 
     # for param_name in additional_params:
     #     task_kwargs[param_name] = param.get(param_name, None)
 
-    return experiment_id, notify_url, tracking_url, dataset, param
+    return experiment_id, notify_url, tracking_url, dataset, param.get("parameters", param)
 
 
 def start_task(task_fct:Actor, experiment_id:str, task_kwargs: dict) -> dict:

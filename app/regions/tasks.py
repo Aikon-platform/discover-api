@@ -38,8 +38,6 @@ def extract_objects(
     :param tracking_url: the URL to track the task
     :param logger: the logger to use
     """
-    current_task = CurrentMessage.get_current_message()
-    current_task_id = current_task.message_id
     dataset = Dataset(dataset_uid, load=True)
 
     regions_extraction_task = ExtractRegions(

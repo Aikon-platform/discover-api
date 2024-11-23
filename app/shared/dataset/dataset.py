@@ -166,7 +166,8 @@ class Dataset:
         im_list = []
         crop_list = []
         for document in self.documents:
-            im_list.extend(document.download())
+            document.download()
+            im_list.extend(document.list_images())
 
             if self.crops:
                 crop_list.extend(document.prepare_crops(self.crops))

@@ -37,7 +37,7 @@ def document_download(dtype, uid):
     """
     document = Document(uid, dtype)
     files = [
-        ("images/" + path.name, path) for path in document.list_images()
+        ("images/" + im.path.name, im.path) for im in document.list_images()
     ] + [("mapping.json", document.mapping_path)]
 
     fname = f"{sanitize_str(document.uid)}.zip"

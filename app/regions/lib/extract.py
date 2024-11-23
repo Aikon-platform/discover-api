@@ -89,6 +89,7 @@ class ImageAnnotator:
             {
                 "bbox": segment.serialize(),  # compact string representation
                 "crop_id": f'{self.annotations["source"]}-{segment.serialize()}',
+                "source": self.annotations["source"],
                 "confidence": round(conf, 4),
                 "absolute": {
                     "x1": x1,

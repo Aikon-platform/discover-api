@@ -4,7 +4,7 @@ from dramatiq import Worker
 import pytest
 
 from ..const import SCORES_PATH
-from ..lib.similarity import ComputeSimilarity
+from ..similarity import ComputeSimilarity
 from ..lib.const import FEAT_NET
 from ..lib.utils import doc_pairs
 from ...shared.utils.logging import TLogger, LoggerHelper

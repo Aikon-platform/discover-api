@@ -169,12 +169,12 @@ class Document:
 
     def _download_from_url_list(self, images_list_url: str):
         """
-        Download images from a dictionary of URLs [img_name -> img_url]
+        Download images from a dictionary of URLs [img_stem -> img_url]
         """
         images_dict = get_json(images_list_url)
         self.images_path.mkdir(parents=True, exist_ok=True)
-        for img_name, img_url in images_dict.items():
-            download_image(img_url, self.images_path, img_name)
+        for img_stem, img_url in images_dict.items():
+            download_image(img_url, self.images_path, img_stem)
         self._extend_mapping(images_dict)
 
     def download(self) -> None:
@@ -197,7 +197,7 @@ class Document:
         Iterate over the images in the document
         """
         return [
-            Image(id=img_path.stem, src=self.mapping.get(img_path.name, img_path.relative_to(self.images_path)), path=img_path, document=self)
+            Image(id=img_path.name, src=self.mapping.get(img_path.name, img_path.relative_to(self.images_path)), path=img_path, document=self)
             for img_path in get_img_paths(self.images_path)
         ]
 
@@ -206,31 +206,45 @@ class Document:
         Prepare crops for the document
 
         Args:
-            crops: A list of crops {crop_id, document, source, relative: {x, y, w, h}}
+            crops: A list of crops {document, source, crops: [{crop_id, relative: {x1, y1, w, h}}]}
 
         Returns:
             A mapping of crop_id -> crop_path
         """
         source = None
-        img = None
+        im = None
         rev_mapping = {v: k for k, v in self.mapping.items()}
         liste = []
 
-        for crop in crops:
-            if crop["document"] != self.uid:
+        for img in crops:
+            if img["doc_uid"] != self.uid:
                 continue
-            crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
+            for crop in img["crops"]:
+                crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
+                print(crop_path)
 
-            liste.append(Image(id=crop["crop_id"], src=crop_path.name, path=crop_path, document=self))
-            if crop_path.exists():
-                continue
-            if source != crop["source"]:
-                source = crop["source"]
-                img = PImage.open(self.images_path / rev_mapping.get(source, source)).convert("RGB")
-            x, y, w, h = crop["relative"]
-            x1, y1 = x * img.width, y * img.height
-            x2, y2 = x1 + w * img.width, y1 + h * img.height
-            im = img.crop((x1, y1, x2, y2))
-            im.save(crop_path)
+                liste.append(Image(id=crop["crop_id"], src=crop_path.name, path=crop_path, document=self))
+                if crop_path.exists():
+                    continue
+
+                crop_path.parent.mkdir(parents=True, exist_ok=True)
+
+                if source != img["source"]:
+                    source = img["source"]
+                    im = PImage.open(self.images_path / rev_mapping.get(source, source)).convert("RGB")
+                
+                box = crop["relative"]
+                if "x1" in box:
+                    x1, y1, x2, y2 = box["x1"], box["y1"], box["x2"], box["y2"]
+                else:
+                    x1, y1, w, h = box["x"], box["y"], box["width"], box["height"]
+                    x2, y2 = x1 + w, y1 + h
+                x1, y1, x2, y2 = int(x1 * im.width), int(y1 * im.height), int(x2 * im.width), int(y2 * im.height)
+                if x2-x1 == 0 or y2-y1 == 0:
+                    # use placeholder image
+                    im_cropped = PImage.new("RGB", (MAX_SIZE, MAX_SIZE))
+                else:
+                    im_cropped = im.crop((x1, y1, x2, y2))
+                im_cropped.save(crop_path)
 
         return liste

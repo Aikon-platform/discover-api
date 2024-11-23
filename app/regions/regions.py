@@ -127,7 +127,7 @@ class ExtractRegions(LoggedTask):
         images = doc.list_images()
         self.annotations[extraction_ref] = []
         try:
-            for i, image in enumerate(images, 1):
+            for i, image in enumerate(self.jlogger.iterate(images, "Analyzing images"), 1):
                 success = self.process_img(image.path, extraction_ref, doc.uid)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
@@ -207,7 +207,7 @@ class ExtractRegions(LoggedTask):
         try:
             self.initialize()
             all_successful = True
-            for doc in self.dataset.documents:
+            for doc in self.jlogger.iterate(self.dataset.documents, "Processing documents"):
                 success = self.process_doc(doc)
                 all_successful = all_successful and success
 
