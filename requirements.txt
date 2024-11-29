@@ -10,6 +10,7 @@ pytest
 tox
 stream-zip
 stream-unzip
+orjson
 
 addict
 cython
@@ -34,7 +35,7 @@ git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 kornia==0.7.* # TODO update
 
 # Match pytorch with your cuda version / container image: https://pytorch.org/get-started/locally/
-torch
+torch>=2.2
 torchvision
 torchaudio
 --extra-index-url https://download.pytorch.org/whl/cu124

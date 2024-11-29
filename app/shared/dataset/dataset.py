@@ -2,14 +2,12 @@
 The Dataset class, which represents a dataset of documents
 """
 
-from flask import url_for
 from pathlib import Path
-from typing import List, Union, Optional, Dict, Tuple
-import json, orjson
+from typing import List, Union, Optional, Dict
+import orjson
 
 from ... import config
 from ..const import DATASETS_PATH
-from ..utils.logging import console
 from ..utils import hash_str
 
 from .document import Document
