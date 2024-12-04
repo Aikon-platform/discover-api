@@ -63,9 +63,9 @@ def is_too_old(filepath: Path, max_days: int = 30) -> bool:
     """
     try:
         return (
-            not filepath.exists()
-            or (datetime.now() - datetime.fromtimestamp(filepath.stat().st_mtime)).days
-            > max_days
+                not filepath.exists()
+                or (datetime.now() - datetime.fromtimestamp(filepath.stat().st_mtime)).days
+                > max_days
         )
     except Exception:
         return False
@@ -145,7 +145,8 @@ def delete_path(path: TPath) -> bool:
     return True
 
 
-def clear_dir(parent_dir: TPath, path_to_clear: str="*", file_to_check: str=None, force_deletion: bool=False) -> int:
+def clear_dir(parent_dir: TPath, path_to_clear: str = "*", file_to_check: str = None,
+              force_deletion: bool = False) -> int:
     """
     Clear a directory of files older than a default number of days
     For folders, the first file (or file_to_check) is checked for age
@@ -186,7 +187,7 @@ def sanitize_url(string: str) -> str:
     return string.replace(" ", "+").replace(" ", "+")
 
 
-def sanitize_str(string:str) -> str:
+def sanitize_str(string: str) -> str:
     """
     Sanitize a URL string to make it a valid filename
     (remove http, https, www, /, ., :, spaces)
@@ -202,7 +203,7 @@ def empty_file(path: TPath) -> None:
         open(path, "w").close()
 
 
-def file_age(path: TPath=None) -> int:
+def file_age(path: TPath = None) -> int:
     """
     Calculates and returns the age of a file in days based on its last modification time.
 
@@ -249,9 +250,9 @@ def download_file(url: str, filepath: TPath) -> None:
 
 
 def get_all_files(
-    directory: str | Path,
-    extensions: Optional[Set[str]] = None,
-    exclude_dirs: Optional[Set[str]] = None
+        directory: str | Path,
+        extensions: Optional[Set[str]] = None,
+        exclude_dirs: Optional[Set[str]] = None
 ) -> List[Path]:
     """
     Get all files in a directory and its subdirectories.
@@ -285,6 +286,7 @@ def get_all_files(
 
     return sorted(files)
 
+
 def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
     """
     Zip files on the fly
@@ -292,11 +294,12 @@ def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
     Args:
         files: List of tuples (filename, path)
     """
+
     def contents(path: TPath) -> Generator[bytes, None, None]:
         with open(path, 'rb') as f:
             while chunk := f.read(65536):
                 yield chunk
-    
+
     def iter_files() -> Generator[Tuple[str, int, int, int, Generator[bytes, None, None]], None, None]:
         for name, path in files:
             if not os.path.exists(path):
@@ -305,3 +308,9 @@ def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
             yield (name, dt, S_IFREG | 0o600, ZIP_32, contents(path))
 
     return stream_zip(iter_files())
+
+
+def serializer(obj):
+    if isinstance(obj, Path):
+        return str(obj)
+    raise TypeError(f"Type {type(obj)} is not JSON serializable")

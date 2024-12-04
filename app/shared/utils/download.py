@@ -1,7 +1,7 @@
 """
 Download a dataset from front (deprecated?)
 """
-
+import warnings
 from pathlib import Path
 
 import requests
@@ -21,6 +21,12 @@ def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None,
     
     TODO improve this function / Use dataset.documents.Document.download()
     """
+    warnings.warn(
+        "download_dataset is deprecated, use Document.download() instead",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
     if not datasets_dir_path:
         datasets_dir_path = IMG_PATH
 

@@ -4,10 +4,7 @@ Tools to download and save images
 Many of the functions in this module are deprecated, better use the Document/Dataset interface
 """
 
-import os
-import sys
 from pathlib import Path
-from typing import List
 
 import requests
 import shutil

@@ -33,11 +33,18 @@ class Dataset:
                 - ...
     """
 
-    def __init__(self, uid:str=None, path: Union[Path, str]=None, documents: Optional[List[dict]]=None, load:bool=False, crops: Optional[List[dict]]=None):
+    def __init__(
+        self,
+        uid: str = None,
+        path: Union[Path, str] = None,
+        documents: Optional[List[dict]] = None,
+        load: bool = False,
+        crops: Optional[List[dict]] = None
+    ):
         """
         Create a new dataset
         """
-        if isinstance(documents, dict): # legacy AIKON format
+        if isinstance(documents, dict):  # legacy AIKON format
             documents = [{"uid": uid, "src": src, "type": "url_list"} for uid, src in documents.items()]
 
         crops_uid = None
@@ -69,7 +76,9 @@ class Dataset:
         if load:
             self.load()
         else:
-            self.documents: Optional[List[Document]] = [Document.from_dict(doc) for doc in documents] if documents else None
+            self.documents: Optional[List[Document]] = [
+                Document.from_dict(doc) for doc in documents
+            ] if documents else None
 
     @property
     def uid(self) -> str:
@@ -77,7 +86,7 @@ class Dataset:
             return f"{self.base_uid}@{self.crops_uid}"
         return self.base_uid
 
-    def to_dict(self, with_url: bool=False) -> Dict:
+    def to_dict(self, with_url: bool = False) -> Dict:
         """
         Convert the dataset to a dictionary
         """
@@ -95,14 +104,14 @@ class Dataset:
         The path to the results of the dataset
         """
         return self.path / "results"
-    
+
     @property
     def infos_path(self) -> Path:
         """
         The path to the info file of the dataset
         """
         return self.path / "info.json"
-    
+
     @property
     def crops_path(self) -> Optional[Path]:
         """
@@ -111,7 +120,7 @@ class Dataset:
         if not self.crops_uid:
             return None
         return self.path / f"crops_{self.crops_uid}.json"
-    
+
     def get_absolute_url(self) -> str:
         """
         Get the absolute URL of the dataset
@@ -169,7 +178,7 @@ class Dataset:
 
             if self.crops:
                 crop_list.extend(document.prepare_crops(self.crops))
-        
+
         if self.crops:
             return crop_list
         return im_list

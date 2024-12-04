@@ -15,8 +15,8 @@ EXT_DATA_FOLDER = API_DATA_FOLDER / DIR_NAME
 
 UTILS_DIR = SHARED_DIR / "utils"
 
-IMG_PATH = EXT_DATA_FOLDER / "images"
+IMG_PATH = EXT_DATA_FOLDER / "images"  # NOTE is it used??
 DATASETS_PATH = EXT_DATA_FOLDER / "datasets"
 DOCUMENTS_PATH = EXT_DATA_FOLDER / "documents"
 
-create_dirs_if_not([IMG_PATH])
+create_dirs_if_not([IMG_PATH, DATASETS_PATH, DOCUMENTS_PATH])

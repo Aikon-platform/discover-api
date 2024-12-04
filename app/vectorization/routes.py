@@ -5,7 +5,7 @@ import uuid
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH, IMG_PATH
+from .const import VEC_RESULTS_PATH #, IMG_PATH
 
 from ..shared.utils.logging import console
 
@@ -103,7 +103,9 @@ def delete_and_relaunch(client_id):
     doc_id = data.get("doc_id", None)
     model = data.get("model", None)
 
-    cleared_img_dir = delete_directory(f"{IMG_PATH}/{doc_id}")
+    # TODO delete images associated with vectorization
+    # cleared_img_dir = delete_directory(f"{IMG_PATH}/{doc_id}")
+    cleared_img_dir = True
 
     if cleared_img_dir:
         start_response = shared_routes.start_task(

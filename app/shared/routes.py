@@ -13,17 +13,18 @@ from dramatiq.results import ResultMissing, ResultFailure
 import traceback
 from typing import Tuple, Optional
 
-from .dataset import Dataset, Document
+from .dataset import Dataset
 from .utils import hash_str
-from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
+
 
 def error_wrapper(func):
     """
     A decorator that catches exceptions and returns them as JSON Flask Response
     """
+
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
@@ -48,7 +49,8 @@ def get_client_id(func):
     return decorator
 
 
-def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> Tuple[str, str, str, Optional[Dataset], dict]:
+def receive_task(req: Request, save_dataset: bool = True, use_crops: bool = True) -> Tuple[
+    str, str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
 
@@ -123,7 +125,7 @@ def receive_task(req:Request, save_dataset: bool=True, use_crops: bool=True) -> 
     return experiment_id, notify_url, tracking_url, dataset, param.get("parameters", param)
 
 
-def start_task(task_fct:Actor, experiment_id:str, task_kwargs: dict) -> dict:
+def start_task(task_fct: Actor, experiment_id: str, task_kwargs: dict) -> dict:
     """
     Start a new task
 
@@ -178,7 +180,7 @@ def status(tracking_id: str, task_fct: Actor) -> dict:
     }
 
 
-def result(tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str="zip"):
+def result(tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
     """
     Get the result of a task
 

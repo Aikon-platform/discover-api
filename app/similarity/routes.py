@@ -53,10 +53,11 @@ from .tasks import compute_similarity
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import clear_dir
 from .const import (
-    IMG_PATH,
-    FEATS_PATH,
+    # IMG_PATH,
+    # FEATS_PATH,
     SIM_RESULTS_PATH,
-    SIM_XACCEL_PREFIX, MODEL_PATH,
+    SIM_XACCEL_PREFIX,
+    # MODEL_PATH,
 )
 
 from .lib.const import FEAT_NET, FEAT_SET, FEAT_LAYER
@@ -149,9 +150,10 @@ def monitor_similarity():
 
 @blueprint.route("monitor/clear/", methods=["POST"])
 def clear_old_similarity():
+    # TODO clear images and features associated with an old similarity
     return {
-        "cleared_img_dir": clear_dir(IMG_PATH),
-        "cleared features": clear_dir(FEATS_PATH, path_to_clear="*.pt"),
+        # "cleared_img_dir": clear_dir(IMG_PATH),
+        # "cleared features": clear_dir(FEATS_PATH, path_to_clear="*.pt"),
         "cleared_results": clear_dir(SIM_RESULTS_PATH, path_to_clear="*.npy"),
     }
 
@@ -163,15 +165,15 @@ def clear_doc(doc_id: str):
     """
 
     # doc_id = "{doc_id}"
-    # TODO: re-united doc_id / tracking_id
+    # TODO: delete images and features associated with similarity
 
     return {
-        "cleared_img_dir": clear_dir(
-            IMG_PATH, path_to_clear=f"*{doc_id}*", force_deletion=True
-        ),
-        "cleared features": clear_dir(
-            FEATS_PATH, path_to_clear=f"*{doc_id}*.pt", force_deletion=True
-        ),
+        # "cleared_img_dir": clear_dir(
+        #     IMG_PATH, path_to_clear=f"*{doc_id}*", force_deletion=True
+        # ),
+        # "cleared features": clear_dir(
+        #     FEATS_PATH, path_to_clear=f"*{doc_id}*.pt", force_deletion=True
+        # ),
         "cleared_results": clear_dir(
             SIM_RESULTS_PATH, path_to_clear=f"*{doc_id}*.npy", force_deletion=True
         ),

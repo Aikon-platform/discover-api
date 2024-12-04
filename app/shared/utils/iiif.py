@@ -12,11 +12,11 @@ from PIL import Image, UnidentifiedImageError
 from urllib.parse import urlparse
 from typing import Optional, Tuple, List, Union
 
-# TODO change to not only use IMG_PATH from regions
-from ...regions.const import IMG_PATH
 from .fileutils import check_dir, sanitize_str, sanitize_url, TPath
 from .logging import console
 import warnings
+
+from ..const import IMG_PATH
 
 
 def is_iiif_manifest(json_content: dict) -> bool:
@@ -159,6 +159,7 @@ class IIIFDownloader:
         if target_path is None:
             warnings.warn("Using img_dir is deprecated, please use target_path instead", DeprecationWarning)
             if img_dir is None:
+                # TODO remove because it should only download images to Document / images
                 img_dir = IMG_PATH
             target_path = Path(img_dir) / self.get_dir_name()
         self.manifest_dir_path = target_path

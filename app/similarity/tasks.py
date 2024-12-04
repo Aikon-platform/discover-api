@@ -3,11 +3,10 @@ from typing import Optional
 
 from .const import SIM_QUEUE
 from .similarity import ComputeSimilarity
-from ..shared.utils.logging import notifying, TLogger, LoggerHelper
+from ..shared.utils.logging import notifying, TLogger, LoggerHelper, console
 from ..shared.dataset import Dataset
 
 
-# @notifying TODO implement results return with notifying
 @dramatiq.actor(time_limit=1000 * 60 * 60, max_retries=0, store_results=True, queue_name=SIM_QUEUE)
 @notifying
 def compute_similarity(
@@ -31,6 +30,8 @@ def compute_similarity(
     - logger: a logger object
     """
     dataset = Dataset(uid=dataset_uid, load=True)
+
+    console(parameters, color="yellow")
 
     similarity_task = ComputeSimilarity(
         experiment_id=experiment_id,

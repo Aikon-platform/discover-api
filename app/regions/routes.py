@@ -52,7 +52,6 @@ Routes:
 
 """
 
-import json
 import os
 import time
 
@@ -60,10 +59,8 @@ from flask import request, jsonify, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import ANNO_PATH, MODEL_PATH, IMG_PATH, EXT_XACCEL_PREFIX
+from .const import ANNO_PATH, MODEL_PATH  #, IMG_PATH
 from ..shared.utils.fileutils import delete_path
-from ..shared.dataset import Dataset
-from ..shared.utils.logging import console
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -88,6 +85,9 @@ def start_regions_extraction():
     experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request, use_crops=False)
 
     model = param.get('model')
+
+    # TO DELETE
+    print("KIKOUUUUU", experiment_id, notify_url, tracking_url, dataset, param)
 
     return shared_routes.start_task(
         extract_objects,
@@ -158,8 +158,10 @@ def get_models():
 @blueprint.route("clear", methods=["POST"])
 def clear_images():
     dataset_id = request.form['dataset_id']
-    # TODO change inside front ends to send correct path for dataset
-    #  (for AIKON: "{app_name}_{digit_ref}" / for dicover-demo "{dataset_id}")
+    # TODO change to use new dataset architecture
+    # return {
+    #     "cleared_img_dir": 1 if delete_path(IMG_PATH / dataset_id) else 0,
+    # }
     return {
-        "cleared_img_dir": 1 if delete_path(IMG_PATH / dataset_id) else 0,
+        "cleared_img_dir": 0,
     }

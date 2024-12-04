@@ -9,11 +9,11 @@ from collections import OrderedDict
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 
-from ..const import FEATS_PATH
 from .const import FEAT_LAYER, FEAT_SET, FEAT_NET
 from .utils import get_model_path
 from .vit import VisionTransformer
 from ...shared.utils.logging import console
+
 
 def _load_model(model_path, feat_net, feat_set, device):
     if model_path is None:
@@ -54,8 +54,9 @@ def _load_model(model_path, feat_net, feat_set, device):
         model.load_state_dict(pre_dict)
     else:
         raise ValueError("Invalid network or dataset for feature extraction.")
-    
+
     return model
+
 
 class FeatureExtractor:
     def __init__(self, model_path=None, feat_net=FEAT_NET, feat_set=FEAT_SET, feat_layer=FEAT_LAYER, device="cpu"):
@@ -91,7 +92,7 @@ class FeatureExtractor:
         return self.model(batch)[self.feat_layer].flatten(start_dim=1)
 
     @torch.no_grad()
-    def extract_features(self, data_loader, cache_dir: Path=None, cache_id: str=None) -> torch.Tensor:
+    def extract_features(self, data_loader, cache_dir: Path = None, cache_id: str = None) -> torch.Tensor:
         """
         """
         torch.cuda.empty_cache()
@@ -124,6 +125,7 @@ class FeatureExtractor:
             torch.save(features, feat_path)
 
         return features
+
 
 def scale_feats(features, n_components):
     # UNUSED ???

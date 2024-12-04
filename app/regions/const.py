@@ -16,11 +16,12 @@ EXT_QUEUE = "queue0"  # see docker-confs/supervisord.conf
 EXT_DATA_FOLDER = API_DATA_FOLDER / DEMO_NAME
 EXT_XACCEL_PREFIX = Path(ENV("EXT_XACCEL_PREFIX", default="/media/regions-results"))
 
-IMG_PATH = EXT_DATA_FOLDER / "documents" / "images"
+# IMG_PATH = EXT_DATA_FOLDER / "documents" / "images"
 ANNO_PATH = EXT_DATA_FOLDER / "results"
 MODEL_PATH = EXT_DATA_FOLDER / "models"
 
-create_dirs_if_not([IMG_PATH, ANNO_PATH, MODEL_PATH])
+# create_dirs_if_not([IMG_PATH, ANNO_PATH, MODEL_PATH])
+create_dirs_if_not([ANNO_PATH, MODEL_PATH])
 
 # TODO retrieve available model instead
 DEFAULT_MODEL = "best_eida.pt"

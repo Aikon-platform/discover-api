@@ -1,19 +1,14 @@
-import os
 from typing import Optional
-import requests
 import numpy as np
 import torch
-from torch.utils.data import Dataset as TorchDataset
-import cv2
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from typing import Iterable, List, Tuple
+from typing import Iterable
 import orjson
 
-from sklearn.metrics.pairwise import cosine_similarity
 from scipy.spatial.distance import pdist, squareform
 
-from .const import SCORES_PATH, IMG_PATH
+from .const import SCORES_PATH
 from .lib.const import (
     SEG_STRIDE,
     MAX_SIZE,
@@ -26,18 +21,16 @@ from .lib.dataset import FileListDataset
 from .lib.features import FeatureExtractor
 from .lib import segswap
 
-from .lib.utils import get_model_path, doc_pairs
+from .lib.utils import get_model_path
 
-from ..shared.dataset import Dataset, Document, Image
+from ..shared.dataset import Dataset, Image
 from ..shared.utils import get_device
-from ..shared.utils.fileutils import has_content
-from ..shared.utils.img import download_images
-from ..shared.utils.logging import LoggingTaskMixin, console, send_update
 from ..shared.tasks import LoggedTask
+from ..shared.utils.fileutils import serializer
 
 
 def compute_cosine_similarity(
-    features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
+        features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
 ):
     """
     Compute the cosine similarity between all pairs of images in the dataset
@@ -64,7 +57,7 @@ def compute_cosine_similarity(
             mat = all_mat[group1][:, group2]
             tops = np.argsort(mat, axis=1)[:, :topk]
             all_pairs |= set(
-                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1.-mat[i, j])
+                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1. - mat[i, j])
                 for i, row in enumerate(tops)
                 for j in row
                 if group1[i] != group2[j]
@@ -74,7 +67,7 @@ def compute_cosine_similarity(
 
 
 def _convert_to_pairs(cosine_pairs, image_list: list[str]):
-    # Legacy format ? should be basenames but we need to trace documents back ??
+    # Legacy format? should be basenames, but we need to trace documents back??
     return np.array(
         [
             (round(sim, 5) * 100, image_list[i], image_list[j])
@@ -85,7 +78,7 @@ def _convert_to_pairs(cosine_pairs, image_list: list[str]):
 
 @torch.no_grad()
 def compute_segswap_similarity(
-    source_images: list[str], pairs: list[tuple[int, int]], device="cuda"
+        source_images: list[str], pairs: list[tuple[int, int]], device="cuda"
 ):
     """
     Compute the similarity between pairs of images using the SegSwap algorithm
@@ -109,7 +102,7 @@ def compute_segswap_similarity(
 
     batch_size = COS_TOPK
     batched_pairs = [
-        pairs[i : i + batch_size] for i in range(0, len(pairs), batch_size)
+        pairs[i: i + batch_size] for i in range(0, len(pairs), batch_size)
     ]
 
     img_dataset = FileListDataset(
@@ -177,7 +170,7 @@ class ComputeSimilarity(LoggedTask):
     """
 
     def __init__(
-        self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
+            self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
@@ -244,7 +237,7 @@ class ComputeSimilarity(LoggedTask):
         # NOT USED NOW
         per_doc_pairs = {}
         for (i, j, sim) in pairs:
-            assert i <= j # avoid duplicates
+            assert i <= j  # avoid duplicates
             im_i = source_images[i]
             im_j = source_images[j]
             doc_i = im_i.document
@@ -264,7 +257,7 @@ class ComputeSimilarity(LoggedTask):
         ]
 
         return output_json
-    
+
     def format_results(self, pairs: list[tuple[int, int, float]], source_images: list[Image]) -> list[dict]:
         """
         Format the results for output
@@ -341,7 +334,7 @@ class ComputeSimilarity(LoggedTask):
             tfile.parent.mkdir(parents=True, exist_ok=True)
 
             with open(tfile, "wb") as f:
-                f.write(orjson.dumps(similarity))
+                f.write(orjson.dumps(similarity, default=serializer))
 
             self.print_and_log(
                 f"[task.similarity] Successfully computed similarity scores"

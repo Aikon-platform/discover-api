@@ -7,7 +7,7 @@ from PIL import Image
 from typing import Tuple
 
 from ultralytics.utils.plotting import Annotator, colors
-from .bbox import Segment  # Import the Segment class
+from .bbox import Segment
 
 from .yolov5.models.common import DetectMultiBackend
 from .yolov5.utils.dataloaders import IMG_FORMATS, LoadImages

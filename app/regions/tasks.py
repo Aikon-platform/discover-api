@@ -2,12 +2,9 @@
 Region extraction tasks
 """
 import dramatiq
-from dramatiq.middleware import CurrentMessage
 from typing import Optional
 
-from .. import config
-from .const import EXT_QUEUE, DEMO_NAME
-from .regions import ExtractRegions
+from .const import EXT_QUEUE
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 from ..shared.dataset import Dataset
 

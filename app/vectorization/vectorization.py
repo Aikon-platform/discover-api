@@ -11,7 +11,7 @@ from typing import Optional
 from ..shared.utils.fileutils import download_file, has_content
 from ..shared.utils.img import download_img, get_img_paths
 from ..shared.utils.logging import LoggingTaskMixin, send_update
-from .const import IMG_PATH, MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH
+from .const import MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH  #, IMG_PATH
 
 from .lib.src import build_model_main
 from .lib.src.inference import (
@@ -102,17 +102,18 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
                 output_dir = VEC_RESULTS_PATH / doc_id
                 os.makedirs(output_dir, exist_ok=True)
 
-                for path in get_img_paths(IMG_PATH / doc_id, (".jpg", ".jpeg")):
-                    orig_img, tr_img = preprocess_img(path)
-                    preds = generate_prediction(orig_img, tr_img, model, postprocessors)
-                    preds = postprocess_preds(preds, orig_img.size)
-                    save_pred_as_svg(
-                        path,
-                        img_name=os.path.splitext(os.path.basename(path))[0],
-                        img_size=orig_img.size,
-                        pred_dict=preds,
-                        pred_dir=output_dir,
-                    )
+                # TODO fix to use dataset path ⚠️⚠️⚠️⚠️
+                # for path in get_img_paths(IMG_PATH / doc_id, (".jpg", ".jpeg")):
+                #     orig_img, tr_img = preprocess_img(path)
+                #     preds = generate_prediction(orig_img, tr_img, model, postprocessors)
+                #     preds = postprocess_preds(preds, orig_img.size)
+                #     save_pred_as_svg(
+                #         path,
+                #         img_name=os.path.splitext(os.path.basename(path))[0],
+                #         img_size=orig_img.size,
+                #         pred_dict=preds,
+                #         pred_dir=output_dir,
+                #     )
 
                 self.send_zip(doc_id)
 
@@ -126,20 +127,22 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
         self.print_and_log(
             f"[task.vectorization] Downloading {doc_id} images...", color="blue"
         )
-        if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
-            self.print_and_log(
-                f"[task.vectorization] {doc_id} already downloaded. Skipping..."
-            )
-            return
+        # TODO use new dataset way of doing thing
+        # if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
+        #     self.print_and_log(
+        #         f"[task.vectorization] {doc_id} already downloaded. Skipping..."
+        #     )
+        #     return
 
-        for img_name, img_url in document.items():
-            try:
-                download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
-
-            except Exception as e:
-                self.print_and_log(
-                    f"[task.vectorization] Unable to download image {img_name}", e
-                )
+        # for img_name, img_url in document.items():
+        #     # TODO use dataset download
+        #     # try:
+        #     #     download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
+        #     #
+        #     # except Exception as e:
+        #     #     self.print_and_log(
+        #     #         f"[task.vectorization] Unable to download image {img_name}", e
+        #     #     )
 
     def send_zip(self, doc_id):
         """
