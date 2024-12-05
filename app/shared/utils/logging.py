@@ -8,6 +8,8 @@ import logging
 import os
 
 import time
+from pathlib import Path
+
 import dramatiq
 from tqdm import tqdm
 from dramatiq.middleware import CurrentMessage
@@ -27,6 +29,12 @@ import requests
 
 
 T = TypeVar("T")
+
+
+def serializer(obj):
+    if isinstance(obj, Path):
+        return str(obj)
+    raise TypeError(f"Type {type(obj)} is not JSON serializable")
 
 
 def exc_str(e: Exception):
@@ -516,7 +524,6 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
 
             def notify(event: str, **data):
                 if notify_url:
-                    from .fileutils import serializer
                     requests.post(
                         notify_url,
                         json={

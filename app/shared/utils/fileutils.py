@@ -241,12 +241,14 @@ def download_file(url: str, filepath: TPath) -> None:
     """
     Download a file from a URL and save it to disk
     """
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(filepath, "wb") as file:
-            file.write(response.content)
-        return
-    console(f"Failed to download the file. Status code: {response.status_code}", "red")
+    try:
+        with requests.get(url, stream=True) as r:
+            r.raise_for_status()
+            with open(filepath, "wb") as f:
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+    except Exception as e:
+        console(f"Failed to download the file. Status code: {r.status_code}: {e}", "red")
 
 
 def get_all_files(
@@ -315,7 +317,10 @@ def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
     return stream_zip(iter_files())
 
 
-def serializer(obj):
-    if isinstance(obj, Path):
-        return str(obj)
-    raise TypeError(f"Type {type(obj)} is not JSON serializable")
+def download_model_if_not(url, path: Path):
+    """
+    Download a model if it does not exist
+    """
+    if not path.exists():
+        download_file(url, path)
+    return path

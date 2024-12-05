@@ -26,7 +26,7 @@ from .lib.utils import get_model_path
 from ..shared.dataset import Dataset, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
-from ..shared.utils.fileutils import serializer
+from ..shared.utils.logging import serializer
 
 
 def compute_cosine_similarity(

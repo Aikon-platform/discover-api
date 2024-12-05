@@ -2,7 +2,8 @@
 Module-specific constants for the regions app
 """
 from pathlib import Path
-from ..shared.utils.fileutils import create_dirs_if_not
+
+from ..shared.utils.fileutils import create_dirs_if_not, download_model_if_not
 from ..config.base import ENV, BASE_DIR, XACCEL_PREFIX, API_DATA_FOLDER
 
 DEMO_NAME = "regions"
@@ -24,4 +25,8 @@ MODEL_PATH = EXT_DATA_FOLDER / "models"
 create_dirs_if_not([ANNO_PATH, MODEL_PATH])
 
 # TODO retrieve available model instead
-DEFAULT_MODEL = "best_eida.pt"
+download_model_if_not("https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
+                      "/illustration_extraction.pt?download=true", MODEL_PATH / "illustration_extraction.pt")
+download_model_if_not("https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
+                      "/diagram_extraction.pt?download=true", MODEL_PATH / "diagram_extraction.pt")
+DEFAULT_MODEL = "illustration_extraction.pt"
