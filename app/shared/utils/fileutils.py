@@ -250,9 +250,10 @@ def download_file(url: str, filepath: TPath) -> None:
 
 
 def get_all_files(
-        directory: str | Path,
-        extensions: Optional[Set[str]] = None,
-        exclude_dirs: Optional[Set[str]] = None
+    directory: str | Path,
+    extensions: Optional[Set[str]] = None,
+    exclude_dirs: Optional[Set[str]] = None,
+    absolute_path: bool = False,
 ) -> List[Path]:
     """
     Get all files in a directory and its subdirectories.
@@ -261,12 +262,16 @@ def get_all_files(
         directory: Base directory path
         extensions: Optional set of extensions to filter files (e.g. {'.txt', '.pdf'})
         exclude_dirs: Optional set of directory names to exclude from search
+        absolute_path: Return absolute path
 
     Returns:
         List of Path objects for all matching files
     """
     if isinstance(directory, str):
         directory = Path(directory)
+
+    if absolute_path:
+        directory = directory.resolve()
 
     if not directory.exists():
         return []

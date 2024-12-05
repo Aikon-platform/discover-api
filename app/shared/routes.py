@@ -49,8 +49,11 @@ def get_client_id(func):
     return decorator
 
 
-def receive_task(req: Request, save_dataset: bool = True, use_crops: bool = True) -> Tuple[
-    str, str, str, Optional[Dataset], dict]:
+def receive_task(
+    req: Request,
+    save_dataset: bool = True,
+    use_crops: bool = True
+) -> Tuple[str, str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
 
@@ -88,6 +91,8 @@ def receive_task(req: Request, save_dataset: bool = True, use_crops: bool = True
         }
 
     :param req: The Flask request object
+    :param save_dataset: Whether to save the dataset to disk
+    :param use_crops: Whether to use crops
 
     :return: The experiment_id, notify_url, tracking_url, and the parameters
     """

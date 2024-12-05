@@ -3,12 +3,14 @@ The Document class, which represents a document in the dataset
 """
 
 from flask import url_for
-from pathlib import Path
+
 import requests
+import json
+import httpx
+from pathlib import Path
+from PIL import Image as PImage
 from stream_unzip import stream_unzip
 from typing import List, Optional
-import json
-from PIL import Image as PImage
 
 from ... import config
 from ..const import DOCUMENTS_PATH
@@ -17,6 +19,9 @@ from ..utils.fileutils import sanitize_str
 from ..utils.img import MAX_SIZE, download_image, get_img_paths
 from ..utils.logging import console
 from .utils import Image, pdf_to_img
+
+
+ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".json", ".tiff", ".pdf"}
 
 
 class Document:
@@ -66,7 +71,7 @@ class Document:
         ret = {
             "uid": self.uid,
             "type": self.dtype,
-            "src": self.src,
+            "src": str(self.src),
         }
         if with_url:
             ret["url"] = self.get_absolute_url()
@@ -143,32 +148,26 @@ class Document:
         """
         Download a zip file from a URL, extract its contents, and save images.
         """
-        # TODO make this work
         def zipped_chunks():
-            response = requests.get(zip_url, stream=True)
-            response.raise_for_status()
-            yield from response.iter_content(chunk_size=8192)
+            with httpx.stream('GET', zip_url) as r:
+                yield from r.iter_bytes(chunk_size=8192)
+            # with requests.get(zip_url, stream=True) as r:
+            #     r.raise_for_status()
+            #     for chunk in r.iter_content(chunk_size=8192):
+            #         yield chunk
 
-        def is_valid(filepath):
-            try:
-                decoded_path = filepath.decode("utf-8")
-                normalized_name = "/" + decoded_path.replace("\\", "/")
-                return (
-                    not ("/." in normalized_name or decoded_path.startswith("/") or ".." in decoded_path)
-                )
-            except UnicodeDecodeError:
-                return False
+        def skip():
+            for _ in unzipped_chunks:
+                pass
 
         for file_name, file_size, unzipped_chunks in stream_unzip(zipped_chunks()):
-            if not is_valid(file_name):
-                for _ in unzipped_chunks:  # Skip invalid files
-                    pass
+            file_name = file_name.decode("utf-8")
+            if "/." in "/" + file_name.replace("\\", "/"):  # hidden file
+                skip()
                 continue
-
-            path = self.images_path / file_name.decode("utf-8")
-            if path.parent.exists() and not path.parent.is_dir():
-                for _ in unzipped_chunks:  # Skip if parent exists but isn't a directory
-                    pass
+            path = self.images_path / file_name
+            if path.suffix.lower() not in ALLOWED_EXTENSIONS:
+                skip()
                 continue
 
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -203,7 +202,7 @@ class Document:
         """
         Download image and save
         """
-        # TODO
+        # TODO make this work
         download_image(img_url, self.images_path, "image_name")
 
     def download(self) -> None:

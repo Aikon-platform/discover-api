@@ -11,6 +11,7 @@ tox
 stream-zip
 stream-unzip
 orjson
+httpx
 
 addict
 cython

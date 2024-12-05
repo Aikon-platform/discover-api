@@ -14,6 +14,7 @@ from .document import Document
 
 blueprint = Blueprint("datasets", __name__, url_prefix="/datasets")
 
+
 @blueprint.route("dataset/<uid>", methods=["GET"])
 def dataset_info(uid):
     """
@@ -22,6 +23,7 @@ def dataset_info(uid):
     dataset = Dataset(uid, load=True)
     return jsonify(dataset.to_dict(with_url=True))
 
+
 @blueprint.route("document/<dtype>/<path:uid>", methods=["GET"])
 def document_info(dtype, uid):
     """
@@ -29,6 +31,7 @@ def document_info(dtype, uid):
     """
     document = Document(uid, dtype)
     return jsonify(document.to_dict(with_url=True))
+
 
 @blueprint.route("document/<dtype>/<path:uid>/download", methods=["GET"])
 def document_download(dtype, uid):

@@ -16,7 +16,6 @@ from ..const import UTILS_DIR
 from .logging import console
 import warnings
 
-
 MAX_SIZE = 244
 
 
@@ -116,7 +115,7 @@ def download_img(img_url, doc_id, img_name, img_path, max_dim=MAX_SIZE):
     return download_image(img_url, f"{img_path}/{doc_id}", img_name, max_dim)
 
 
-def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZE):
+def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int = MAX_SIZE):
     """
     Download images from a URL containing a list of images
 
@@ -142,10 +141,7 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZ
 
     # i = 1
     paths = []
-    for (
-        img_name,
-        img_url,
-    ) in images.items():  # tqdm(images.items(), desc="Downloading Images"):
+    for img_name, img_url in images.items():  # tqdm(images.items(), desc="Downloading Images"):
         # img_name = f"{i:0{z}}.jpg"
         # i += 1
         download_img(img_url, doc_id, img_name, img_path, max_dim)
@@ -153,11 +149,19 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int=MAX_SIZ
 
     return paths
 
-def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg")) -> list[Path]:
+
+def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg"), exclude_dirs=None, absolute_path=False) -> list[Path]:
     """
     Get all image paths in a directory
+
+    Args:
+        img_dir: Base directory path
+        img_ext: Optional set of extensions to filter images (e.g. {'.jpg', '.png'})
+        exclude_dirs: Optional set of directory names to exclude from search
+        absolute_path: Return absolute path
     """
-    return get_all_files(img_dir, img_ext)
+    return get_all_files(img_dir, extensions=img_ext, exclude_dirs=exclude_dirs, absolute_path=absolute_path)
+
 
 def get_imgs_in_dirs(img_dirs) -> list[str]:
     images = []
