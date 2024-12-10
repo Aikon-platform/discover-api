@@ -122,7 +122,7 @@ class Document:
         Extend the mapping of the document with a new mapping
         """
         self.mapping.update(mapping)
-        with open(self.path / "mapping.json", "w") as f:
+        with open(self.mapping_path, "w") as f:
             json.dump(self.mapping, f)
 
     def _load_mapping(self):

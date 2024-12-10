@@ -5,6 +5,7 @@ import dramatiq
 from typing import Optional
 
 from .const import EXT_QUEUE
+from .regions import ExtractRegions
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 from ..shared.dataset import Dataset
 
