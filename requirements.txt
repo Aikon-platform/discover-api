@@ -12,6 +12,7 @@ stream-zip
 stream-unzip
 orjson
 httpx
+iiif-download>=0.1.3
 
 addict
 cython
