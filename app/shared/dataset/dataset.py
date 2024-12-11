@@ -173,6 +173,7 @@ class Dataset:
         im_list = []
         crop_list = []
         for document in self.documents:
+            # TODO don't re-download if already existing
             document.download()
             im_list.extend(document.list_images())
 

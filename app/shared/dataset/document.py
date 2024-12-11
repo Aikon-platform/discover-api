@@ -17,7 +17,7 @@ from ..const import DOCUMENTS_PATH
 from ..utils.iiif import IIIFDownloader, get_json
 from ..utils.fileutils import sanitize_str
 from ..utils.img import MAX_SIZE, download_image, get_img_paths
-from ..utils.logging import console
+from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
 
 
@@ -125,15 +125,36 @@ class Document:
         with open(self.mapping_path, "w") as f:
             json.dump(self.mapping, f)
 
+    def _get_mapping_from_images(self):
+        """
+        Get the mapping of the document from the images in the images_path
+        """
+        self._mapping = {
+            img_path.name: img_path.relative_to(self.images_path)
+            for img_path in get_img_paths(self.images_path)
+        }
+
+    def _save_mapping(self):
+        """
+        Save the mapping of the document to a JSON file
+        """
+        with open(self.mapping_path, "w") as f:
+            json.dump(self._mapping, f, default=serializer)
+
     def _load_mapping(self):
         """
         Load the mapping of the document from a JSON file
         """
         if not self.mapping_path.exists():
-            self._mapping = {}
+            self._get_mapping_from_images()
+            self._save_mapping()
             return
-        with open(self.mapping_path, "r") as f:
-            self._mapping = json.load(f)
+        try:
+            with open(self.mapping_path, "r") as f:
+                self._mapping = json.load(f)
+        except json.JSONDecodeError:
+            self.mapping_path.unlink()
+            self._load_mapping()
 
     def _download_from_iiif(self, manifest_url: str):
         """
@@ -251,7 +272,6 @@ class Document:
         """
         source = None
         im = None
-        rev_mapping = {v: k for k, v in self.mapping.items()}
         crop_list = []
 
         for img in crops:
@@ -268,7 +288,7 @@ class Document:
 
                 if source != img["source"]:
                     source = img["source"]
-                    im = PImage.open(self.images_path / rev_mapping.get(source, source)).convert("RGB")
+                    im = PImage.open(self.images_path / self.mapping.get(source, source)).convert("RGB")
 
                 box = crop["relative"]
                 if "x1" in box:
