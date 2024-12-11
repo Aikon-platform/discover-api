@@ -16,7 +16,7 @@ httpx
 addict
 cython
 pandas
-Pillow==9.5.0
+Pillow
 scipy<1.13
 scikit-learn
 matplotlib
