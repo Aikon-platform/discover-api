@@ -149,12 +149,6 @@ class ExtractRegions(LoggedTask):
         try:
             self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
-            # image_dir, dataset_ref = download_dataset(
-            #     doc_url,
-            #     datasets_dir_path=IMG_PATH,
-            #     dataset_dir_name=doc_id,
-            # )
-
             doc.download()
             self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
@@ -213,7 +207,7 @@ class ExtractRegions(LoggedTask):
 
             status = "SUCCESS" if all_successful else "ERROR"
             self.print_and_log(f"[task.extract_regions] Task completed with status: {status}")
-            self.task_update(status, self.error_list if self.error_list else None)
+            self.task_update(status, self.error_list if self.error_list else [])
             return all_successful
         except Exception as e:
             self.handle_error(f"Error {e} processing dataset", exception=e)

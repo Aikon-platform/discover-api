@@ -15,6 +15,7 @@ from typing import Tuple, Optional
 
 from .dataset import Dataset
 from .utils import hash_str
+from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
@@ -100,7 +101,7 @@ def receive_task(
     if not param:
         raise ValueError("No data in request: Task aborted!")
 
-    print(f"Received task: {param}")
+    console(f"Received task: {param}", color="magenta")
 
     experiment_id = param.get('experiment_id', "")
     tracking_url = param.get("tracking_url", "")

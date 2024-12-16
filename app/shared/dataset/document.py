@@ -11,12 +11,12 @@ from pathlib import Path
 from PIL import Image as PImage
 from stream_unzip import stream_unzip
 from typing import List, Optional
+from iiif_download import IIIFDownloader
 
 from ... import config
 from ..const import DOCUMENTS_PATH
-from ..utils.iiif import IIIFDownloader, get_json
 from ..utils.fileutils import sanitize_str
-from ..utils.img import MAX_SIZE, download_image, get_img_paths
+from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
 
@@ -55,7 +55,7 @@ class Document:
         self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / uid)
         self.src = src
         self.dtype = dtype
-        self._mapping = None  # A mapping of filenames to their URLs
+        self._mapping = {}  # A mapping of filenames to their URLs
 
     @classmethod
     def from_dict(cls, doc_dict: dict) -> "Document":
@@ -111,28 +111,14 @@ class Document:
     @property
     def mapping(self):
         """
-        A mapping filenames -> UID/URL
+        uid is the filename of the image
+        A mapping image filenames -> {
+            uid: url/relative_path
+        }
         """
-        if self._mapping is None:
+        if len(self._mapping) == 0:
             self._load_mapping()
         return self._mapping
-
-    def _extend_mapping(self, mapping: dict):
-        """
-        Extend the mapping of the document with a new mapping
-        """
-        self.mapping.update(mapping)
-        with open(self.mapping_path, "w") as f:
-            json.dump(self.mapping, f)
-
-    def _get_mapping_from_images(self):
-        """
-        Get the mapping of the document from the images in the images_path
-        """
-        self._mapping = {
-            img_path.name: img_path.relative_to(self.images_path)
-            for img_path in get_img_paths(self.images_path)
-        }
 
     def _save_mapping(self):
         """
@@ -141,29 +127,46 @@ class Document:
         with open(self.mapping_path, "w") as f:
             json.dump(self._mapping, f, default=serializer)
 
+    def _extend_mapping(self, mapping: dict):
+        """
+        Extend the mapping of the document with a new mapping
+        """
+        self._mapping.update(mapping)
+        self._save_mapping()
+
+    def _set_mapping_from_images(self):
+        """
+        Get the mapping of the document from the images in the images_path
+        """
+        self._mapping = {
+            img_path.name: img_path.relative_to(self.images_path)
+            for img_path in get_img_paths(self.images_path)
+        }
+        self._save_mapping()
+
     def _load_mapping(self):
         """
         Load the mapping of the document from a JSON file
         """
         if not self.mapping_path.exists():
-            self._get_mapping_from_images()
-            self._save_mapping()
+            self._set_mapping_from_images()
             return
         try:
             with open(self.mapping_path, "r") as f:
                 self._mapping = json.load(f)
         except json.JSONDecodeError:
             self.mapping_path.unlink()
-            self._load_mapping()
+            self._set_mapping_from_images()
 
     def _download_from_iiif(self, manifest_url: str):
         """
         Download images from a IIIF manifest
         """
-        downloader = IIIFDownloader(manifest_url, target_path=self.images_path)
-        mapping = downloader.run()
-        self._extend_mapping(mapping)
-        console(f"Downloaded {len(mapping)} images from {manifest_url} to {self.images_path}", color="green")
+        IIIFDownloader(img_dir=self.images_path).download_manifest(manifest_url)
+        # downloader = IIIFDownloader(manifest_url, target_path=self.images_path)
+        # mapping = downloader.run()
+        # self._extend_mapping(mapping)
+        # console(f"Downloaded {len(mapping)} images from {manifest_url} to {self.images_path}", color="green")
 
     def _download_from_zip(self, zip_url: str):
         """
@@ -254,7 +257,7 @@ class Document:
         return [
             Image(
                 id=img_path.name,
-                src=self.mapping.get(img_path.name, img_path.relative_to(self.images_path)),
+                src=str(img_path.relative_to(self.images_path)),
                 path=img_path,
                 document=self
             ) for img_path in get_img_paths(self.images_path)
@@ -273,6 +276,8 @@ class Document:
         source = None
         im = None
         crop_list = []
+
+        # reversed_map = {v: k for k, v in self.mapping.items()}
 
         for img in crops:
             if img["doc_uid"] != self.uid:

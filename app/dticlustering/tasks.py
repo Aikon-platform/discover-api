@@ -68,20 +68,7 @@ def train_dti(
     dataset_ready_file = dataset_path / "ready.meta"
 
     if not dataset_ready_file.exists():
-        # dataset_path.mkdir(parents=True, exist_ok=True)
-        # dataset_zip_path = dataset_path / "dataset.zip"
-        #
-        # with requests.get(dataset_url, stream=True) as r:
-        #     r.raise_for_status()
-        #     with open(dataset_zip_path, "wb") as f:
-        #         for chunk in r.iter_content(chunk_size=8192):
-        #             f.write(chunk)
-        #
-        # # Unzip dataset
-        # with ZipFile(dataset_zip_path, "r") as zipObj:
-        #     zipObj.extractall(dataset_path / "train")
-        #
-        # dataset_zip_path.unlink()
+        # TODO MODIFY TO USE DATASET FROM shared.routes.receive_task
         download_dataset(dataset_url, datasets_dir_path=DATASETS_PATH, dataset_dir_name=f"generic/{dataset_id}", sub_dir="train")
 
         # Create ready file

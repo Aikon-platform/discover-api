@@ -18,11 +18,11 @@ EXT_DATA_FOLDER = API_DATA_FOLDER / DEMO_NAME
 EXT_XACCEL_PREFIX = Path(ENV("EXT_XACCEL_PREFIX", default="/media/regions-results"))
 
 # IMG_PATH = EXT_DATA_FOLDER / "documents" / "images"
-ANNO_PATH = EXT_DATA_FOLDER / "results"
+ANNO_PATH = EXT_DATA_FOLDER / "results"  # TODO CHANGE => results are stored in shared dataset
 MODEL_PATH = EXT_DATA_FOLDER / "models"
 
 # create_dirs_if_not([IMG_PATH, ANNO_PATH, MODEL_PATH])
-create_dirs_if_not([ANNO_PATH, MODEL_PATH])
+create_dirs_if_not([MODEL_PATH])
 
 # TODO retrieve available model instead
 download_model_if_not("https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"

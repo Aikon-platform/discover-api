@@ -5,6 +5,7 @@ Many of the functions in this module are deprecated, better use the Document/Dat
 """
 
 from pathlib import Path
+from typing import Optional
 
 import requests
 import shutil
@@ -19,12 +20,19 @@ import warnings
 MAX_SIZE = 244
 
 
-def get_json(url: str) -> dict:
+def get_json(url: str) -> Optional[dict]:
     """
-    Get a JSON object from a URL
+    Get JSON content from a URL
     """
-    req = requests.get(url)
-    return req.json()
+    try:
+        response = requests.get(url)
+        if response.ok:
+            return response.json()
+        else:
+            response.raise_for_status()
+    except requests.exceptions.RequestException:
+        console(f"Error getting JSON for {url}")
+        return None
 
 
 def save_img(
@@ -55,7 +63,7 @@ def save_img(
         if img.width > max_dim or img.height > max_dim:
             img.thumbnail(
                 (max_dim, max_dim), Image.Resampling.LANCZOS
-            )  # Image.ANTIALIAS
+            )
 
         # TODO use this way of resizing images and remove resize in segswap code
         # tr_ = transforms.Resize((224, 224))

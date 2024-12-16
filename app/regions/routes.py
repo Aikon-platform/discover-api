@@ -86,9 +86,6 @@ def start_regions_extraction():
 
     model = param.get('model')
 
-    # TO DELETE
-    print("KIKOUUUUU", experiment_id, notify_url, tracking_url, dataset, param)
-
     return shared_routes.start_task(
         extract_objects,
         experiment_id,

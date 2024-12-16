@@ -20,6 +20,7 @@ def download_dataset(dataset_src, datasets_dir_path=None, dataset_dir_name=None,
     Download a dataset from front
     
     TODO improve this function / Use dataset.documents.Document.download()
+    TODO DELETE
     """
     warnings.warn(
         "download_dataset is deprecated, use Document.download() instead",

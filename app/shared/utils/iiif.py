@@ -29,21 +29,6 @@ def is_iiif_manifest(json_content: dict) -> bool:
         return False
 
 
-def get_json(url: str) -> Optional[dict]:
-    """
-    Get JSON content from a URL
-    """
-    try:
-        response = requests.get(url)
-        if response.ok:
-            return response.json()
-        else:
-            response.raise_for_status()
-    except requests.exceptions.RequestException:
-        console(f"Error getting JSON for {url}")
-        return None
-
-
 def get_img_rsrc(iiif_img: dict) -> Optional[dict]:
     """
     Get the image resource from a IIIF image
