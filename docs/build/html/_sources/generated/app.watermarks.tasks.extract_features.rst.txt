@@ -1,0 +1,6 @@
+app.watermarks.tasks.extract\_features
+======================================
+
+.. currentmodule:: app.watermarks.tasks
+
+.. autofunction:: extract_features

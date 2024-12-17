@@ -4,7 +4,7 @@ from dramatiq import Worker
 import pytest
 
 from ..const import SCORES_PATH
-from ..lib.similarity import LoggedComputeSimilarity
+from ..similarity import ComputeSimilarity
 from ..lib.const import FEAT_NET
 from ..lib.utils import doc_pairs
 from ...shared.utils.logging import TLogger, LoggerHelper
@@ -36,7 +36,7 @@ class TestLoggedComputeSimilarity(unittest.TestCase):
 
         self.parameters = {"model": FEAT_NET}
         self.notify_url = None
-        self.lcs = LoggedComputeSimilarity(
+        self.lcs = ComputeSimilarity(
             logger, self.dataset, self.parameters, self.notify_url
         )
 

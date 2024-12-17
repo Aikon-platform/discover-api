@@ -1,0 +1,6 @@
+app.shared.utils.modular.auto\_import\_apps
+===========================================
+
+.. currentmodule:: app.shared.utils.modular
+
+.. autofunction:: auto_import_apps

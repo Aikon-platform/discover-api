@@ -8,11 +8,16 @@ django-environ
 python-slugify
 pytest
 tox
+stream-zip
+stream-unzip
+orjson
+httpx
+iiif-download>=0.1.5
 
 addict
 cython
 pandas
-Pillow==9.5.0
+Pillow
 scipy<1.13
 scikit-learn
 matplotlib
@@ -32,7 +37,7 @@ git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
 kornia==0.7.* # TODO update
 
 # Match pytorch with your cuda version / container image: https://pytorch.org/get-started/locally/
-torch
+torch>=2.2
 torchvision
 torchaudio
 --extra-index-url https://download.pytorch.org/whl/cu124

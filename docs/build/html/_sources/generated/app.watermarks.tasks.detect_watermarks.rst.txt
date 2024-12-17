@@ -1,0 +1,6 @@
+app.watermarks.tasks.detect\_watermarks
+=======================================
+
+.. currentmodule:: app.watermarks.tasks
+
+.. autofunction:: detect_watermarks

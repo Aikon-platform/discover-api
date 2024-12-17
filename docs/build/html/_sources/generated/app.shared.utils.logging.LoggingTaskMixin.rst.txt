@@ -1,0 +1,27 @@
+app.shared.utils.logging.LoggingTaskMixin
+=========================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: LoggingTaskMixin
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggingTaskMixin.__init__
+      ~LoggingTaskMixin.print_and_log
+      ~LoggingTaskMixin.print_and_log_error
+      ~LoggingTaskMixin.print_and_log_info
+      ~LoggingTaskMixin.print_and_log_warning
+      ~LoggingTaskMixin.run_task
+   
+   
+
+   
+   
+   

@@ -1,0 +1,6 @@
+app.shared.utils.hash\_str
+==========================
+
+.. currentmodule:: app.shared.utils
+
+.. autofunction:: hash_str

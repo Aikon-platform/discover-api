@@ -1,0 +1,6 @@
+app.shared.routes.status
+========================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: status

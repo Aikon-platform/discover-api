@@ -1,0 +1,31 @@
+app.vectorization.vectorization.LoggedComputeVectorization
+==========================================================
+
+.. currentmodule:: app.vectorization.vectorization
+
+.. autoclass:: LoggedComputeVectorization
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggedComputeVectorization.__init__
+      ~LoggedComputeVectorization.check_dataset
+      ~LoggedComputeVectorization.download_document
+      ~LoggedComputeVectorization.print_and_log
+      ~LoggedComputeVectorization.print_and_log_error
+      ~LoggedComputeVectorization.print_and_log_info
+      ~LoggedComputeVectorization.print_and_log_warning
+      ~LoggedComputeVectorization.run_task
+      ~LoggedComputeVectorization.send_zip
+      ~LoggedComputeVectorization.task_update
+   
+   
+
+   
+   
+   

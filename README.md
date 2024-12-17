@@ -59,6 +59,21 @@ And the server:
 3. If necessary, configure a new xaccel redirection in the [nginx configuration file](docker-confs/nginx.conf)
 4. Add the demo name (i.e. folder name) to the list `INSTALLED_APPS` in [`.env`](.env)
 
+### Updating the documentation
+
+You need to install `sphinx` and the `furo` theme:
+
+```bash
+./venv/bin/pip install sphinx furo
+```
+
+Then you can generate the documentation with `make`:
+
+```bash
+cd docs
+make html
+```
+
 ## Production
 
 ### Deploy
@@ -176,7 +191,7 @@ The front server decrypts the traffic and redirects it to `localhost:8001`.
 sudo apt-get update
 sudo apt-get install spiped
 sudo mkdir /etc/spiped
-sudo dd if=/dev/urandom of=/etc/spiped/discover.key bs=32 count=1 # Genereate key
+sudo dd if=/dev/urandom of=/etc/spiped/discover.key bs=32 count=1 # Generate key
 sudo chmod 644 /etc/spiped/discover.key
 ```
 

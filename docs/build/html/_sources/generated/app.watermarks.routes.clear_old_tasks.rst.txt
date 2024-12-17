@@ -1,0 +1,6 @@
+app.watermarks.routes.clear\_old\_tasks
+=======================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: clear_old_tasks

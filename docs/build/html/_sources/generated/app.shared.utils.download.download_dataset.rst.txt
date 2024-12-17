@@ -1,0 +1,6 @@
+app.shared.utils.download.download\_dataset
+===========================================
+
+.. currentmodule:: app.shared.utils.download
+
+.. autofunction:: download_dataset

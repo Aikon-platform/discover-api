@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.xaccel\_send\_from\_directory
+========================================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: xaccel_send_from_directory

@@ -1,0 +1,6 @@
+app.shared.routes.qsizes
+========================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: qsizes

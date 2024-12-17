@@ -2,7 +2,7 @@ import os
 import sys
 from itertools import combinations_with_replacement
 
-from ..const import IMG_PATH, MODEL_PATH
+from ..const import MODEL_PATH  #, IMG_PATH
 from ...shared.utils.fileutils import download_file
 
 model_urls = {
@@ -39,11 +39,11 @@ def doc_pairs(doc_ids: list):
     raise ValueError("Input must be a non-empty list of ids.")
 
 
-def get_doc_dirs(doc_pair):
-    return [
-        IMG_PATH / doc
-        for doc in (doc_pair if doc_pair[0] != doc_pair[1] else [doc_pair[0]])
-    ]
+# def get_doc_dirs(doc_pair):
+#     return [
+#         IMG_PATH / doc
+#         for doc in (doc_pair if doc_pair[0] != doc_pair[1] else [doc_pair[0]])
+#     ]
 
 
 def best_matches(segswap_pairs, q_img, doc_pair):

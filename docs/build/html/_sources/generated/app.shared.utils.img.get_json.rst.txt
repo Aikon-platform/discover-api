@@ -1,0 +1,6 @@
+app.shared.utils.img.get\_json
+==============================
+
+.. currentmodule:: app.shared.utils.img
+
+.. autofunction:: get_json

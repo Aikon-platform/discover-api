@@ -1,0 +1,29 @@
+app.shared.tasks.LoggedTask
+===========================
+
+.. currentmodule:: app.shared.tasks
+
+.. autoclass:: LoggedTask
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggedTask.__init__
+      ~LoggedTask.handle_error
+      ~LoggedTask.print_and_log
+      ~LoggedTask.print_and_log_error
+      ~LoggedTask.print_and_log_info
+      ~LoggedTask.print_and_log_warning
+      ~LoggedTask.run_task
+      ~LoggedTask.task_update
+   
+   
+
+   
+   
+   

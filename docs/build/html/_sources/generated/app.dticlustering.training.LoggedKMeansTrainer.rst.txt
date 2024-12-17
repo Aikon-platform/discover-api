@@ -1,0 +1,51 @@
+app.dticlustering.training.LoggedKMeansTrainer
+==============================================
+
+.. currentmodule:: app.dticlustering.training
+
+.. autoclass:: LoggedKMeansTrainer
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggedKMeansTrainer.__init__
+      ~LoggedKMeansTrainer.check_cluster
+      ~LoggedKMeansTrainer.evaluate
+      ~LoggedKMeansTrainer.load_from_tag
+      ~LoggedKMeansTrainer.log_images
+      ~LoggedKMeansTrainer.log_train_metrics
+      ~LoggedKMeansTrainer.log_val_metrics
+      ~LoggedKMeansTrainer.print_and_log_info
+      ~LoggedKMeansTrainer.print_memory_usage
+      ~LoggedKMeansTrainer.qualitative_eval
+      ~LoggedKMeansTrainer.quantitative_eval
+      ~LoggedKMeansTrainer.run
+      ~LoggedKMeansTrainer.run_val
+      ~LoggedKMeansTrainer.save
+      ~LoggedKMeansTrainer.save_metric_plots
+      ~LoggedKMeansTrainer.save_prototypes
+      ~LoggedKMeansTrainer.save_training_metrics
+      ~LoggedKMeansTrainer.save_transformed_images
+      ~LoggedKMeansTrainer.save_variances
+      ~LoggedKMeansTrainer.single_train_batch_run
+      ~LoggedKMeansTrainer.update_scheduler
+      ~LoggedKMeansTrainer.update_visualizer_images
+      ~LoggedKMeansTrainer.update_visualizer_metrics
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~LoggedKMeansTrainer.output_proto_dir
+      ~LoggedKMeansTrainer.score_name
+   
+   

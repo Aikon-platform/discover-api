@@ -1,0 +1,6 @@
+app.watermarks.tasks.get\_closest\_matches
+==========================================
+
+.. currentmodule:: app.watermarks.tasks
+
+.. autofunction:: get_closest_matches

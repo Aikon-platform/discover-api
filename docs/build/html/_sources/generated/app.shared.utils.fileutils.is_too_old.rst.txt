@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.is\_too\_old
+=======================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: is_too_old

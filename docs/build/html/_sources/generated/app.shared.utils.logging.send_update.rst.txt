@@ -1,0 +1,6 @@
+app.shared.utils.logging.send\_update
+=====================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autofunction:: send_update

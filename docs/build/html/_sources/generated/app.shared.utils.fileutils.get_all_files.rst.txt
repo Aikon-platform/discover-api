@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.get\_all\_files
+==========================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: get_all_files

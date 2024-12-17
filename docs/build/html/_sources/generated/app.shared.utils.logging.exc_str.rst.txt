@@ -1,0 +1,6 @@
+app.shared.utils.logging.exc\_str
+=================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autofunction:: exc_str

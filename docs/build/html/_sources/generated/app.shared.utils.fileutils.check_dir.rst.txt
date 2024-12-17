@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.check\_dir
+=====================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: check_dir

@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.delete\_path
+=======================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: delete_path

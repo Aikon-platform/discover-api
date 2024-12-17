@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.empty\_file
+======================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: empty_file

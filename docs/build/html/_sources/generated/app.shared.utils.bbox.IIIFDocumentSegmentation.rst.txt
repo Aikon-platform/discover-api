@@ -1,0 +1,24 @@
+app.shared.utils.bbox.IIIFDocumentSegmentation
+==============================================
+
+.. currentmodule:: app.shared.utils.bbox
+
+.. autoclass:: IIIFDocumentSegmentation
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~IIIFDocumentSegmentation.__init__
+      ~IIIFDocumentSegmentation.as_dict
+      ~IIIFDocumentSegmentation.from_dict
+   
+   
+
+   
+   
+   

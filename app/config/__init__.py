@@ -1,3 +1,13 @@
+"""
+Configuration files of the API.
+
+It has three submodules:
+
+- `base` : contains the base configuration
+- `dev` : contains the development configuration
+- `prod` : contains the production configuration
+"""
+
 from .base import ENV
 
 TARGET = ENV("TARGET", default="").strip()

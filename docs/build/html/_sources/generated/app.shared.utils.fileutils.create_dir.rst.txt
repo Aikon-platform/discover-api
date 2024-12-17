@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.create\_dir
+======================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: create_dir

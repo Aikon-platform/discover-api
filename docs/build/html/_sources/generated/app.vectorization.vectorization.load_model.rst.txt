@@ -1,0 +1,6 @@
+app.vectorization.vectorization.load\_model
+===========================================
+
+.. currentmodule:: app.vectorization.vectorization
+
+.. autofunction:: load_model

@@ -1,18 +1,31 @@
-import functools
+"""
+The main routes that handle the API requests regarding starting and monitoring tasks.
+"""
 
-from flask import request, send_from_directory, jsonify
+import functools
+import json
+
+from flask import request, send_from_directory, jsonify, Request
 from slugify import slugify
+from dramatiq import Actor, Broker
 from dramatiq_abort import abort
 from dramatiq.results import ResultMissing, ResultFailure
 import traceback
+from typing import Tuple, Optional
 
+from .dataset import Dataset
 from .utils import hash_str
+from .utils.logging import console
 from .. import config
 
 from .utils.fileutils import xaccel_send_from_directory
 
 
 def error_wrapper(func):
+    """
+    A decorator that catches exceptions and returns them as JSON Flask Response
+    """
+
     @functools.wraps(func)
     def wrapped(*args, **kwargs):
         try:
@@ -37,9 +50,96 @@ def get_client_id(func):
     return decorator
 
 
-def start_task(task_fct, experiment_id, task_kwargs):
+def receive_task(
+    req: Request,
+    save_dataset: bool = True,
+    use_crops: bool = True
+) -> Tuple[str, str, str, Optional[Dataset], dict]:
+    """
+    Extracts the parameters from the request and returns them
+
+    Expected request format:
+
+    .. code-block:: json
+
+        {
+            "experiment_id": "experiment_id",
+            "notify_url": "http://example.com/callback",
+            "tracking_url": "http://example.com/tracking",
+            "documents": "[
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json"},
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json"},
+                {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"}
+                {"type": "url_list", "src": "https://example.com/urls.txt"},
+                {"type": "zip", "src": "https://example.com/zipfile.zip"},
+            ]",
+            "crops": [ # optional
+                {
+                    "doc_uid": "wit3_man186_anno181",
+                    "source": "imagename.jpg",
+                    "crops": [
+                        {
+                            "crop_id": "crop_id",
+                            "relative": [x, y, w, h]
+                        }, ...
+                    ]
+                }, ...
+            ],
+            "parameters": {
+                "model": "model.pt"
+                ...
+            },
+        }
+
+    :param req: The Flask request object
+    :param save_dataset: Whether to save the dataset to disk
+    :param use_crops: Whether to use crops
+
+    :return: The experiment_id, notify_url, tracking_url, and the parameters
+    """
+    param = req.get_json() if req.is_json else req.form.to_dict()
+    if not param:
+        raise ValueError("No data in request: Task aborted!")
+
+    console(f"Received task: {param}", color="magenta")
+
+    experiment_id = param.get('experiment_id', "")
+    tracking_url = param.get("tracking_url", "")
+    # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
+    notify_url = param.get('notify_url', None) or param.get('callback', None)
+
+    dataset = None
+    documents = param.get("documents", [])
+    if type(documents) is str:
+        documents = json.loads(documents)
+
+    crops = None
+    if use_crops and "crops" in param:
+        crops = param.get("crops", [])
+        if type(crops) is str:
+            crops = json.loads(crops)
+
+    if documents:
+        dataset = Dataset(documents=documents, crops=crops)
+        if save_dataset:
+            dataset.save()
+
+    # task_kwargs = {}
+    # for param_name in additional_params:
+    #     task_kwargs[param_name] = param.get(param_name, None)
+
+    return experiment_id, notify_url, tracking_url, dataset, param.get("parameters", param)
+
+
+def start_task(task_fct: Actor, experiment_id: str, task_kwargs: dict) -> dict:
     """
     Start a new task
+
+    :param task_fct: The task function to run
+    :param experiment_id: The ID of the experiment
+    :param task_kwargs: The parameters of the task
+
+    :return: A dictionary containing the tracking_id and the experiment_id
     """
     task = task_fct.send(experiment_id=experiment_id, **task_kwargs)
 
@@ -49,51 +149,69 @@ def start_task(task_fct, experiment_id, task_kwargs):
     }
 
 
-def cancel_task(tracking_id: str):
+def cancel_task(tracking_id: str) -> dict:
     """
     Cancel a task
+
+    :param tracking_id: The ID of the task to cancel
+
+    :return: A dictionary containing the tracking_id
     """
     abort(tracking_id)
 
     return {"tracking_id": tracking_id}
 
 
-def status(tracking_id: str, task_fct):
+def status(tracking_id: str, task_fct: Actor) -> dict:
     """
     Get the status of a task
+
+    :param tracking_id: The ID of the task
+    :param task_fct: The task function
+
+    :return: A dictionary containing the tracking_id and the log of the task
     """
     try:
         log = task_fct.message().copy(message_id=tracking_id).get_result()
     except ResultMissing:
-        # TODO check in what cases this happen (only after task execution?)
         log = {"status": "PENDING", "infos": ["Task still running"]}
     except ResultFailure as e:
         log = {
             "status": "ERROR",
             "infos": [f"Error: Actor raised {e.orig_exc_type} ({e.orig_exc_msg})"],
         }
-
     return {
         "tracking_id": tracking_id,
         "log": log,
     }
 
 
-def result(tracking_id: str, results_dir, xaccel_prefix):
+def result(tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
     """
     Get the result of a task
+
+    :param tracking_id: The ID of the task
+    :param results_dir: The directory where the results are stored
+    :param xaccel_prefix: The prefix for the X-Accel-Redirect header
+    :param extension: The extension of the result file (without the dot)
+
+    :return: The result file as a Flask response
     """
     if not config.USE_NGINX_XACCEL:
-        return send_from_directory(results_dir, f"{slugify(tracking_id)}.zip")
+        return send_from_directory(results_dir, f"{slugify(tracking_id)}.{extension}")
 
     return xaccel_send_from_directory(
-        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.zip"
+        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.{extension}"
     )
 
 
-def qsizes(broker):
+def qsizes(broker: Broker) -> dict:
     """
     List the queues of the broker and the number of tasks in each queue
+
+    :param broker: The broker to get the queues from
+
+    :return: A dictionary containing the queues and their sizes, or an error message
     """
     try:
         return {
@@ -106,8 +224,15 @@ def qsizes(broker):
         return {"error": "Cannot get queue sizes from broker"}
 
 
-def monitor(results_dir, broker):
-    # Get the status of the app service
+def monitor(results_dir: str, broker: Broker) -> dict:
+    """
+    Monitor the app service
+
+    :param results_dir: The directory where the results are stored
+    :param broker: The broker to get the queues from
+
+    :return: A dictionary containing the total size of the results directory and the queue sizes
+    """
     total_size = 0
     for path in results_dir.glob("**/*"):
         total_size += path.stat().st_size

@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.file\_age
+====================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: file_age

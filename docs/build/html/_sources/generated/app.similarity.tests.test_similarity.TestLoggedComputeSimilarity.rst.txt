@@ -1,0 +1,97 @@
+app.similarity.tests.test\_similarity.TestLoggedComputeSimilarity
+=================================================================
+
+.. currentmodule:: app.similarity.tests.test_similarity
+
+.. autoclass:: TestLoggedComputeSimilarity
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TestLoggedComputeSimilarity.__init__
+      ~TestLoggedComputeSimilarity.addClassCleanup
+      ~TestLoggedComputeSimilarity.addCleanup
+      ~TestLoggedComputeSimilarity.addTypeEqualityFunc
+      ~TestLoggedComputeSimilarity.assertAlmostEqual
+      ~TestLoggedComputeSimilarity.assertAlmostEquals
+      ~TestLoggedComputeSimilarity.assertCountEqual
+      ~TestLoggedComputeSimilarity.assertDictContainsSubset
+      ~TestLoggedComputeSimilarity.assertDictEqual
+      ~TestLoggedComputeSimilarity.assertEqual
+      ~TestLoggedComputeSimilarity.assertEquals
+      ~TestLoggedComputeSimilarity.assertFalse
+      ~TestLoggedComputeSimilarity.assertGreater
+      ~TestLoggedComputeSimilarity.assertGreaterEqual
+      ~TestLoggedComputeSimilarity.assertIn
+      ~TestLoggedComputeSimilarity.assertIs
+      ~TestLoggedComputeSimilarity.assertIsInstance
+      ~TestLoggedComputeSimilarity.assertIsNone
+      ~TestLoggedComputeSimilarity.assertIsNot
+      ~TestLoggedComputeSimilarity.assertIsNotNone
+      ~TestLoggedComputeSimilarity.assertLess
+      ~TestLoggedComputeSimilarity.assertLessEqual
+      ~TestLoggedComputeSimilarity.assertListEqual
+      ~TestLoggedComputeSimilarity.assertLogs
+      ~TestLoggedComputeSimilarity.assertMultiLineEqual
+      ~TestLoggedComputeSimilarity.assertNoLogs
+      ~TestLoggedComputeSimilarity.assertNotAlmostEqual
+      ~TestLoggedComputeSimilarity.assertNotAlmostEquals
+      ~TestLoggedComputeSimilarity.assertNotEqual
+      ~TestLoggedComputeSimilarity.assertNotEquals
+      ~TestLoggedComputeSimilarity.assertNotIn
+      ~TestLoggedComputeSimilarity.assertNotIsInstance
+      ~TestLoggedComputeSimilarity.assertNotRegex
+      ~TestLoggedComputeSimilarity.assertNotRegexpMatches
+      ~TestLoggedComputeSimilarity.assertRaises
+      ~TestLoggedComputeSimilarity.assertRaisesRegex
+      ~TestLoggedComputeSimilarity.assertRaisesRegexp
+      ~TestLoggedComputeSimilarity.assertRegex
+      ~TestLoggedComputeSimilarity.assertRegexpMatches
+      ~TestLoggedComputeSimilarity.assertSequenceEqual
+      ~TestLoggedComputeSimilarity.assertSetEqual
+      ~TestLoggedComputeSimilarity.assertTrue
+      ~TestLoggedComputeSimilarity.assertTupleEqual
+      ~TestLoggedComputeSimilarity.assertWarns
+      ~TestLoggedComputeSimilarity.assertWarnsRegex
+      ~TestLoggedComputeSimilarity.assert_
+      ~TestLoggedComputeSimilarity.countTestCases
+      ~TestLoggedComputeSimilarity.debug
+      ~TestLoggedComputeSimilarity.defaultTestResult
+      ~TestLoggedComputeSimilarity.doClassCleanups
+      ~TestLoggedComputeSimilarity.doCleanups
+      ~TestLoggedComputeSimilarity.fail
+      ~TestLoggedComputeSimilarity.failIf
+      ~TestLoggedComputeSimilarity.failIfAlmostEqual
+      ~TestLoggedComputeSimilarity.failIfEqual
+      ~TestLoggedComputeSimilarity.failUnless
+      ~TestLoggedComputeSimilarity.failUnlessAlmostEqual
+      ~TestLoggedComputeSimilarity.failUnlessEqual
+      ~TestLoggedComputeSimilarity.failUnlessRaises
+      ~TestLoggedComputeSimilarity.id
+      ~TestLoggedComputeSimilarity.run
+      ~TestLoggedComputeSimilarity.setUp
+      ~TestLoggedComputeSimilarity.setUpClass
+      ~TestLoggedComputeSimilarity.shortDescription
+      ~TestLoggedComputeSimilarity.skipTest
+      ~TestLoggedComputeSimilarity.subTest
+      ~TestLoggedComputeSimilarity.tearDown
+      ~TestLoggedComputeSimilarity.tearDownClass
+      ~TestLoggedComputeSimilarity.test_run_task
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TestLoggedComputeSimilarity.longMessage
+      ~TestLoggedComputeSimilarity.maxDiff
+   
+   

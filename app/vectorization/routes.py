@@ -5,7 +5,7 @@ import uuid
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH, IMG_PATH
+from .const import VEC_RESULTS_PATH #, IMG_PATH
 
 from ..shared.utils.logging import console
 
@@ -17,19 +17,28 @@ blueprint = Blueprint("vectorization", __name__, url_prefix="/vectorization")
 @shared_routes.error_wrapper
 def start_vectorization(client_id):
     """
+    Start the vectorization task.
+
     TODO update that to fit what is sent by the frontend
-    {
-        "doc_id": "wit17_img17_anno17"
-        "model": "0036"
-        "callback": "https://domain-name.com/receive-vecto",
-        "tracking_url": "url for updates",
-        "images": {
-            "img_name": "https://domain-name.com/image_name.jpg",
-            "img_name": "https://other-domain.com/image_name.jpg",
-            "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
-            "img_name": "..."
+    TODO use shared_routes.receive_task
+
+    Expected parameters:
+    
+    .. code-block:: json
+
+        {
+            "experiment_id": "wit17_img17_anno17"
+            "model": "0045" # epoch number
+            "callback": "https://domain-name.com/receive-vecto",
+            "tracking_url": "url for updates",
+            "images": {
+                "img_name": "https://domain-name.com/image_name.jpg",
+                "img_name": "https://other-domain.com/image_name.jpg",
+                "img_name": "https://iiif-server.com/.../coordinates/size/rotation/default.jpg",
+                "img_name": "..."
+            }
         }
-    }
+    
     A list of images to download + information
     """
     if not request.is_json:
@@ -40,7 +49,7 @@ def start_vectorization(client_id):
     experiment_id = json_param.get("experiment_id")
     documents = json_param.get("documents", {})
     model = json_param.get("model", None)
-    notify_url = json_param.get("callback", None)
+    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(
@@ -94,7 +103,9 @@ def delete_and_relaunch(client_id):
     doc_id = data.get("doc_id", None)
     model = data.get("model", None)
 
-    cleared_img_dir = delete_directory(f"{IMG_PATH}/{doc_id}")
+    # TODO delete images associated with vectorization
+    # cleared_img_dir = delete_directory(f"{IMG_PATH}/{doc_id}")
+    cleared_img_dir = True
 
     if cleared_img_dir:
         start_response = shared_routes.start_task(

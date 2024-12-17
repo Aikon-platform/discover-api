@@ -1,0 +1,6 @@
+app.shared.utils.logging.notifying
+==================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autofunction:: notifying

@@ -1,0 +1,6 @@
+app.shared.routes.result
+========================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: result

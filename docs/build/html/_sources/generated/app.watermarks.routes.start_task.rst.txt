@@ -1,0 +1,6 @@
+app.watermarks.routes.start\_task
+=================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: start_task

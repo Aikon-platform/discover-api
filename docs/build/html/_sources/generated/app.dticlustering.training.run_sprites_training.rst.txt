@@ -1,0 +1,6 @@
+app.dticlustering.training.run\_sprites\_training
+=================================================
+
+.. currentmodule:: app.dticlustering.training
+
+.. autofunction:: run_sprites_training

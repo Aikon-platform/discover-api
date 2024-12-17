@@ -1,0 +1,27 @@
+app.shared.utils.logging.LoggerHelper
+=====================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: LoggerHelper
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~LoggerHelper.__init__
+      ~LoggerHelper.error
+      ~LoggerHelper.info
+      ~LoggerHelper.iterate
+      ~LoggerHelper.progress
+      ~LoggerHelper.warning
+   
+   
+
+   
+   
+   

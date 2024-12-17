@@ -1,0 +1,6 @@
+app.similarity.routes.clear\_doc
+================================
+
+.. currentmodule:: app.similarity.routes
+
+.. autofunction:: clear_doc

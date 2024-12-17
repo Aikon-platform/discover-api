@@ -1,0 +1,6 @@
+app.shared.utils.img.get\_img\_paths
+====================================
+
+.. currentmodule:: app.shared.utils.img
+
+.. autofunction:: get_img_paths

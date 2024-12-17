@@ -1,0 +1,6 @@
+app.watermarks.tasks.FEATURE\_TRANSFORMS
+========================================
+
+.. currentmodule:: app.watermarks.tasks
+
+.. autofunction:: FEATURE_TRANSFORMS

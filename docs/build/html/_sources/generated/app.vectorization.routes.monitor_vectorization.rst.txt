@@ -1,0 +1,6 @@
+app.vectorization.routes.monitor\_vectorization
+===============================================
+
+.. currentmodule:: app.vectorization.routes
+
+.. autofunction:: monitor_vectorization

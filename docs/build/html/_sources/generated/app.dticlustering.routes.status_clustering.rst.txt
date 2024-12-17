@@ -1,0 +1,6 @@
+app.dticlustering.routes.status\_clustering
+===========================================
+
+.. currentmodule:: app.dticlustering.routes
+
+.. autofunction:: status_clustering

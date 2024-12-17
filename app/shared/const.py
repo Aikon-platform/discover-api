@@ -1,16 +1,22 @@
+"""
+Various constants and paths, derived from the config
+"""
+
 from pathlib import Path
-from ..shared.utils.fileutils import create_file_if_not, create_dirs_if_not
-from ..config.base import BASE_DIR, API_DATA_FOLDER
+from .utils.fileutils import create_file_if_not, create_dirs_if_not
+from ..config import BASE_DIR, API_DATA_FOLDER
 
 DIR_NAME = "shared"
+DEMO_NAME = DIR_NAME
 
 # Path to shared/ folder
 SHARED_DIR = BASE_DIR / "app" / DIR_NAME
 EXT_DATA_FOLDER = API_DATA_FOLDER / DIR_NAME
+
 UTILS_DIR = SHARED_DIR / "utils"
 
-IMG_LOG = Path(f"{SHARED_DIR}/img.log")
-IMG_PATH = EXT_DATA_FOLDER / "images"
+IMG_PATH = EXT_DATA_FOLDER / "images"  # NOTE is it used??
+DATASETS_PATH = EXT_DATA_FOLDER / "datasets"
+DOCUMENTS_PATH = EXT_DATA_FOLDER / "documents"
 
-create_file_if_not(IMG_LOG)
-create_dirs_if_not([IMG_PATH])
+create_dirs_if_not([IMG_PATH, DATASETS_PATH, DOCUMENTS_PATH])

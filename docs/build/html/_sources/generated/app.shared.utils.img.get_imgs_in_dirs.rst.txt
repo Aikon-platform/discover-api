@@ -1,0 +1,6 @@
+app.shared.utils.img.get\_imgs\_in\_dirs
+========================================
+
+.. currentmodule:: app.shared.utils.img
+
+.. autofunction:: get_imgs_in_dirs

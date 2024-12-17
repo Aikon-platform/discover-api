@@ -1,0 +1,6 @@
+app.shared.routes.error\_wrapper
+================================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: error_wrapper

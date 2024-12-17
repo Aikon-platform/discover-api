@@ -1,0 +1,6 @@
+app.shared.routes.monitor
+=========================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: monitor

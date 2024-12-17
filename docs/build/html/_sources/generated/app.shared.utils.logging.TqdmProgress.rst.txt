@@ -1,0 +1,53 @@
+app.shared.utils.logging.TqdmProgress
+=====================================
+
+.. currentmodule:: app.shared.utils.logging
+
+.. autoclass:: TqdmProgress
+
+   
+   .. automethod:: __init__
+
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+   
+      ~TqdmProgress.__init__
+      ~TqdmProgress.clear
+      ~TqdmProgress.close
+      ~TqdmProgress.display
+      ~TqdmProgress.external_write_mode
+      ~TqdmProgress.format_interval
+      ~TqdmProgress.format_meter
+      ~TqdmProgress.format_num
+      ~TqdmProgress.format_sizeof
+      ~TqdmProgress.get_lock
+      ~TqdmProgress.moveto
+      ~TqdmProgress.pandas
+      ~TqdmProgress.refresh
+      ~TqdmProgress.reset
+      ~TqdmProgress.set_description
+      ~TqdmProgress.set_description_str
+      ~TqdmProgress.set_lock
+      ~TqdmProgress.set_postfix
+      ~TqdmProgress.set_postfix_str
+      ~TqdmProgress.status_printer
+      ~TqdmProgress.unpause
+      ~TqdmProgress.update
+      ~TqdmProgress.wrapattr
+      ~TqdmProgress.write
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~TqdmProgress.format_dict
+      ~TqdmProgress.monitor
+      ~TqdmProgress.monitor_interval
+   
+   

@@ -1,0 +1,6 @@
+app.similarity.routes.cancel\_similarity
+========================================
+
+.. currentmodule:: app.similarity.routes
+
+.. autofunction:: cancel_similarity

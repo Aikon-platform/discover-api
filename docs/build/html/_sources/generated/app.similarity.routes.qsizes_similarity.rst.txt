@@ -1,0 +1,6 @@
+app.similarity.routes.qsizes\_similarity
+========================================
+
+.. currentmodule:: app.similarity.routes
+
+.. autofunction:: qsizes_similarity

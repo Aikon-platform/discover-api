@@ -1,0 +1,6 @@
+app.shared.routes.cancel\_task
+==============================
+
+.. currentmodule:: app.shared.routes
+
+.. autofunction:: cancel_task

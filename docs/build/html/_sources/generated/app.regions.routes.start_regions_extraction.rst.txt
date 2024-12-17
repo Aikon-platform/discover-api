@@ -1,0 +1,6 @@
+app.regions.routes.start\_regions\_extraction
+=============================================
+
+.. currentmodule:: app.regions.routes
+
+.. autofunction:: start_regions_extraction

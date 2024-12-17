@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.sanitize\_str
+========================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: sanitize_str

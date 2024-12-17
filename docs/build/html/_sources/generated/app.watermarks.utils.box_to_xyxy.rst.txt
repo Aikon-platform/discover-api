@@ -1,0 +1,6 @@
+app.watermarks.utils.box\_to\_xyxy
+==================================
+
+.. currentmodule:: app.watermarks.utils
+
+.. autofunction:: box_to_xyxy

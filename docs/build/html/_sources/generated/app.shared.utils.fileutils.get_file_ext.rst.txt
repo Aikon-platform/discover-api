@@ -1,0 +1,6 @@
+app.shared.utils.fileutils.get\_file\_ext
+=========================================
+
+.. currentmodule:: app.shared.utils.fileutils
+
+.. autofunction:: get_file_ext

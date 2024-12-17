@@ -1,0 +1,6 @@
+app.watermarks.routes.task\_status
+==================================
+
+.. currentmodule:: app.watermarks.routes
+
+.. autofunction:: task_status

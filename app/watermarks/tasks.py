@@ -96,7 +96,7 @@ def extract_features(
 @torch.no_grad()
 def get_closest_matches(
     queries: torch.Tensor, source: WatermarkSource, topk: int = 20, min_sim=0.3
-) -> torch.Tensor:
+):
     n_query_flips, n_queries = queries.shape[:2]
     n_compare_flips, n_compare, n_feats = source.features.shape
     queries = torch.nn.functional.normalize(queries, dim=-1)
@@ -180,6 +180,8 @@ def pipeline(
     experiment_id: str = "",
     compare_to: Optional[str] = None,
     logger: TLogger = LoggerHelper,
+    notifier=None,
+    **kwargs
 ):
     image = Image.open(image_path)
     compare_to = WatermarkSource(compare_to) if compare_to else None

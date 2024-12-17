@@ -1,0 +1,6 @@
+app.dticlustering.routes.start\_clustering
+==========================================
+
+.. currentmodule:: app.dticlustering.routes
+
+.. autofunction:: start_clustering
