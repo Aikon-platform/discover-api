@@ -11,7 +11,7 @@ from pathlib import Path
 from PIL import Image as PImage
 from stream_unzip import stream_unzip
 from typing import List, Optional
-from iiif_download import IIIFDownloader
+from iiif_download import IIIFManifest
 
 from ... import config
 from ..const import DOCUMENTS_PATH
@@ -162,11 +162,7 @@ class Document:
         """
         Download images from a IIIF manifest
         """
-        IIIFDownloader(img_dir=self.images_path).download_manifest(manifest_url)
-        # downloader = IIIFDownloader(manifest_url, target_path=self.images_path)
-        # mapping = downloader.run()
-        # self._extend_mapping(mapping)
-        # console(f"Downloaded {len(mapping)} images from {manifest_url} to {self.images_path}", color="green")
+        IIIFManifest(manifest_url).download(save_dir=self.images_path)
 
     def _download_from_zip(self, zip_url: str):
         """
