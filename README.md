@@ -147,8 +147,6 @@ sudo chown -R <docker-user>:<docker-user> </path/to/results/>
 #### Download models
 
 [//]: # (TODO: Add instructions to download models)
-regions : https://huggingface.co/seglinglin/Historical-Illustration-Extraction/tree/main
-vectorization : https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/tree/main
 
 #### Build Docker
 

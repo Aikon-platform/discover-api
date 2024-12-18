@@ -616,7 +616,7 @@ def send_update(experiment_id, tracking_url, event, message):
         data={
             "experiment_id": experiment_id,
             "event": event,
-            "message": message if message else "",
+            "message": message or "",
         },
     )
     response.raise_for_status()

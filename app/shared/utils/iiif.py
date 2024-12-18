@@ -18,6 +18,8 @@ import warnings
 
 from ..const import IMG_PATH
 
+# TODO to delete
+
 
 def is_iiif_manifest(json_content: dict) -> bool:
     """
