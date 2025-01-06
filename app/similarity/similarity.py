@@ -78,7 +78,7 @@ def _convert_to_pairs(cosine_pairs, image_list: list[str]):
 
 @torch.no_grad()
 def compute_segswap_similarity(
-        source_images: list[str], pairs: list[tuple[int, int]], device="cuda"
+        source_images: list[str], pairs: list[tuple[int, int]], cos_topk, device="cuda"
 ):
     """
     Compute the similarity between pairs of images using the SegSwap algorithm
@@ -86,7 +86,7 @@ def compute_segswap_similarity(
     Args:
         source_images (list[str]): The list of image paths
         pairs (list[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
-        output_file (str): The file to save the similarity scores (default: None)
+        cos_topk (int): The number of best matches to return
         device (str): The device to run the computation on
 
     Returns:
@@ -100,7 +100,7 @@ def compute_segswap_similarity(
     mask = np.ones((feat_size, feat_size), dtype=bool)
     y_grid, x_grid = np.where(mask)
 
-    batch_size = COS_TOPK
+    batch_size = cos_topk
     batched_pairs = [
         pairs[i: i + batch_size] for i in range(0, len(pairs), batch_size)
     ]
@@ -183,6 +183,12 @@ class ComputeSimilarity(LoggedTask):
         )
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
+
+        # Whether to perform pre-filter using cosine similarity to keep only best matches before running segswap
+        self.segswap_prefilter = parameters.get("segswap_prefilter", True)
+        # If so, how many best matches should be kept (TODO check if it is not cosine_n_filter)
+        self.segswap_n = parameters.get("segswap_n", COS_TOPK)
+
         self.device = get_device()
 
     @torch.no_grad()
@@ -299,6 +305,7 @@ class ComputeSimilarity(LoggedTask):
 
         features = self.get_features(source_paths)
 
+        # TODO skip this step if self.algorithm == "segswap" && self.segswap_prefilter == false
         pairs = compute_cosine_similarity(
             features.cpu().numpy(), topk=self.topk, groups=source_doc_ranges
         )
@@ -307,7 +314,7 @@ class ComputeSimilarity(LoggedTask):
             self.print_and_log(
                 f"[task.similarity] Computing SegSwap similarity for {len(pairs)} pairs"
             )
-            pairs = compute_segswap_similarity(source_paths, pairs, device=self.device)
+            pairs = compute_segswap_similarity(source_paths, pairs, cos_topk=self.segswap_n, device=self.device)
 
         self.print_and_log(
             f"[task.similarity] Computed similarity for {len(pairs)} pairs"
@@ -351,58 +358,3 @@ class ComputeSimilarity(LoggedTask):
     def check_dataset(self):
         # TODO add more checks
         return len(self.dataset.documents) > 0
-
-    # def send_scores(self, doc_pair, score_file):
-    #     if not self.notify_url:
-    #         return
-    #     npy_pairs = {}
-    #     with open(score_file, "rb") as file:
-    #         # Remove client_id prefix from file name
-    #         doc_pair = (
-    #             "_".join(doc_pair[0].split("_")[1:]),
-    #             "_".join(doc_pair[1].split("_")[1:]),
-    #         )
-    #         npy_pairs["-".join(sorted(doc_pair))] = (
-    #             f"{'-'.join(sorted(doc_pair))}.npy",
-    #             file.read(),
-    #         )
-
-    #         response = requests.post(
-    #             url=f"{self.notify_url}",
-    #             files=npy_pairs,
-    #             data={
-    #                 "experiment_id": self.experiment_id,
-    #             },
-    #         )
-    #         response.raise_for_status()
-
-    # def compute_and_send_scores(self):
-    #     for doc_pair in doc_pairs(self.doc_ids):
-    #         score_file = self.compute_scores(doc_pair)
-    #         if not score_file:
-    #             self.print_and_log_warning(
-    #                 f"[task.similarity] Error when computing scores for {doc_pair}"
-    #             )
-    #             continue
-
-    #         try:
-    #             self.send_scores(doc_pair, score_file)
-    #             self.print_and_log(
-    #                 f"[task.similarity] Successfully send scores for {doc_pair} to {self.notify_url}",
-    #                 color="magenta",
-    #             )
-    #         except requests.exceptions.RequestException as e:
-    #             self.print_and_log(
-    #                 f"[task.similarity] Error in callback request for {doc_pair}", e
-    #             )
-    #             raise Exception
-    #         except Exception as e:
-    #             self.print_and_log(
-    #                 f"[task.similarity] An error occurred for {doc_pair}", e
-    #             )
-    #             raise Exception
-    #     if len(self.computed_pairs) > 0:
-    #         self.print_and_log(
-    #             f"[task.similarity] Successfully computed pairs for {self.computed_pairs}"
-    #         )
-    #     return True

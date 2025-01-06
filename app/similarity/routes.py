@@ -97,9 +97,13 @@ def start_similarity(client_id):
 
     parameters = {
         # which feature extraction backbone to use
-        "feat_net": param.get("model", FEAT_NET),
+        "feat_net": param.get("feat_net", FEAT_NET),
         "feat_set": param.get("feat_set", FEAT_SET),
         "feat_layer": param.get("feat_layer", FEAT_LAYER),
+        "algorithm": param.get("algorithm", "cosine"),
+        "cosine_n_filter": param.get("cosine_n_filter", 10),
+        "segswap_prefilter": param.get("segswap_prefilter", True),
+        "segswap_n": param.get("segswap_n", 10),
         "client_id": client_id,
     }
 
