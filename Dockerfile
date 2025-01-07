@@ -35,7 +35,8 @@ RUN apt-get update && apt-get install -y \
     python3.10-venv \
     redis-server \
     nginx \
-    git
+    git \
+    poppler-utils
 
 WORKDIR /home/${USER}
 
