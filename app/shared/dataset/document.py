@@ -15,7 +15,7 @@ from iiif_download import IIIFManifest
 
 from ... import config
 from ..const import DOCUMENTS_PATH
-from ..utils.fileutils import sanitize_str
+from ..utils.fileutils import sanitize_str, check_if_file
 from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
@@ -258,6 +258,10 @@ class Document:
                 document=self
             ) for img_path in get_img_paths(self.images_path)
         ]
+
+    def has_images(self) -> bool:
+        return check_if_file(self.images_path, extensions=ALLOWED_EXTENSIONS)
+
 
     def prepare_crops(self, crops: List[dict]) -> List[Image]:
         """

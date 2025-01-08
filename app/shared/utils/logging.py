@@ -1,5 +1,6 @@
 """
 A module for logging progress
+TODO clean all of this, this is very messy
 """
 
 import functools
@@ -411,7 +412,7 @@ class JobLogger:
         if send:
             self._send_state(with_warnings=True)
 
-    def error(self, *s, exception: bool = False) -> None:
+    def error(self, *s, exception: Exception = None) -> None:
         """
         Log an error message (and send the state to the frontend)
 
@@ -600,7 +601,7 @@ class LoggingTaskMixin:
         console(s, color="yellow")
         self.jlogger.warning(s)
 
-    def print_and_log_error(self, s, e: Exception) -> None:
+    def print_and_log_error(self, s, e: Exception = None) -> None:
         console(s, color="red", e=e)
         self.jlogger.error(s, exception=e)
 

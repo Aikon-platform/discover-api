@@ -251,6 +251,57 @@ def download_file(url: str, filepath: TPath) -> None:
         console(f"Failed to download the file. Status code: {r.status_code}: {e}", "red")
 
 
+def process_directory(
+    directory: str | Path,
+    extensions: Optional[Set[str]] = None,
+    exclude_dirs: Optional[Set[str]] = None,
+    absolute_path: bool = False,
+    find_first_only: bool = False,
+) -> Union[List[Path], bool]:
+    """
+    Process a directory to either find all matching files or check for existence of matching files.
+
+    Args:
+        directory: Base directory path
+        extensions: Optional set of extensions to filter files (e.g. {'.txt', '.pdf'})
+        exclude_dirs: Optional set of directory names to exclude from search
+        absolute_path: Return absolute path (only applies when returning list of files)
+        find_first_only: If True, returns boolean indicating if any matching file exists
+                        If False, returns list of all matching files
+
+    Returns:
+        If find_first_only is True: Boolean indicating if any matching file exists
+        If find_first_only is False: List of Path objects for all matching files
+    """
+    if isinstance(directory, str):
+        directory = Path(directory)
+
+    if absolute_path:
+        directory = directory.resolve()
+
+    if not directory.exists():
+        return False if find_first_only else []
+
+    if not find_first_only:
+        files = []
+
+    try:
+        for item in directory.rglob("*"):
+            if exclude_dirs and any(p.name in exclude_dirs for p in item.parents):
+                continue
+
+            if item.is_file():
+                if extensions is None or item.suffix.lower() in extensions:
+                    if find_first_only:
+                        return True
+                    files.append(item)
+    except PermissionError:
+        # no permission to directories
+        pass
+
+    return False if find_first_only else sorted(files)
+
+
 def get_all_files(
     directory: str | Path,
     extensions: Optional[Set[str]] = None,
@@ -269,29 +320,37 @@ def get_all_files(
     Returns:
         List of Path objects for all matching files
     """
-    if isinstance(directory, str):
-        directory = Path(directory)
+    return process_directory(
+        directory=directory,
+        extensions=extensions,
+        exclude_dirs=exclude_dirs,
+        absolute_path=absolute_path,
+        find_first_only=False
+    )
 
-    if absolute_path:
-        directory = directory.resolve()
 
-    if not directory.exists():
-        return []
+def check_if_file(
+    directory: str | Path,
+    extensions: Optional[Set[str]] = None,
+    exclude_dirs: Optional[Set[str]] = None,
+) -> bool:
+    """
+    Check if there is at least a file with a given extension in a directory.
 
-    files = []
-    try:
-        for item in directory.rglob("*"):
-            if exclude_dirs and any(p.name in exclude_dirs for p in item.parents):
-                continue
+    Args:
+        directory: Base directory path
+        extensions: Optional set of extensions to filter files (e.g. {'.txt', '.pdf'})
+        exclude_dirs: Optional set of directory names to exclude from search
 
-            if item.is_file():
-                if extensions is None or item.suffix.lower() in extensions:
-                    files.append(item)
-    except PermissionError:
-        # no permission to directories
-        pass
-
-    return sorted(files)
+    Returns:
+        Boolean value indicating whether at least one matching file exists
+    """
+    return process_directory(
+        directory=directory,
+        extensions=extensions,
+        exclude_dirs=exclude_dirs,
+        find_first_only=True
+    )
 
 
 def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:

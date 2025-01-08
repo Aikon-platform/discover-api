@@ -150,6 +150,10 @@ class ExtractRegions(LoggedTask):
             self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
             doc.download()
+            if not doc.has_images():
+                self.handle_error(f"No images were extracted from {doc.uid}")
+                return False
+
             self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
 
