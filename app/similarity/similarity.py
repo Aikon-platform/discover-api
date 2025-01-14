@@ -30,7 +30,7 @@ from ..shared.utils.logging import serializer
 
 
 def compute_cosine_similarity(
-        features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
+    features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
 ):
     """
     Compute the cosine similarity between all pairs of images in the dataset
@@ -57,7 +57,7 @@ def compute_cosine_similarity(
             mat = all_mat[group1][:, group2]
             tops = np.argsort(mat, axis=1)[:, :topk]
             all_pairs |= set(
-                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1. - mat[i, j])
+                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1.0 - mat[i, j])
                 for i, row in enumerate(tops)
                 for j in row
                 if group1[i] != group2[j]
@@ -78,7 +78,7 @@ def _convert_to_pairs(cosine_pairs, image_list: list[str]):
 
 @torch.no_grad()
 def compute_segswap_similarity(
-        source_images: list[str], pairs: list[tuple[int, int]], cos_topk, device="cuda"
+    source_images: list[str], pairs: list[tuple[int, int]], topk, device="cuda"
 ):
     """
     Compute the similarity between pairs of images using the SegSwap algorithm
@@ -86,7 +86,8 @@ def compute_segswap_similarity(
     Args:
         source_images (list[str]): The list of image paths
         pairs (list[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
-        cos_topk (int): The number of best matches to return
+        topk (int): The number of best matches to return
+                    NOTE: for now, this is useless because topk is used before for filtering out cosine worse matches
         device (str): The device to run the computation on
 
     Returns:
@@ -100,10 +101,7 @@ def compute_segswap_similarity(
     mask = np.ones((feat_size, feat_size), dtype=bool)
     y_grid, x_grid = np.where(mask)
 
-    batch_size = cos_topk
-    batched_pairs = [
-        pairs[i: i + batch_size] for i in range(0, len(pairs), batch_size)
-    ]
+    batched_pairs = [pairs[i : i + topk] for i in range(0, len(pairs), topk)]
 
     img_dataset = FileListDataset(
         data_paths=source_images,
@@ -170,7 +168,7 @@ class ComputeSimilarity(LoggedTask):
     """
 
     def __init__(
-            self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
+        self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
@@ -217,7 +215,9 @@ class ComputeSimilarity(LoggedTask):
         data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
 
         features = extractor.extract_features(
-            data_loader, cache_dir=self.dataset.path / "features", cache_id=self.dataset.uid
+            data_loader,
+            cache_dir=self.dataset.path / "features",
+            cache_id=self.dataset.uid,
         )
 
         if not features.numel():
@@ -229,7 +229,9 @@ class ComputeSimilarity(LoggedTask):
 
         return features
 
-    def format_results_per_doc(self, pairs: list[tuple[int, int, float]], source_images: list[Image]) -> list[dict]:
+    def format_results_per_doc(
+        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
+    ) -> list[dict]:
         """
         Format the results for output
 
@@ -264,7 +266,9 @@ class ComputeSimilarity(LoggedTask):
 
         return output_json
 
-    def format_results(self, pairs: list[tuple[int, int, float]], source_images: list[Image]) -> list[dict]:
+    def format_results(
+        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
+    ) -> list[dict]:
         """
         Format the results for output
 
@@ -277,15 +281,13 @@ class ComputeSimilarity(LoggedTask):
         """
         output_json = {
             "index": {
-                "sources": {
-                    doc.uid: doc.to_dict() for doc in self.dataset.documents
-                },
+                "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
                 "images": [
                     {"id": im.id, "src": im.src, "doc_uid": im.document.uid}
                     for im in source_images
-                ]
+                ],
             },
-            "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs]
+            "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs],
         }
 
         return output_json
@@ -303,18 +305,22 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] {len(source_images)} images downloaded and/or cropped"
         )
 
+        topk = self.segswap_n if self.algorithm == "segswap" else self.topk
+
         features = self.get_features(source_paths)
 
         # TODO skip this step if self.algorithm == "segswap" && self.segswap_prefilter == false
         pairs = compute_cosine_similarity(
-            features.cpu().numpy(), topk=self.topk, groups=source_doc_ranges
+            features.cpu().numpy(), topk=topk, groups=source_doc_ranges
         )
 
         if self.algorithm == "segswap":
             self.print_and_log(
                 f"[task.similarity] Computing SegSwap similarity for {len(pairs)} pairs"
             )
-            pairs = compute_segswap_similarity(source_paths, pairs, cos_topk=self.segswap_n, device=self.device)
+            pairs = compute_segswap_similarity(
+                source_paths, pairs, topk=topk, device=self.device
+            )
 
         self.print_and_log(
             f"[task.similarity] Computed similarity for {len(pairs)} pairs"
