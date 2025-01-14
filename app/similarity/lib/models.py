@@ -81,9 +81,18 @@ def _instantiate_resnet34(weights_path, device) -> torch.nn.Module:
     return model
 
 
+def _instantiate_dino_deitsmall16_pretrain(weights_path, device) -> torch.nn.Module:
+    model = VisionTransformer(patch_size=16, embed_dim=384, num_heads=6, qkv_bias=True)
+    model.load_state_dict(
+        torch.load(weights_path, weights_only=True, map_location=device)
+    )
+    return model
+
+
 DEFAULT_MODEL_LOADERS = {
     "moco_v2_800ep_pretrain": _instantiate_moco_v2_800ep_pretrain,
     "dino_vitbase8_pretrain": _instantiate_dino_vitbase8_pretrain,
+    "dino_deitsmall16_pretrain": _instantiate_dino_deitsmall16_pretrain,
     "resnet34": _instantiate_resnet34,
 }
 
