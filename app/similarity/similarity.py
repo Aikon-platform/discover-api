@@ -5,10 +5,11 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from typing import Iterable
 import orjson
+import os, time, re
 
 from scipy.spatial.distance import pdist, squareform
 
-from .const import SCORES_PATH
+from .const import SCORES_PATH, MODEL_PATH
 from .lib.const import (
     SEG_STRIDE,
     MAX_SIZE,
@@ -27,6 +28,34 @@ from ..shared.dataset import Dataset, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
 from ..shared.utils.logging import serializer
+
+def list_known_models():
+    """
+    List the models available for similarity
+    """
+    models = {}
+    if not MODEL_PATH.exists():
+        return models
+
+    for file in MODEL_PATH.iterdir():
+        if file.is_file() and file.suffix in (".pt", ".pth"):
+            # look for metadata file
+            if (metadata := file.with_suffix(".json")).exists():
+                with open(metadata, "r") as f:
+                    models[file.stem] = {
+                        "path": str(file),
+                        **orjson.loads(f.read())
+                    }
+                    models[file.stem]["model"] = file.stem
+            else:
+                models[file.stem] = {
+                    "path": str(file),
+                    "model": file.stem,
+                    "name": file.stem,
+                    "desc": "No description available",
+                }
+
+    return models
 
 
 def compute_cosine_similarity(
@@ -176,11 +205,13 @@ class ComputeSimilarity(LoggedTask):
 
         self.dataset = dataset
 
+        print(parameters)
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
-        self.feat_set = parameters.get("feat_set", FEAT_SET) if parameters else FEAT_SET
-        self.feat_layer = (
-            parameters.get("feat_layer", FEAT_LAYER) if parameters else FEAT_LAYER
-        )
+        # self.feat_set = parameters.get("feat_set", FEAT_SET) if parameters else FEAT_SET
+        # self.feat_layer = (
+        #     parameters.get("feat_layer", FEAT_LAYER) if parameters else FEAT_LAYER
+        # )
+
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
 
@@ -196,10 +227,12 @@ class ComputeSimilarity(LoggedTask):
         """
         Extract features from a list of images
         """
+        print(self.feat_net, list_known_models().get(self.feat_net, {}))
         extractor = FeatureExtractor(
+            model_path=list_known_models().get(self.feat_net, {}).get("path"),
             feat_net=self.feat_net,
-            feat_set=self.feat_set,
-            feat_layer=self.feat_layer,
+            # feat_set=self.feat_set,
+            # feat_layer=self.feat_layer,
             device=self.device,
         )
 

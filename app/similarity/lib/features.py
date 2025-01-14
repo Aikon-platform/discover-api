@@ -15,19 +15,22 @@ from .vit import VisionTransformer
 from ...shared.utils.logging import console
 
 
-def _load_model(model_path, feat_net, feat_set, device):
+def _load_standard_model(model_path, feat_net, device):
     if model_path is None:
         model_path = get_model_path(feat_net)
 
-    if feat_net == "resnet34" and feat_set == "imagenet":
+    feat_func = lambda x: x
+
+    if feat_net == "resnet34":
         model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1).to(
             device
         )
         model = create_feature_extractor(
             model, return_nodes={"layer3.5.bn2": FEAT_LAYER, "avgpool": "avgpool"}
         )
+        feat_func = lambda x: model(x)[FEAT_LAYER].flatten(start_dim=1)
 
-    elif feat_net == "moco_v2_800ep_pretrain" and feat_set == "imagenet":
+    elif feat_net == "moco_v2_800ep_pretrain":
         model = models.resnet50().to(device)
         pre_dict = torch.load(model_path)["state_dict"]
         new_state_dict = OrderedDict()
@@ -39,6 +42,8 @@ def _load_model(model_path, feat_net, feat_set, device):
         model = create_feature_extractor(
             model, return_nodes={"layer3.5.bn3": FEAT_LAYER, "avgpool": "avgpool"}
         )
+        feat_func = lambda x: model(x)[FEAT_LAYER].flatten(start_dim=1)
+
     elif feat_net == "dino_deitsmall16_pretrain":
         pre_dict = torch.load(model_path)
         model = VisionTransformer(
@@ -55,8 +60,12 @@ def _load_model(model_path, feat_net, feat_set, device):
     else:
         raise ValueError("Invalid network or dataset for feature extraction.")
 
-    return model
+    return model, feat_func
 
+def _load_model(model_path, feat_net, device):
+    if feat_net in ["resnet34", "moco_v2_800ep_pretrain", "dino_deitsmall16_pretrain", "dino_vitbase8_pretrain"]:
+        return _load_standard_model(model_path, feat_net, device)
+    return torch.load(model_path, map_location=device).eval(), lambda x: x
 
 class FeatureExtractor:
     def __init__(self, model_path=None, feat_net=FEAT_NET, feat_set=FEAT_SET, feat_layer=FEAT_LAYER, device="cpu"):
@@ -66,27 +75,27 @@ class FeatureExtractor:
         # TODO make this function more versatile
 
         feat_net ['resnet34', 'moco_v2_800ep_pretrain', 'dino_deitsmall16_pretrain', 'dino_vitbase8_pretrain']
-        feat_set ['imagenet']
         """
 
         self.feat_net = feat_net
         self.model_path = model_path
-        self.feat_set = feat_set
-        self.feat_layer = feat_layer
-        if "dino" in self.feat_net:
-            self.feat_layer = None
+        # self.feat_set = feat_set
+        # self.feat_layer = feat_layer
+        # if "dino" in self.feat_net:
+            # self.feat_layer = None
 
-        self.extractor_label = f"{self.feat_net}+{self.feat_set}@{self.feat_layer}"
+        self.extractor_label = f"{self.feat_net}" #+{self.feat_set}@{self.feat_layer}"
         self.device = device
         self.model = None
 
     def initialize(self):
         if self.model is not None:
             return
-        self.model = _load_model(self.model_path, self.feat_net, self.feat_set, self.device)
+        self.model, self.feat_func = _load_model(self.model_path, self.feat_net, self.device)#, self.feat_set, self.device)
 
     @torch.no_grad()
     def _calc_feats(self, batch):
+        return self.feat_func(self.model(batch))
         if "dino" in self.feat_net:
             return self.model(batch)
         return self.model(batch)[self.feat_layer].flatten(start_dim=1)
@@ -97,7 +106,7 @@ class FeatureExtractor:
         """
         torch.cuda.empty_cache()
         if cache_dir is not None:
-            feat_path = cache_dir / f"{cache_id}_{self.extractor_label}_{self.feat_layer}.pt"
+            feat_path = cache_dir / f"{cache_id}_{self.extractor_label}.pt"#_{self.feat_layer}.pt"
 
             if os.path.exists(feat_path):
                 feats = torch.load(feat_path, map_location=self.device)

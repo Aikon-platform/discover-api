@@ -48,6 +48,7 @@ Routes:
 
 from flask import request, Blueprint, jsonify
 from slugify import slugify
+import os, time
 
 from .tasks import compute_similarity
 from ..shared import routes as shared_routes
@@ -57,11 +58,12 @@ from .const import (
     # FEATS_PATH,
     SIM_RESULTS_PATH,
     SIM_XACCEL_PREFIX,
-    # MODEL_PATH,
+    MODEL_PATH,
 )
 
 from .lib.const import FEAT_NET, FEAT_SET, FEAT_LAYER
 from ..shared.utils.logging import console
+from .similarity import list_known_models
 
 blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 
@@ -186,24 +188,24 @@ def clear_doc(doc_id: str):
 
 @blueprint.route("models", methods=['GET'])
 def get_models():
-    # TODO make it dynamic with the models in the folder
     models_info = {
-        "vit": {
+        **list_known_models(),
+        "dino_vitbase8_pretrain": {
             "name": "Vision Transformer",
             "model": "dino_vitbase8_pretrain",
             "desc": "A transformer model for image classification.",
         },
-        "resnet": {
+        "resnet34": {
             "name": "ResNet 34",
             "model": "resnet34",
             "desc": "A deep residual network for image classification.",
         },
-        "moco": {
+        "moco_v2_800ep_pretrain": {
             "name": "MoCo v2 800ep",
             "model": "moco_v2_800ep_pretrain",
             "desc": "A contrastive learning model for image classification.",
         },
-        "dino": {
+        "dino_deitsmall16_pretrain": {
             "name": "DINO DeiT-Small 16",
             "model": "dino_deitsmall16_pretrain",
             "desc": "A Vision Transformer model for image classification.",

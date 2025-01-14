@@ -34,7 +34,7 @@ def download_models(model_name):
 def get_model_path(model_name):
     if model_name not in model_urls:
         sys.stderr.write("Invalid network or dataset for feature extraction.")
-        exit()
+        return None
 
     if not os.path.exists(f"{MODEL_PATH}/{model_name}.pth"):
         download_models(model_name)
