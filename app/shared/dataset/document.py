@@ -47,10 +47,16 @@ class Document:
                 - ...jpg
             - annotations/
                 - ...json
-            - mapping.json
+            - images.json
     """
 
-    def __init__(self, uid: str = None, dtype: str = "zip", path: Path | str = None, src: Optional[str] = None):
+    def __init__(
+        self,
+        uid: str = None,
+        dtype: str = "zip",
+        path: Path | str = None,
+        src: Optional[str] = None,
+    ):
         self.uid = sanitize_str(uid if uid is not None else src)
         self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / uid)
         self.src = src
@@ -62,7 +68,9 @@ class Document:
         """
         Create a new Document from a dictionary
         """
-        return Document(doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"])
+        return Document(
+            doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]
+        )
 
     def to_dict(self, with_url: bool = False) -> dict:
         """
@@ -168,8 +176,9 @@ class Document:
         """
         Download a zip file from a URL, extract its contents, and save images.
         """
+
         def zipped_chunks():
-            with httpx.stream('GET', zip_url) as r:
+            with httpx.stream("GET", zip_url) as r:
                 yield from r.iter_bytes(chunk_size=8192)
             # with requests.get(zip_url, stream=True) as r:
             #     r.raise_for_status()
@@ -255,13 +264,13 @@ class Document:
                 id=img_path.name,
                 src=str(img_path.relative_to(self.images_path)),
                 path=img_path,
-                document=self
-            ) for img_path in get_img_paths(self.images_path)
+                document=self,
+            )
+            for img_path in get_img_paths(self.images_path)
         ]
 
     def has_images(self) -> bool:
         return check_if_file(self.images_path, extensions=ALLOWED_EXTENSIONS)
-
 
     def prepare_crops(self, crops: List[dict]) -> List[Image]:
         """
@@ -285,7 +294,14 @@ class Document:
             for crop in img["crops"]:
                 crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
 
-                crop_list.append(Image(id=crop["crop_id"], src=crop_path.name, path=crop_path, document=self))
+                crop_list.append(
+                    Image(
+                        id=crop["crop_id"],
+                        src=crop_path.name,
+                        path=crop_path,
+                        document=self,
+                    )
+                )
                 if crop_path.exists():
                     continue
 
@@ -293,7 +309,9 @@ class Document:
 
                 if source != img["source"]:
                     source = img["source"]
-                    im = PImage.open(self.images_path / self.mapping.get(source, source)).convert("RGB")
+                    im = PImage.open(
+                        self.images_path / self.mapping.get(source, source)
+                    ).convert("RGB")
 
                 box = crop["relative"]
                 if "x1" in box:
@@ -301,7 +319,12 @@ class Document:
                 else:
                     x1, y1, w, h = box["x"], box["y"], box["width"], box["height"]
                     x2, y2 = x1 + w, y1 + h
-                x1, y1, x2, y2 = int(x1 * im.width), int(y1 * im.height), int(x2 * im.width), int(y2 * im.height)
+                x1, y1, x2, y2 = (
+                    int(x1 * im.width),
+                    int(y1 * im.height),
+                    int(x2 * im.width),
+                    int(y2 * im.height),
+                )
                 if x2 - x1 == 0 or y2 - y1 == 0:
                     # use placeholder image
                     im_cropped = PImage.new("RGB", (MAX_SIZE, MAX_SIZE))
