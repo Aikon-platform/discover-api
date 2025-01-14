@@ -69,10 +69,7 @@ def pprint(o):
         except TypeError:
             try:
                 if isinstance(o, dict):
-                    sanitized = {
-                        str(k): sanitize(v)
-                        for k, v in o.items()
-                    }
+                    sanitized = {str(k): sanitize(v) for k, v in o.items()}
                 else:
                     sanitized = [sanitize(v) for v in o]
                 return json.dumps(sanitized, indent=4, sort_keys=True)
@@ -194,7 +191,7 @@ class LoggerHelper:
 
     @classmethod
     def progress(
-            cls, current: int = 0, total: int = None, title: str = "", **kwargs
+        cls, current: int = 0, total: int = None, title: str = "", **kwargs
     ) -> None:
         """
         Log the progress of a task
@@ -298,7 +295,7 @@ class JobLogger:
 
     @classmethod
     def clearLogger(
-            cls: Type[TJobLogger], job_id: Optional[str] = None
+        cls: Type[TJobLogger], job_id: Optional[str] = None
     ) -> Optional[TLogger]:
         """
         Clear the logger for the job
@@ -351,8 +348,8 @@ class JobLogger:
             if self._grouped_warnings:
                 for collapse, ws in self._grouped_warnings.items():
                     warnings = [
-                                   f"{len(ws)} {collapse} warnings. Examples of such warning messages:\n\n{ws[0]}\n{ws[1]}\n{ws[2]}"
-                               ] + warnings
+                        f"{len(ws)} {collapse} warnings. Examples of such warning messages:\n\n{ws[0]}\n{ws[1]}\n{ws[2]}"
+                    ] + warnings
             if warnings:
                 state["warnings"] = warnings
 
@@ -382,11 +379,11 @@ class JobLogger:
         LoggerHelper.info(*s, **kwargs)
 
     def warning(
-            self,
-            *s,
-            collapse: Optional[str] = None,
-            exception: bool = False,
-            send: bool = False,
+        self,
+        *s,
+        collapse: Optional[str] = None,
+        exception: bool = False,
+        send: bool = False,
     ) -> None:
         """
         Log a warning message
@@ -430,15 +427,15 @@ class JobLogger:
         self._send_state()
 
     def progress(
-            self,
-            current: int = 0,
-            total: int = None,
-            title: str = "",
-            key: Optional[str] = None,
-            end: bool = False,
-            display: bool = False,
-            send: bool = True,
-            **kwargs,
+        self,
+        current: int = 0,
+        total: int = None,
+        title: str = "",
+        key: Optional[str] = None,
+        end: bool = False,
+        display: bool = False,
+        send: bool = True,
+        **kwargs,
     ) -> None:
         """
         Log the progress of a task
@@ -476,11 +473,11 @@ class JobLogger:
             self._send_state(with_warnings=False)
 
     def iterate(
-            self,
-            iterable: Iterable[T],
-            title: str = "",
-            total: Optional[int] = None,
-            rate_limit: float = 1.0,
+        self,
+        iterable: Iterable[T],
+        title: str = "",
+        total: Optional[int] = None,
+        rate_limit: float = 1.0,
     ) -> TqdmProgress:
         """
         Monitor the progress of iterating an iterable (through tqdm)
@@ -530,7 +527,7 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
                         json={
                             "event": event,
                             "tracking_id": current_task_id,
-                            **json.loads(json.dumps(data, default=serializer))
+                            **json.loads(json.dumps(data, default=serializer)),
                         },
                     )
 
@@ -567,7 +564,9 @@ class LoggedResults(Results):
 
 
 def console(msg, color="bold", e: Exception = None, log=True):
-    msg = f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
+    msg = (
+        f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
+    )
     if e:
         msg += f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
 
@@ -611,9 +610,9 @@ class LoggingTaskMixin:
 
 
 def send_update(experiment_id, tracking_url, event, message):
-    # TODO
+    # TODO delete
     response = requests.post(
-        url=tracking_url,
+        url=tracking_url,  # TODO delete
         data={
             "experiment_id": experiment_id,
             "event": event,

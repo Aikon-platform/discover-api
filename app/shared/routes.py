@@ -4,6 +4,7 @@ The main routes that handle the API requests regarding starting and monitoring t
 
 import functools
 import json
+import uuid
 
 from flask import request, send_from_directory, jsonify, Request
 from slugify import slugify
@@ -51,9 +52,7 @@ def get_client_id(func):
 
 
 def receive_task(
-    req: Request,
-    save_dataset: bool = True,
-    use_crops: bool = True
+    req: Request, save_dataset: bool = True, use_crops: bool = True
 ) -> Tuple[str, str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
@@ -103,10 +102,9 @@ def receive_task(
 
     console(f"Received task: {param}", color="magenta")
 
-    experiment_id = param.get('experiment_id', "")
-    tracking_url = param.get("tracking_url", "")
-    # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
-    notify_url = param.get('notify_url', None) or param.get('callback', None)
+    experiment_id = param.get("experiment_id", str(uuid.uuid4()))
+    tracking_url = param.get("tracking_url", "")  # TODO delete
+    notify_url = param.get("notify_url", None)
 
     dataset = None
     documents = param.get("documents", [])
@@ -128,7 +126,13 @@ def receive_task(
     # for param_name in additional_params:
     #     task_kwargs[param_name] = param.get(param_name, None)
 
-    return experiment_id, notify_url, tracking_url, dataset, param.get("parameters", param)
+    return (
+        experiment_id,
+        notify_url,
+        tracking_url,
+        dataset,
+        param.get("parameters", param),
+    )
 
 
 def start_task(task_fct: Actor, experiment_id: str, task_kwargs: dict) -> dict:
@@ -186,7 +190,9 @@ def status(tracking_id: str, task_fct: Actor) -> dict:
     }
 
 
-def result(tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
+def result(
+    tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"
+):
     """
     Get the result of a task
 

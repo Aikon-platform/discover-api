@@ -5,11 +5,11 @@ Routes:
 
 - POST ``/regions/start``:
     Starts the regions extraction process for a dataset.
-    
+
     - Parameters:
         - ``experiment_id``: The ID of the experiment.
         - ``notify_url``: The URL to notify when the task is done.
-        - ``tracking_url``: The URL to track the task.
+        - ``tracking_url``: The URL to track the task. TODO delete
         - ``dataset``: The dataset UID to process.
         - ``documents``: The documents to put into the dataset.
         - ``model``: The model to use for the extraction.
@@ -17,29 +17,29 @@ Routes:
 
 - POST ``/regions/<tracking_id>/cancel``:
     Cancel a regions extraction task.
-    
+
     - Parameters:
         - ``tracking_id``: The task ID.
     - Response: JSON object indicating the cancellation status.
 
 - GET ``/regions/<tracking_id>/status``:
     Get the status of a regions extraction task.
-    
+
     - Response: JSON object containing the status of the task.
 
 - GET ``/regions/qsizes``:
     List the queues of the broker and the number of tasks in each queue.
-    
+
     - Response: JSON object containing the queue sizes.
 
 - GET ``/regions/monitor``:
     Monitor the tasks of the broker.
-    
+
     - Response: JSON object containing the monitoring information.
 
 - GET ``/regions/models``:
     Get the list of available models.
-    
+
     - Response: JSON object containing the models and their modification dates.
 
 - POST ``/regions/clear``:
@@ -59,7 +59,7 @@ from flask import request, jsonify, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import ANNO_PATH, MODEL_PATH  #, IMG_PATH
+from .const import ANNO_PATH, MODEL_PATH  # , IMG_PATH
 from ..shared.utils.fileutils import delete_path
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
@@ -82,9 +82,15 @@ def start_regions_extraction():
 
     :return: The tracking_id of the task
     """
-    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request, use_crops=False)
+    (
+        experiment_id,
+        notify_url,
+        tracking_url,
+        dataset,
+        param,
+    ) = shared_routes.receive_task(request, use_crops=False)
 
-    model = param.get('model')
+    model = param.get("model")
 
     return shared_routes.start_task(
         extract_objects,
@@ -93,7 +99,7 @@ def start_regions_extraction():
             "dataset_uid": dataset.uid,
             "model": model,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
+            "tracking_url": tracking_url,  # TODO delete
         },
     )
 
@@ -135,7 +141,7 @@ def monitor_regions_extraction():
 #     return shared_routes.result(tracking_id, ANNO_PATH, EXT_XACCEL_PREFIX, "json")
 
 
-@blueprint.route("models", methods=['GET'])
+@blueprint.route("models", methods=["GET"])
 def get_models():
     models_info = {}
 
@@ -154,7 +160,7 @@ def get_models():
 
 @blueprint.route("clear", methods=["POST"])
 def clear_images():
-    dataset_id = request.form['dataset_id']
+    dataset_id = request.form["dataset_id"]
     # TODO change to use new dataset architecture
     # return {
     #     "cleared_img_dir": 1 if delete_path(IMG_PATH / dataset_id) else 0,

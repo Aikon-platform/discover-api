@@ -9,11 +9,9 @@ from .regions import ExtractRegions
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 from ..shared.dataset import Dataset
 
+
 @dramatiq.actor(
-    time_limit=1000 * 60 * 60,
-    max_retries=0,
-    queue_name=EXT_QUEUE,
-    store_results=True
+    time_limit=1000 * 60 * 60, max_retries=0, queue_name=EXT_QUEUE, store_results=True
 )
 @notifying
 def extract_objects(
@@ -33,7 +31,7 @@ def extract_objects(
     :param dataset_uid: the dataset UID to process
     :param model: the model to use for extraction
     :param notify_url: the URL to notify the frontend
-    :param tracking_url: the URL to track the task
+    :param tracking_url: the URL to track the task TODO delete
     :param logger: the logger to use
     """
     dataset = Dataset(dataset_uid, load=True)
@@ -52,7 +50,7 @@ def extract_objects(
         # json to be dispatch to frontend with @notifying
         return {
             "dataset_url": dataset.get_absolute_url(),
-            "annotations": regions_extraction_task.annotations
+            "annotations": regions_extraction_task.annotations,
         }
 
     # json to be dispatch to frontend with @notifying

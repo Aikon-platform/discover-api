@@ -8,7 +8,13 @@ from typing import Optional, Callable, Dict, Any, List
 
 from .const import DEMO_NAME
 from .. import config
-from ..shared.utils.logging import notifying, TLogger, LoggerHelper, send_update, LoggingTaskMixin
+from ..shared.utils.logging import (
+    notifying,
+    TLogger,
+    LoggerHelper,
+    send_update,
+    LoggingTaskMixin,
+)
 
 
 class LoggedTask(LoggingTaskMixin):
@@ -24,7 +30,7 @@ class LoggedTask(LoggingTaskMixin):
         tracking_url: Optional[str] = None,
         notifier: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(logger, *args, **kwargs)
         self.experiment_id = experiment_id
@@ -32,12 +38,13 @@ class LoggedTask(LoggingTaskMixin):
         self.notify_url = notify_url
         # Frontend endpoint to sends task events to (used only in AIKON) => TODO unify with notify_url
         # Discover-demo frontend uses /status endpoint to retrieve task message (@dramatiq.store_results=True)
-        self.tracking_url = tracking_url
+        self.tracking_url = tracking_url  # TODO delete
         self.notifier = notifier
         self.error_list: List[str] = []
 
     def task_update(self, event: str, message: Optional[Any] = None) -> None:
         if self.tracking_url:
+            # TODO delete
             send_update(self.experiment_id, self.tracking_url, event, message)
         if self.notifier:
             if event == "ERROR":
@@ -49,7 +56,9 @@ class LoggedTask(LoggingTaskMixin):
                 raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
-        self.print_and_log_error(f"[task.{self.__class__.__name__}] {message}", e=exception)
+        self.print_and_log_error(
+            f"[task.{self.__class__.__name__}] {message}", e=exception
+        )
         self.error_list.append(f"[API ERROR] {message}")
 
     def run_task(self) -> bool:
@@ -65,20 +74,18 @@ class LoggedTask(LoggingTaskMixin):
 # ⚠️ copied and adapted to the specific needs of the module ⚠️ #
 ################################################################
 
+
 @dramatiq.actor(
-    time_limit=1000 * 60 * 60,
-    max_retries=0,
-    queue_name="queue_nb",
-    store_results=True
+    time_limit=1000 * 60 * 60, max_retries=0, queue_name="queue_nb", store_results=True
 )
 @notifying
 def abstract_task(
     experiment_id: str,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,
+    tracking_url: Optional[str] = None,  # TODO delete
     logger: TLogger = LoggerHelper,
     notifier=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Template for a task (see the source code)
@@ -97,6 +104,4 @@ def abstract_task(
     task_instance.run_task()
 
     # json to be dispatch to frontend with @notifying
-    return {
-        "result_url": f"{config.BASE_URL}/{DEMO_NAME}/{current_task_id}/result"
-    }
+    return {"result_url": f"{config.BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}

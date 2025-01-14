@@ -5,7 +5,7 @@ import uuid
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH #, IMG_PATH
+from .const import VEC_RESULTS_PATH  # , IMG_PATH
 
 from ..shared.utils.logging import console
 
@@ -23,7 +23,7 @@ def start_vectorization(client_id):
     TODO use shared_routes.receive_task
 
     Expected parameters:
-    
+
     .. code-block:: json
 
         {
@@ -38,7 +38,7 @@ def start_vectorization(client_id):
                 "img_name": "..."
             }
         }
-    
+
     A list of images to download + information
     """
     if not request.is_json:
@@ -49,7 +49,8 @@ def start_vectorization(client_id):
     experiment_id = json_param.get("experiment_id")
     documents = json_param.get("documents", {})
     model = json_param.get("model", None)
-    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
+    # TODO unify
+    notify_url = json_param.get("notify_url", None) or json_param.get("callback", None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(
@@ -93,6 +94,9 @@ def monitor_vectorization():
 def delete_and_relaunch(client_id):
     if not request.is_json:
         return "No JSON in request: Vectorization task aborted!"
+
+    if True:
+        return jsonify({"Error": "Deprecated route, to be removed"})
 
     data = request.get_json()
     experiment_id = slugify(request.form.get("experiment_id", str(uuid.uuid4())))
