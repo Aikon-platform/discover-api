@@ -2,45 +2,6 @@ import os
 import sys
 from itertools import combinations_with_replacement
 
-from ..const import MODEL_PATH  #, IMG_PATH
-from ...shared.utils.fileutils import download_file
-
-model_urls = {
-    "moco_v2_800ep_pretrain": "https://dl.fbaipublicfiles.com/moco/moco_checkpoints/moco_v2_200ep/moco_v2_200ep_pretrain.pth.tar",
-    "dino_deitsmall16_pretrain": "https://dl.fbaipublicfiles.com/dino/dino_deitsmall16_pretrain/dino_deitsmall16_pretrain.pth",
-    "dino_vitbase8_pretrain": "https://dl.fbaipublicfiles.com/dino/dino_vitbase8_pretrain/dino_vitbase8_pretrain.pth",
-    "hard_mining_neg5": "https://github.com/XiSHEN0220/SegSwap/raw/main/model/hard_mining_neg5.pth",
-    "resnet18": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-    "resnet34": "https://download.pytorch.org/models/resnet34-333f7ec4.pth",
-    "resnet50": "https://download.pytorch.org/models/resnet50-19c8e357.pth",
-    "resnet101": "https://download.pytorch.org/models/resnet101-5d3b4d8f.pth",
-    "resnet152": "https://download.pytorch.org/models/resnet152-b121ed2d.pth",
-    "resnext50_32x4d": "https://download.pytorch.org/models/resnext50_32x4d-7cdf4587.pth",
-    "resnext101_32x8d": "https://download.pytorch.org/models/resnext101_32x8d-8ba56ff5.pth",
-    "wide_resnet50_2": "https://download.pytorch.org/models/wide_resnet50_2-95faca4d.pth",
-    "wide_resnet101_2": "https://download.pytorch.org/models/wide_resnet101_2-32ee1156.pth",
-}
-
-
-def download_models(model_name):
-    os.makedirs(f"{MODEL_PATH}/", exist_ok=True)
-
-    if model_name not in model_urls:
-        raise ValueError("Invalid network or dataset for feature extraction.")
-
-    download_file(model_urls[model_name], f"{MODEL_PATH}/{model_name}.pth")
-
-
-def get_model_path(model_name):
-    if model_name not in model_urls:
-        sys.stderr.write("Invalid network or dataset for feature extraction.")
-        return None
-
-    if not os.path.exists(f"{MODEL_PATH}/{model_name}.pth"):
-        download_models(model_name)
-
-    return f"{MODEL_PATH}/{model_name}.pth"
-
 
 def doc_pairs(doc_ids: list):
     if isinstance(doc_ids, list) and len(doc_ids) > 0:

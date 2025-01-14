@@ -15,51 +15,20 @@ from .lib.const import (
     MAX_SIZE,
     COS_TOPK,
     FEAT_NET,
-    FEAT_SET,
-    FEAT_LAYER,
 )
 from .lib.dataset import FileListDataset
 from .lib.features import FeatureExtractor
 from .lib import segswap
-
-from .lib.utils import get_model_path
+from .lib.models import get_model_path
 
 from ..shared.dataset import Dataset, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
 from ..shared.utils.logging import serializer
 
-def list_known_models():
-    """
-    List the models available for similarity
-    """
-    models = {}
-    if not MODEL_PATH.exists():
-        return models
-
-    for file in MODEL_PATH.iterdir():
-        if file.is_file() and file.suffix in (".pt", ".pth"):
-            # look for metadata file
-            if (metadata := file.with_suffix(".json")).exists():
-                with open(metadata, "r") as f:
-                    models[file.stem] = {
-                        "path": str(file),
-                        **orjson.loads(f.read())
-                    }
-                    models[file.stem]["model"] = file.stem
-            else:
-                models[file.stem] = {
-                    "path": str(file),
-                    "model": file.stem,
-                    "name": file.stem,
-                    "desc": "No description available",
-                }
-
-    return models
-
 
 def compute_cosine_similarity(
-        features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
+    features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
 ):
     """
     Compute the cosine similarity between all pairs of images in the dataset
@@ -86,7 +55,7 @@ def compute_cosine_similarity(
             mat = all_mat[group1][:, group2]
             tops = np.argsort(mat, axis=1)[:, :topk]
             all_pairs |= set(
-                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1. - mat[i, j])
+                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1.0 - mat[i, j])
                 for i, row in enumerate(tops)
                 for j in row
                 if group1[i] != group2[j]
@@ -107,7 +76,7 @@ def _convert_to_pairs(cosine_pairs, image_list: list[str]):
 
 @torch.no_grad()
 def compute_segswap_similarity(
-        source_images: list[str], pairs: list[tuple[int, int]], cos_topk, device="cuda"
+    source_images: list[str], pairs: list[tuple[int, int]], cos_topk, device="cuda"
 ):
     """
     Compute the similarity between pairs of images using the SegSwap algorithm
@@ -131,7 +100,7 @@ def compute_segswap_similarity(
 
     batch_size = cos_topk
     batched_pairs = [
-        pairs[i: i + batch_size] for i in range(0, len(pairs), batch_size)
+        pairs[i : i + batch_size] for i in range(0, len(pairs), batch_size)
     ]
 
     img_dataset = FileListDataset(
@@ -199,18 +168,13 @@ class ComputeSimilarity(LoggedTask):
     """
 
     def __init__(
-            self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
+        self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
 
         self.dataset = dataset
 
-        print(parameters)
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
-        # self.feat_set = parameters.get("feat_set", FEAT_SET) if parameters else FEAT_SET
-        # self.feat_layer = (
-        #     parameters.get("feat_layer", FEAT_LAYER) if parameters else FEAT_LAYER
-        # )
 
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
@@ -227,12 +191,8 @@ class ComputeSimilarity(LoggedTask):
         """
         Extract features from a list of images
         """
-        print(self.feat_net, list_known_models().get(self.feat_net, {}))
         extractor = FeatureExtractor(
-            model_path=list_known_models().get(self.feat_net, {}).get("path"),
             feat_net=self.feat_net,
-            # feat_set=self.feat_set,
-            # feat_layer=self.feat_layer,
             device=self.device,
         )
 
@@ -250,7 +210,9 @@ class ComputeSimilarity(LoggedTask):
         data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
 
         features = extractor.extract_features(
-            data_loader, cache_dir=self.dataset.path / "features", cache_id=self.dataset.uid
+            data_loader,
+            cache_dir=self.dataset.path / "features",
+            cache_id=self.dataset.uid,
         )
 
         if not features.numel():
@@ -262,7 +224,9 @@ class ComputeSimilarity(LoggedTask):
 
         return features
 
-    def format_results_per_doc(self, pairs: list[tuple[int, int, float]], source_images: list[Image]) -> list[dict]:
+    def format_results_per_doc(
+        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
+    ) -> list[dict]:
         """
         Format the results for output
 
@@ -297,7 +261,9 @@ class ComputeSimilarity(LoggedTask):
 
         return output_json
 
-    def format_results(self, pairs: list[tuple[int, int, float]], source_images: list[Image]) -> list[dict]:
+    def format_results(
+        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
+    ) -> list[dict]:
         """
         Format the results for output
 
@@ -310,15 +276,13 @@ class ComputeSimilarity(LoggedTask):
         """
         output_json = {
             "index": {
-                "sources": {
-                    doc.uid: doc.to_dict() for doc in self.dataset.documents
-                },
+                "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
                 "images": [
                     {"id": im.id, "src": im.src, "doc_uid": im.document.uid}
                     for im in source_images
-                ]
+                ],
             },
-            "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs]
+            "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs],
         }
 
         return output_json
@@ -347,7 +311,9 @@ class ComputeSimilarity(LoggedTask):
             self.print_and_log(
                 f"[task.similarity] Computing SegSwap similarity for {len(pairs)} pairs"
             )
-            pairs = compute_segswap_similarity(source_paths, pairs, cos_topk=self.segswap_n, device=self.device)
+            pairs = compute_segswap_similarity(
+                source_paths, pairs, cos_topk=self.segswap_n, device=self.device
+            )
 
         self.print_and_log(
             f"[task.similarity] Computed similarity for {len(pairs)} pairs"

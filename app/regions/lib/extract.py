@@ -140,9 +140,11 @@ class YOLOExtractor(BaseExtractor):
     def get_model(self):
         self.device = select_device(self.device)
         return DetectMultiBackend(self.weights, device=self.device, fp16=False)
-    
+
     def prepare_image(self, im):
-        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(0)  # no need to swap axes
+        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(
+            0
+        )  # no need to swap axes
 
     @smart_inference_mode()
     def process_detections(
@@ -240,7 +242,9 @@ class FasterRCNNExtractor(BaseExtractor):
             if score < 0.3:
                 break
             x1, y1, x2, y2 = box
-            writer.add_region(int(x1), int(y1), int(x2 - x1), int(y2 - y1), float(score))
+            writer.add_region(
+                int(x1), int(y1), int(x2 - x1), int(y2 - y1), float(score)
+            )
 
     @smart_inference_mode()
     def extract_one(self, img_path: TPath):
@@ -258,6 +262,9 @@ class FasterRCNNExtractor(BaseExtractor):
 
             boxes = preds[0]["boxes"].cpu().numpy()
             scores = preds[0]["scores"].cpu().numpy()
+
+            if len(scores) == 0:
+                continue
 
             if scores[0] > 0.4:
                 break
