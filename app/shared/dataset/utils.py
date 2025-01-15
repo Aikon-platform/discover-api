@@ -16,7 +16,9 @@ class Image:
     metadata: dict[str, str] = None
     document: "Document" = None
 
-    def to_dict(self, relpath: Path) -> dict:
+    def to_dict(self, relpath: Path = None) -> dict:
+        if relpath is None:
+            relpath = self.document.path
         return {
             "id": self.id,
             "src": self.src,
@@ -25,7 +27,11 @@ class Image:
         }
 
     @classmethod
-    def from_dict(cls, data: Dict, document: "Document", relpath: Path) -> "Image":
+    def from_dict(
+        cls, data: Dict, document: "Document", relpath: Path = None
+    ) -> "Image":
+        if relpath is None:
+            relpath = document.path
         return cls(
             id=data["id"],
             src=data["src"],

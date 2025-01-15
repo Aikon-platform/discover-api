@@ -23,6 +23,7 @@ from .yolov5.utils.augmentations import letterbox
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
 
 from ...shared.utils.fileutils import TPath
+from ...shared.dataset import Image as DImage
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -62,12 +63,14 @@ def setup_source(source: TPath) -> str:
 
 
 class ImageAnnotator:
-    def __init__(self, path: TPath, img_w: int = None, img_h: int = None):
+    def __init__(self, image: DImage, img_w: int = None, img_h: int = None):
+        path = image.path
         if img_w is None or img_h is None:
             img_w, img_h = get_img_dim(path)
 
         self.annotations = {
-            "source": Path(path).name,
+            "source": image.id,
+            "source_info": image.to_dict(),
             "width": img_w,
             "height": img_h,
             "crops": [],
@@ -141,7 +144,7 @@ class BaseExtractor:
         raise NotImplementedError()
 
     @smart_inference_mode()
-    def extract_one(self, img_path: TPath):
+    def extract_one(self, img: DImage, save_img: bool = False):
         raise NotImplementedError()
 
     @smart_inference_mode()
@@ -233,12 +236,13 @@ class YOLOExtractor(BaseExtractor):
         )  # no need to swap axes
 
     @smart_inference_mode()
-    def extract_one(self, img_path, save_img: bool = False):
+    def extract_one(self, img: DImage, save_img: bool = False):
+        img_path = img.path
         source = setup_source(img_path)
 
         stride, names, pt = self.model.stride, self.model.names, self.model.pt
         im0 = cv2.imread(img_path)
-        writer = ImageAnnotator(img_path, img_w=im0.shape[1], img_h=im0.shape[0])
+        writer = ImageAnnotator(img, img_w=im0.shape[1], img_h=im0.shape[0])
 
         for s in self.input_sizes:
             imgsz = check_img_size([s, s], s=stride)
@@ -308,12 +312,13 @@ class FasterRCNNExtractor(BaseExtractor):
         return torch.tensor(output)
 
     @smart_inference_mode()
-    def extract_one(self, img_path: TPath, save_img: bool = False):
+    def extract_one(self, img: DImage, save_img: bool = False):
+        img_path = img.path
         source = setup_source(img_path)
 
         original_image = Image.open(source).convert("RGB")
         writer = ImageAnnotator(
-            source, img_w=original_image.size[0], img_h=original_image.size[1]
+            img, img_w=original_image.size[0], img_h=original_image.size[1]
         )
 
         for size in self.input_sizes:

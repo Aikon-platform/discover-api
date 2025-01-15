@@ -7,7 +7,7 @@ import requests
 from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
-from ..shared.dataset import Document, Dataset
+from ..shared.dataset import Document, Dataset, Image as DImage
 
 EXTRACTOR_POSTPROCESS_KWARGS = {
     "watermarks": {
@@ -104,19 +104,18 @@ class ExtractRegions(LoggedTask):
         response.raise_for_status()
         return True
 
-    def process_img(self, img_path: Path, extraction_ref: str, doc_uid: str) -> bool:
+    def process_img(self, img: DImage, extraction_ref: str, doc_uid: str) -> bool:
         """
         Process a single image, appends the annotations to self.annotations[extraction_ref]
         """
-        filename = img_path.name
         try:
-            self.print_and_log(f"====> Processing {filename} 🔍")
-            anno = self.extractor.extract_one(img_path)
+            self.print_and_log(f"====> Processing {img.path.name} 🔍")
+            anno = self.extractor.extract_one(img)
             anno["doc_uid"] = doc_uid
             self.annotations[extraction_ref].append(anno)
             return True
         except Exception as e:
-            self.handle_error(f"Error processing image {filename}", exception=e)
+            self.handle_error(f"Error processing image {img.path.name}", exception=e)
             return False
 
     def process_doc_imgs(self, doc: Document, extraction_ref: str) -> bool:
@@ -129,7 +128,7 @@ class ExtractRegions(LoggedTask):
             for i, image in enumerate(
                 self.jlogger.iterate(images, "Analyzing images"), 1
             ):
-                success = self.process_img(image.path, extraction_ref, doc.uid)
+                success = self.process_img(image, extraction_ref, doc.uid)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:

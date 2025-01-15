@@ -278,8 +278,7 @@ class ComputeSimilarity(LoggedTask):
             "index": {
                 "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
                 "images": [
-                    {"id": im.id, "src": im.src, "doc_uid": im.document.uid}
-                    for im in source_images
+                    {**im.to_dict(), "doc_uid": im.document.uid} for im in source_images
                 ],
             },
             "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs],

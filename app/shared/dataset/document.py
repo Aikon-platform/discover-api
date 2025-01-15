@@ -131,9 +131,7 @@ class Document:
         """
         self._images = images
         with open(self.images_info_path, "w") as f:
-            json.dump(
-                [img.to_dict(self.images_path) for img in images], f, default=serializer
-            )
+            json.dump([img.to_dict() for img in images], f, default=serializer)
 
     def load_images(self):
         """
@@ -144,9 +142,7 @@ class Document:
             self._images = self.list_images_from_path()
             return
         with open(self.images_info_path, "r") as f:
-            self._images = [
-                Image.from_dict(img, self, self.images_path) for img in json.load(f)
-            ]
+            self._images = [Image.from_dict(img, self) for img in json.load(f)]
 
     def _download_from_iiif(self, manifest_url: str):
         """
@@ -272,7 +268,7 @@ class Document:
         return [
             Image(
                 id=str(img_path.relative_to(self.images_path)),
-                src=str(img_path.relative_to(self.images_path)),
+                src=str(img_path.relative_to(self.path)),
                 path=img_path,
                 document=self,
             )
@@ -287,7 +283,7 @@ class Document:
         Prepare crops for the document
 
         Args:
-            crops: A list of crops {document, source, crops: [{crop_id, relative: {x1, y1, w, h}}]}
+            crops: A list of crops {document, source, source_info, crops: [{crop_id, relative: {x1, y1, w, h}}]}
 
         Returns:
             A list of Image objects
@@ -301,14 +297,21 @@ class Document:
         for img in crops:
             if img["doc_uid"] != self.uid:
                 continue
+            source_info = (
+                Image.from_dict(img["source_info"], self)
+                if img.get("source_info")
+                else None
+            )
+
             for crop in img["crops"]:
                 crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
 
                 crop_list.append(
                     Image(
                         id=crop["crop_id"],
-                        src=crop_path.name,
+                        src=source_info.src if source_info else crop_path.name,
                         path=crop_path,
+                        metadata=source_info.metadata if source_info else {},
                         document=self,
                     )
                 )
