@@ -2,7 +2,7 @@
 Tasks for DTI clustering
 
 **train_dti**
-This function is a Dramatiq actor that handles the training of a DTI model. 
+This function is a Dramatiq actor that handles the training of a DTI model.
 It downloads the dataset, prepares it, and runs the training process based on the provided parameters.
 
 - experiment_id (str): The ID of the clustering task.
@@ -23,7 +23,7 @@ from typing import Optional
 from zipfile import ZipFile
 from PIL import Image
 
-from .. import config
+from ..config import BASE_URL, TIME_LIMIT
 from .const import DATASETS_PATH, DTI_RESULTS_PATH, DTI_QUEUE
 from .training import (
     run_kmeans_training,
@@ -34,7 +34,7 @@ from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
 @dramatiq.actor(
-    time_limit=1000 * 60 * 60, max_retries=0, store_results=True, queue_name=DTI_QUEUE
+    time_limit=TIME_LIMIT, max_retries=0, store_results=True, queue_name=DTI_QUEUE
 )
 @notifying
 def train_dti(
@@ -44,7 +44,7 @@ def train_dti(
     parameters: Optional[dict] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
-    **kwargs
+    **kwargs,
 ):
     """
     Train a DTI model
@@ -69,7 +69,12 @@ def train_dti(
 
     if not dataset_ready_file.exists():
         # TODO MODIFY TO USE DATASET FROM shared.routes.receive_task
-        download_dataset(dataset_url, datasets_dir_path=DATASETS_PATH, dataset_dir_name=f"generic/{dataset_id}", sub_dir="train")
+        download_dataset(
+            dataset_url,
+            datasets_dir_path=DATASETS_PATH,
+            dataset_dir_name=f"generic/{dataset_id}",
+            sub_dir="train",
+        )
 
         # Create ready file
         dataset_ready_file.touch()
@@ -100,4 +105,4 @@ def train_dti(
 
             zipObj.write(file, file.relative_to(output_path))
 
-    return {"result_url": f"{config.BASE_URL}/clustering/{current_task_id}/result"}
+    return {"result_url": f"{BASE_URL}/clustering/{current_task_id}/result"}

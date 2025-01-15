@@ -3,11 +3,14 @@ from typing import Optional
 
 from .const import SIM_QUEUE
 from .similarity import ComputeSimilarity
+from ..config import TIME_LIMIT
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper, console
 from ..shared.dataset import Dataset
 
 
-@dramatiq.actor(time_limit=1000 * 60 * 60, max_retries=0, store_results=True, queue_name=SIM_QUEUE)
+@dramatiq.actor(
+    time_limit=TIME_LIMIT, max_retries=0, store_results=True, queue_name=SIM_QUEUE
+)
 @notifying
 def compute_similarity(
     experiment_id: str,
@@ -49,5 +52,5 @@ def compute_similarity(
             "dataset_url": dataset.get_absolute_url(),
             "annotations": similarity_task.results,
         }
-    
+
     return {"error": similarity_task.error_list}

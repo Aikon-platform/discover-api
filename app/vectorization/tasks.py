@@ -4,12 +4,15 @@ from datetime import datetime, timedelta
 import os
 import shutil
 
-from .const import VEC_QUEUE #, IMG_PATH
+from ..config import TIME_LIMIT
+from .const import VEC_QUEUE  # , IMG_PATH
 from .vectorization import LoggedComputeVectorization
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
-@dramatiq.actor(time_limit=1000 * 60 * 60, max_retries=0, store_results=True, queue_name=VEC_QUEUE)
+@dramatiq.actor(
+    time_limit=TIME_LIMIT, max_retries=0, store_results=True, queue_name=VEC_QUEUE
+)
 # @notifying TODO implement results return with notifying
 def compute_vectorization(
     experiment_id: str,

@@ -4,6 +4,7 @@ Region extraction tasks
 import dramatiq
 from typing import Optional
 
+from ..config import TIME_LIMIT
 from .const import EXT_QUEUE
 from .regions import ExtractRegions
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
@@ -11,7 +12,7 @@ from ..shared.dataset import Dataset
 
 
 @dramatiq.actor(
-    time_limit=1000 * 60 * 60, max_retries=0, queue_name=EXT_QUEUE, store_results=True
+    time_limit=TIME_LIMIT, max_retries=0, queue_name=EXT_QUEUE, store_results=True
 )
 @notifying
 def extract_objects(

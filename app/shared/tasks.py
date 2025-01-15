@@ -7,7 +7,7 @@ from dramatiq.middleware import CurrentMessage
 from typing import Optional, Callable, Dict, Any, List
 
 from .const import DEMO_NAME
-from .. import config
+from ..config import TIME_LIMIT, BASE_URL
 from ..shared.utils.logging import (
     notifying,
     TLogger,
@@ -76,7 +76,7 @@ class LoggedTask(LoggingTaskMixin):
 
 
 @dramatiq.actor(
-    time_limit=1000 * 60 * 60, max_retries=0, queue_name="queue_nb", store_results=True
+    time_limit=TIME_LIMIT, max_retries=0, queue_name="queue_nb", store_results=True
 )
 @notifying
 def abstract_task(
@@ -104,4 +104,4 @@ def abstract_task(
     task_instance.run_task()
 
     # json to be dispatch to frontend with @notifying
-    return {"result_url": f"{config.BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}
+    return {"result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}

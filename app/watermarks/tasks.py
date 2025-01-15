@@ -7,6 +7,8 @@ from typing import List, Dict, Optional
 import json
 import os
 
+from ..config import TIME_LIMIT
+
 from .const import (
     MODEL_PATHS,
     DEVICE,
@@ -171,7 +173,10 @@ def _pipeline(
 
 
 @dramatiq.actor(
-    time_limit=60000, max_retries=0, store_results=True, queue_name=WATERMARKS_QUEUE
+    time_limit=TIME_LIMIT,
+    max_retries=0,
+    store_results=True,
+    queue_name=WATERMARKS_QUEUE,
 )
 @notifying
 def pipeline(
@@ -181,7 +186,7 @@ def pipeline(
     compare_to: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
-    **kwargs
+    **kwargs,
 ):
     image = Image.open(image_path)
     compare_to = WatermarkSource(compare_to) if compare_to else None
