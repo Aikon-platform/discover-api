@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict
 
 from ..utils.logging import console
 
@@ -13,7 +13,26 @@ class Image:
     id: str
     src: str
     path: Path
+    metadata: dict[str, str] = None
     document: "Document" = None
+
+    def to_dict(self, relpath: Path) -> dict:
+        return {
+            "id": self.id,
+            "src": self.src,
+            "path": str(self.path.relative_to(relpath)),
+            "metadata": self.metadata,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict, document: "Document", relpath: Path) -> "Image":
+        return cls(
+            id=data["id"],
+            src=data["src"],
+            path=relpath / data["path"],
+            metadata=data.get("metadata", None),
+            document=document,
+        )
 
 
 def pdf_to_img(pdf_path, img_path, dpi=500, max_size=3000):
