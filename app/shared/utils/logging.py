@@ -519,6 +519,7 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
             logger.info(f"Starting task {fct.__name__}")
             current_task_id = getattr(logger, "_id", None)
             notify_url = kwargs.get("notify_url", None)
+            experiment_id = kwargs.get("experiment_id", None)
 
             def notify(event: str, **data):
                 if notify_url:
@@ -527,6 +528,7 @@ def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
                         json={
                             "event": event,
                             "tracking_id": current_task_id,
+                            "experiment_id": experiment_id,
                             **json.loads(json.dumps(data, default=serializer)),
                         },
                     )
@@ -609,15 +611,15 @@ class LoggingTaskMixin:
         return result
 
 
-def send_update(experiment_id, tracking_url, event, message):
-    # TODO delete
-    response = requests.post(
-        url=tracking_url,  # TODO delete
-        data={
-            "experiment_id": experiment_id,
-            "event": event,
-            "message": message or "",
-        },
-    )
-    response.raise_for_status()
-    return True
+# def send_update(experiment_id, tracking_url, event, message):
+#     # TODO delete
+#     response = requests.post(
+#         url=tracking_url,  # TODO delete
+#         data={
+#             "experiment_id": experiment_id,
+#             "event": event,
+#             "message": message or "",
+#         },
+#     )
+#     response.raise_for_status()
+#     return True

@@ -12,7 +12,7 @@ from ..shared.utils.logging import (
     notifying,
     TLogger,
     LoggerHelper,
-    send_update,
+    # send_update,
     LoggingTaskMixin,
 )
 
@@ -43,9 +43,9 @@ class LoggedTask(LoggingTaskMixin):
         self.error_list: List[str] = []
 
     def task_update(self, event: str, message: Optional[Any] = None) -> None:
-        if self.tracking_url:
-            # TODO delete
-            send_update(self.experiment_id, self.tracking_url, event, message)
+        # if self.tracking_url:
+        #     # TODO delete
+        #     send_update(self.experiment_id, self.tracking_url, event, message)
         if self.notifier:
             if event == "ERROR":
                 if message and isinstance(message, list):
@@ -104,4 +104,6 @@ def abstract_task(
     task_instance.run_task()
 
     # json to be dispatch to frontend with @notifying
-    return {"result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}
+    return {
+        "result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result",
+    }

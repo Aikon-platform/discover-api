@@ -46,6 +46,7 @@ def train_dti(
     notifier=None,
     **kwargs,
 ):
+    # TODO add notify_url in arguments
     """
     Train a DTI model
 
@@ -105,4 +106,6 @@ def train_dti(
 
             zipObj.write(file, file.relative_to(output_path))
 
-    return {"result_url": f"{BASE_URL}/clustering/{current_task_id}/result"}
+    return {
+        "result_url": f"{BASE_URL}/clustering/{current_task_id}/result",
+    }

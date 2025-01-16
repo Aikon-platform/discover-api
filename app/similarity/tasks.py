@@ -53,4 +53,6 @@ def compute_similarity(
             "annotations": similarity_task.results,
         }
 
-    return {"error": similarity_task.error_list}
+    return {
+        "error": similarity_task.error_list,
+    }

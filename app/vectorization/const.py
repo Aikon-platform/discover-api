@@ -13,6 +13,7 @@ VEC_QUEUE = "queue4"  # see docker-confs/supervisord.conf
 
 VEC_DATA_FOLDER = API_DATA_FOLDER / DEMO_NAME
 # VEC_XACCEL_PREFIX = Path(ENV("EXT_XACCEL_PREFIX", default="/media/vectorization-results"))
+VEC_XACCEL_PREFIX = f"{XACCEL_PREFIX}/{DEMO_NAME}"
 
 # IMG_PATH = VEC_DATA_FOLDER / "documents" / "images"
 VEC_RESULTS_PATH = VEC_DATA_FOLDER / "results"

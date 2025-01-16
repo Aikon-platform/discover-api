@@ -63,31 +63,31 @@ class ExtractRegions(LoggedTask):
             return False
         return True
 
-    def send_annotations(
-        self,
-        experiment_id: str,
-        annotation_file: Path,
-    ) -> bool:
-        """
-        Deprecated, used by AIKON TODO delete
-        """
-        if not self.notify_url:
-            self.error_list.append("Notify URL not provided")
-            return True
-
-        with open(annotation_file, "r") as f:
-            annotation_file = f.read()
-
-        response = requests.post(
-            url=f"{self.notify_url}/{self.dataset.uid}",
-            files={"annotation_file": annotation_file},
-            data={
-                "model": self.extraction_model,
-                "experiment_id": experiment_id,
-            },
-        )
-        response.raise_for_status()
-        return True
+    # def send_annotations(
+    #     self,
+    #     experiment_id: str,
+    #     annotation_file: Path,
+    # ) -> bool:
+    #     """
+    #     Deprecated, used by AIKON TODO delete
+    #     """
+    #     if not self.notify_url:
+    #         self.error_list.append("Notify URL not provided")
+    #         return True
+    #
+    #     with open(annotation_file, "r") as f:
+    #         annotation_file = f.read()
+    #
+    #     response = requests.post(
+    #         url=f"{self.notify_url}/{self.dataset.uid}",
+    #         files={"annotation_file": annotation_file},
+    #         data={
+    #             "model": self.extraction_model,
+    #             "experiment_id": experiment_id,
+    #         },
+    #     )
+    #     response.raise_for_status()
+    #     return True
 
     def process_img(self, img_path: Path, extraction_ref: str, doc_uid: str) -> bool:
         """
@@ -149,11 +149,6 @@ class ExtractRegions(LoggedTask):
             if success:
                 with open(annotation_file, "w") as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
-
-                success = self.send_annotations(
-                    self.experiment_id,
-                    annotation_file,
-                )
 
             return success
         except Exception as e:

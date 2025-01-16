@@ -5,7 +5,7 @@ import uuid
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH  # , IMG_PATH
+from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX  # , IMG_PATH
 
 from ..shared.utils.logging import console
 
@@ -50,7 +50,7 @@ def start_vectorization(client_id):
     documents = json_param.get("documents", {})
     model = json_param.get("model", None)
     # TODO unify
-    notify_url = json_param.get("notify_url", None) or json_param.get("callback", None)
+    notify_url = json_param.get("notify_url", None)
     tracking_url = json_param.get("tracking_url")
 
     return shared_routes.start_task(
@@ -130,6 +130,13 @@ def delete_and_relaunch(client_id):
                 "start_vectorization": "Directory deletion failed, vectorization not started.",
             }
         )
+
+
+@blueprint.route("<doc_id>/result", methods=["GET"])
+def result_vectorization(doc_id: str):
+    return shared_routes.result(
+        doc_id, VEC_RESULTS_PATH / doc_id, VEC_XACCEL_PREFIX, "zip"
+    )
 
 
 # TODO add clear_doc + clear_old_vectorization routes (see similarity.routes)

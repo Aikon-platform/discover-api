@@ -32,6 +32,7 @@ def extract_objects(
     :param dataset_uid: the dataset UID to process
     :param model: the model to use for extraction
     :param notify_url: the URL to notify the frontend
+    :param notifier:
     :param tracking_url: the URL to track the task TODO delete
     :param logger: the logger to use
     """

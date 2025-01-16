@@ -13,7 +13,7 @@ from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 @dramatiq.actor(
     time_limit=TIME_LIMIT, max_retries=0, store_results=True, queue_name=VEC_QUEUE
 )
-# @notifying TODO implement results return with notifying
+@notifying
 def compute_vectorization(
     experiment_id: str,
     documents: dict,
@@ -47,7 +47,7 @@ def compute_vectorization(
         notify_url=notify_url,
         tracking_url=tracking_url,
     )
-    vectorization_task.run_task()
+    return vectorization_task.run_task()
 
 
 @dramatiq.actor
