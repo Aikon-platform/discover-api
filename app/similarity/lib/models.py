@@ -2,7 +2,7 @@ import os, sys, torch
 from typing import Tuple, Callable, Any
 import orjson
 from torchvision.models.feature_extraction import create_feature_extractor
-from torchvision import models
+from torchvision import models, transforms
 from collections import OrderedDict
 
 from .vit import VisionTransformer
@@ -96,6 +96,15 @@ DEFAULT_MODEL_LOADERS = {
     "resnet34": _instantiate_resnet34,
 }
 
+DEFAULT_MODEL_TRANSFORMS = {
+    "resnet18_watermarks": transforms.Compose(
+        [
+            transforms.Resize((320, 320)),
+            transforms.Normalize(mean=[0.75, 0.70, 0.65], std=[0.14, 0.15, 0.16]),
+        ]
+    )
+}
+
 
 def download_model(model_name):
     os.makedirs(MODEL_PATH, exist_ok=True)
@@ -111,6 +120,17 @@ def get_model_path(model_name):
         download_model(model_name)
 
     return f"{MODEL_PATH}/{model_name}.pth"
+
+
+def get_transforms_for_model(model_name):
+    if model_name in DEFAULT_MODEL_TRANSFORMS:
+        return DEFAULT_MODEL_TRANSFORMS[model_name]
+    return transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
 
 def load_model(

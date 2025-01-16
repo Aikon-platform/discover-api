@@ -305,13 +305,19 @@ class Document:
 
             for crop in img["crops"]:
                 crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
+                crop_sum = ",".join(
+                    [f'{crop["relative"][k]:0.3f}' for k in ["x1", "y1", "x2", "y2"]]
+                )
 
                 crop_list.append(
                     Image(
                         id=crop["crop_id"],
                         src=source_info.src if source_info else crop_path.name,
                         path=crop_path,
-                        metadata=source_info.metadata if source_info else {},
+                        metadata={
+                            **(source_info.metadata if source_info else {}),
+                            "crop": crop_sum,
+                        },
                         document=self,
                     )
                 )

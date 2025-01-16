@@ -5,8 +5,6 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from typing import Iterable
 import orjson
-import os, time, re
-
 from scipy.spatial.distance import pdist, squareform
 
 from .const import SCORES_PATH, MODEL_PATH
@@ -20,6 +18,7 @@ from .lib.dataset import FileListDataset
 from .lib.features import FeatureExtractor
 from .lib import segswap
 from .lib.models import get_model_path
+from .lib.utils import AllTranspose
 
 from ..shared.dataset import Dataset, Image
 from ..shared.utils import get_device
@@ -28,7 +27,10 @@ from ..shared.utils.logging import serializer
 
 
 def compute_cosine_similarity(
-    features: np.ndarray, topk: int = COS_TOPK, groups: list[Iterable[int]] = None
+    features: np.ndarray,
+    topk: int = COS_TOPK,
+    groups: list[Iterable[int]] = None,
+    n_transpositions: int = 1,
 ):
     """
     Compute the cosine similarity between all pairs of images in the dataset
@@ -37,14 +39,33 @@ def compute_cosine_similarity(
         features (np.ndarray): The features of the images (n_img, n_feat)
         topk (int): The number of best matches to return
         groups (list[Iterable[int]]): Ranges of indices for each document (default: None)
+        n_transpositions (int): features[i:i+n_transpositions] will be considered as referring to the same image
 
     Returns:
-        A list of unique pairs (k_i, k_j, sim) where k_i and k_j are feature indices
+        A list of unique pairs (k_i, k_j, sim, tr_i, tr_j) where k_i and k_j are feature indices,
+        and tr_i and tr_j correspond to the transposition of the best match
     """
     if groups is None:
         groups = [range(len(features))]
 
     all_mat = squareform(pdist(features, metric="cosine"))
+    n_img = features.shape[0]
+
+    if n_transpositions > 1:
+        assert n_img % n_transpositions == 0
+        n_img //= n_transpositions
+        all_mat = (
+            all_mat.reshape(n_img, n_transpositions, n_img, n_transpositions)
+            .transpose(0, 2, 1, 3)
+            .reshape(n_img, n_img, n_transpositions * n_transpositions)
+        )
+        min_tr = all_mat.argmin(axis=2, keepdims=True)
+        all_mat = np.take_along_axis(all_mat, min_tr, axis=2).squeeze(axis=2)
+        min_tr_i, min_tr_j = np.divmod(min_tr.squeeze(axis=2), n_transpositions)
+    else:
+        min_tr_i = np.zeros_like(all_mat)
+        min_tr_j = min_tr_i
+
     np.fill_diagonal(all_mat, 1000)
 
     all_pairs: set[tuple[int, int, float]] = set()
@@ -55,7 +76,13 @@ def compute_cosine_similarity(
             mat = all_mat[group1][:, group2]
             tops = np.argsort(mat, axis=1)[:, :topk]
             all_pairs |= set(
-                (min(group1[i], group2[j]), max(group1[i], group2[j]), 1.0 - mat[i, j])
+                (
+                    min(group1[i], group2[j]),
+                    max(group1[i], group2[j]),
+                    1.0 - mat[i, j],
+                    int(min_tr_i[i, j]),
+                    int(min_tr_j[i, j]),
+                )
                 for i, row in enumerate(tops)
                 for j in row
                 if group1[i] != group2[j]
@@ -184,6 +211,11 @@ class ComputeSimilarity(LoggedTask):
         # If so, how many best matches should be kept (TODO check if it is not cosine_n_filter)
         self.segswap_n = parameters.get("segswap_n", COS_TOPK)
 
+        self.raw_transpositions: list[str] = parameters.get("transpositions", ["none"])
+        self.transpositions = [
+            getattr(AllTranspose, t.upper()) for t in self.raw_transpositions
+        ]
+
         self.device = get_device()
 
     @torch.no_grad()
@@ -198,21 +230,20 @@ class ComputeSimilarity(LoggedTask):
 
         img_dataset = FileListDataset(
             data_paths=source_images,
-            transform=transforms.Compose(
-                [
-                    transforms.Resize((224, 224)),
-                    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
-                ]
-            ),
+            transform=extractor.transforms,
             device=self.device,
+            transpositions=self.transpositions,
         )
 
         data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
+        cache_id = (
+            f"{self.dataset.uid}@{''.join(str(t.value) for t in self.transpositions)}"
+        )
 
         features = extractor.extract_features(
             data_loader,
             cache_dir=self.dataset.path / "features",
-            cache_id=self.dataset.uid,
+            cache_id=cache_id,
         )
 
         if not features.numel():
@@ -280,8 +311,12 @@ class ComputeSimilarity(LoggedTask):
                 "images": [
                     {**im.to_dict(), "doc_uid": im.document.uid} for im in source_images
                 ],
+                "transpositions": self.raw_transpositions,
             },
-            "pairs": [(im_i, im_j, round(float(sim), 4)) for im_i, im_j, sim in pairs],
+            "pairs": [
+                (im_i, im_j, round(float(sim), 4), tr_i, tr_j)
+                for im_i, im_j, sim, tr_i, tr_j in pairs
+            ],
         }
 
         return output_json
@@ -303,7 +338,10 @@ class ComputeSimilarity(LoggedTask):
 
         # TODO skip this step if self.algorithm == "segswap" && self.segswap_prefilter == false
         pairs = compute_cosine_similarity(
-            features.cpu().numpy(), topk=self.topk, groups=source_doc_ranges
+            features.cpu().numpy(),
+            topk=self.topk,
+            groups=source_doc_ranges,
+            n_transpositions=len(self.transpositions),
         )
 
         if self.algorithm == "segswap":

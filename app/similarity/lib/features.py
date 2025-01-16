@@ -1,16 +1,12 @@
 import os
-import sys
 
 from pathlib import Path
 import torch
-from torchvision import models
-from collections import OrderedDict
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 
 from .const import FEAT_NET
-from .models import load_model
-from .vit import VisionTransformer
+from .models import load_model, get_transforms_for_model
 from ...shared.utils.logging import console
 
 
@@ -27,6 +23,7 @@ class FeatureExtractor:
         self.extractor_label = f"{self.feat_net}"
         self.device = device
         self.model = None
+        self.transforms = get_transforms_for_model(self.feat_net)
 
     def initialize(self):
         if self.model is not None:

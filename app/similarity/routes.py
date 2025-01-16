@@ -88,6 +88,7 @@ def start_similarity(client_id):
                 "feat_layer": "layer",
                 "segswap_prefilter": true, # if algorithm is "segswap"
                 "segswap_n": 0, # if algorithm is "segswap"
+                "transpositions": ["none", "rot90"]
             }
         }
     """
@@ -109,6 +110,7 @@ def start_similarity(client_id):
         "cosine_n_filter": param.get("cosine_n_filter", 10),
         "segswap_prefilter": param.get("segswap_prefilter", True),
         "segswap_n": param.get("segswap_n", 10),
+        "transpositions": param.get("transpositions", ["none"]),
         "client_id": client_id,
     }
 

@@ -1,6 +1,19 @@
 import os
 import sys
 from itertools import combinations_with_replacement
+from enum import Enum
+from PIL.Image import Transpose
+
+
+class AllTranspose(Enum):
+    NONE = -1
+    HFLIP = Transpose.FLIP_LEFT_RIGHT.value
+    VFLIP = Transpose.FLIP_TOP_BOTTOM.value
+    ROT90 = Transpose.ROTATE_90.value
+    ROT180 = Transpose.ROTATE_180.value
+    ROT270 = Transpose.ROTATE_270.value
+    # TRANSPOSE = Transpose.TRANSPOSE
+    # TRANSVERSE = Transpose.TRANSVERSE
 
 
 def doc_pairs(doc_ids: list):
