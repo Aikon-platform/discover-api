@@ -32,6 +32,63 @@ import requests
 T = TypeVar("T")
 
 
+def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    A decorator to notify the task of the progress of a function
+    Sends back to frontend the results returned be the task when it is done
+    Gives the task a logger and a notifier to log/notify its progress as a kwarg
+
+    Raised exceptions are dispatched as ERROR events to frontend
+
+    Statuses:
+    - STARTED indicates that the task has been triggered
+    - PROGRESS when intermediary results are dispatched to the frontend but task is not done
+    - SUCCESS indicates that the task has completed successfully
+    - ERROR indicates that the task has failed because an Exception was raised
+            (if notify("ERROR", ..., completed=False) => AIKON doesn't trigger the end of the task)
+    """
+
+    @functools.wraps(func)
+    def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fct)
+        def execute(*args, **kwargs):
+            logger = JobLogger.getLogger(create=True)
+            logger.info(f"Starting task {fct.__name__}")
+            current_task_id = getattr(logger, "_id", None)
+            notify_url = kwargs.get("notify_url", None)
+            experiment_id = kwargs.get("experiment_id", None)
+
+            def notify(event: str, **data):
+                if notify_url:
+                    requests.post(
+                        notify_url,
+                        json={
+                            "event": event,
+                            "tracking_id": current_task_id,
+                            "experiment_id": experiment_id,
+                            **json.loads(json.dumps(data, default=serializer)),
+                        },
+                    )
+
+            try:
+                notify("STARTED")
+                result = fct(*args, **kwargs, logger=logger, notifier=notify)
+                # dispatch result to frontend
+                notify("SUCCESS", success=True, output=result)
+
+                return result
+            except Exception as e:
+                logger.error(f"Error in task {fct.__name__}", exception=e)
+                try:
+                    notify("ERROR", error=traceback.format_exc(), completed=True)
+                except Exception as e:
+                    logger.error("Error while notifying", exception=e)
+
+        return execute
+
+    return wrapper if func is None else wrapper(func)
+
+
 def serializer(obj):
     if isinstance(obj, Path):
         return str(obj)
@@ -502,54 +559,6 @@ class JobLogger:
             mininterval=rate_limit,
             total=total,
         )
-
-
-def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
-    """
-    A decorator to notify the task of the progress of a function
-    Sends back to frontend the results returned be the task when it is done
-    Gives the task a logger to log its progress as a kwarg
-    """
-
-    @functools.wraps(func)
-    def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(fct)
-        def execute(*args, **kwargs):
-            logger = JobLogger.getLogger(create=True)
-            logger.info(f"Starting task {fct.__name__}")
-            current_task_id = getattr(logger, "_id", None)
-            notify_url = kwargs.get("notify_url", None)
-            experiment_id = kwargs.get("experiment_id", None)
-
-            def notify(event: str, **data):
-                if notify_url:
-                    requests.post(
-                        notify_url,
-                        json={
-                            "event": event,
-                            "tracking_id": current_task_id,
-                            "experiment_id": experiment_id,
-                            **json.loads(json.dumps(data, default=serializer)),
-                        },
-                    )
-
-            try:
-                notify("STARTED")
-                result = fct(*args, **kwargs, logger=logger, notifier=notify)
-                # dispatch results to frontend
-                notify("SUCCESS", success=True, output=result)
-
-                return result
-            except Exception as e:
-                logger.error(f"Error in task {fct.__name__}", exception=e)
-                try:
-                    notify("ERROR", error=traceback.format_exc())
-                except Exception as e:
-                    logger.error("Error while notifying", exception=e)
-
-        return execute
-
-    return wrapper if func is None else wrapper(func)
 
 
 class LoggedResults(Results):

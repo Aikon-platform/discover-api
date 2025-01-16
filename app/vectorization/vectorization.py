@@ -1,4 +1,4 @@
-import io
+import traceback
 import zipfile
 
 import requests
@@ -9,11 +9,10 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import BASE_URL
-from ..shared.utils.fileutils import download_file, has_content
-from ..shared.utils.img import download_img, get_img_paths
-from ..shared.utils.logging import LoggingTaskMixin, send_update
+from ..shared.tasks import LoggedTask
+from ..shared.utils.fileutils import download_file
+from ..shared.utils.logging import TLogger
 from .const import (
-    MAX_SIZE,
     MODEL_CONFIG,
     MODEL_CHECKPOINT,
     VEC_RESULTS_PATH,
@@ -48,25 +47,12 @@ def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_C
     return model, postprocessors
 
 
-class ComputeVectorization:
-    def __init__(
-        self,
-        experiment_id: str,
-        documents: dict,
-        model: Optional[str] = None,
-        notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
-    ):
-        self.experiment_id = experiment_id
+class ComputeVectorization(LoggedTask):
+    def __init__(self, documents: dict, model: Optional[str] = None, **kwargs):
+        super().__init__(**kwargs)
         self.documents = documents
         self.model = model
-        self.notify_url = notify_url
-        self.tracking_url = tracking_url
-        self.client_id = "default"
         self.imgs = []
-
-    def run_task(self):
-        pass
 
     def check_dataset(self):
         # TODO add more checks
@@ -74,14 +60,11 @@ class ComputeVectorization:
             return False
         return True
 
-
-class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
     def run_task(self):
         if not self.check_dataset():
             self.print_and_log_warning(f"[task.vectorization] No documents to download")
             raise ValueError(f"[task.vectorization] No documents to download")
 
-        error_list = []
         results = {}
 
         try:
@@ -110,14 +93,16 @@ class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
                     #         pred_dict=preds,
                     #         pred_dir=output_dir,
                     #     )
-                    results[doc_id] = self.create_zip(doc_id)
+                    doc_result = {doc_id: self.create_zip(doc_id)}
+                    self.notifier("PROGRESS", doc_result)
+                    results.update(doc_result)
                 except Exception as e:
-                    error_list.append(f"{e}")
+                    self.notifier(
+                        "ERROR", error=traceback.format_exc(), completed=False
+                    )
+                    self.error_list.append(f"{e}")
 
-            results["errors"] = error_list
-            # TODO find a way to send zips as they are processed
-            #  (issue is that when one result is sent, it triggers task_success on front end
-            #  while not all document are processed)
+            results.update({"error": self.error_list})
             return results
 
         except Exception as e:

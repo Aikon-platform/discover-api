@@ -12,7 +12,6 @@ from ..shared.utils.logging import (
     notifying,
     TLogger,
     LoggerHelper,
-    # send_update,
     LoggingTaskMixin,
 )
 
@@ -20,6 +19,12 @@ from ..shared.utils.logging import (
 class LoggedTask(LoggingTaskMixin):
     """
     Base class for tasks that need to log their progress and errors
+    - experiment_id: the ID of the vecto task
+    - notify_url: the URL to be called when the task is finished
+
+    added by @notifying decorator
+    - logger: a logger object
+    - notifier: notify() function that can be used to send event updates to the frontend
     """
 
     def __init__(
@@ -27,7 +32,6 @@ class LoggedTask(LoggingTaskMixin):
         logger: TLogger,
         experiment_id: str,
         notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
         notifier: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         *args,
         **kwargs,
@@ -36,16 +40,14 @@ class LoggedTask(LoggingTaskMixin):
         self.experiment_id = experiment_id
         # Frontend endpoint to sends results and task events to
         self.notify_url = notify_url
-        # Frontend endpoint to sends task events to (used only in AIKON) => TODO unify with notify_url
         # Discover-demo frontend uses /status endpoint to retrieve task message (@dramatiq.store_results=True)
-        self.tracking_url = tracking_url  # TODO delete
+
+        # notify() function to send any event to frontend
         self.notifier = notifier
+
         self.error_list: List[str] = []
 
     def task_update(self, event: str, message: Optional[Any] = None) -> None:
-        # if self.tracking_url:
-        #     # TODO delete
-        #     send_update(self.experiment_id, self.tracking_url, event, message)
         if self.notifier:
             if event == "ERROR":
                 if message and isinstance(message, list):
@@ -82,10 +84,9 @@ class LoggedTask(LoggingTaskMixin):
 def abstract_task(
     experiment_id: str,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,  # TODO delete
     logger: TLogger = LoggerHelper,
     notifier=None,
-    **kwargs,
+    **task_kwargs,  # Replace with extra parameters needed for the task
 ):
     """
     Template for a task (see the source code)
@@ -94,16 +95,15 @@ def abstract_task(
     current_task_id = current_task.message_id
 
     task_instance = LoggedTask(
-        # Add here the extra parameters needed for the task
         logger=logger,
         experiment_id=experiment_id,
         notify_url=notify_url,
-        tracking_url=tracking_url,
         notifier=notifier,
+        **task_kwargs,  # Replace with extra parameters needed for the task
     )
     task_instance.run_task()
 
-    # json to be dispatch to frontend with @notifying
+    # json to be dispatch to frontend with @notifying, triggering SUCCESS event
     return {
         "result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result",
     }
