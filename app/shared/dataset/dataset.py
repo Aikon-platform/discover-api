@@ -39,13 +39,16 @@ class Dataset:
         path: Union[Path, str] = None,
         documents: Optional[List[dict]] = None,
         load: bool = False,
-        crops: Optional[List[dict]] = None
+        crops: Optional[List[dict]] = None,
     ):
         """
         Create a new dataset
         """
         if isinstance(documents, dict):  # legacy AIKON format
-            documents = [{"uid": uid, "src": src, "type": "url_list"} for uid, src in documents.items()]
+            documents = [
+                {"uid": uid, "src": src, "type": "url_list"}
+                for uid, src in documents.items()
+            ]
 
         crops_uid = None
         if crops:
@@ -54,10 +57,14 @@ class Dataset:
         self.crops = crops
 
         if uid is None:
-            assert documents is not None, "Documents must be provided when no UID is provided"
+            assert (
+                documents is not None
+            ), "Documents must be provided when no UID is provided"
             base_uid = hash_str("".join([doc["src"] for doc in documents]))
         else:
-            assert documents is None, "Documents are not supported when providing a custom UID"
+            assert (
+                documents is None
+            ), "Documents are not supported when providing a custom UID"
             assert crops is None, "Crops are not supported when providing a custom UID"
             if "@" in uid:
                 base_uid, crops_uid = uid.split("@", 1)
@@ -76,9 +83,9 @@ class Dataset:
         if load:
             self.load()
         else:
-            self.documents: Optional[List[Document]] = [
-                Document.from_dict(doc) for doc in documents
-            ] if documents else None
+            self.documents: Optional[List[Document]] = (
+                [Document.from_dict(doc) for doc in documents] if documents else None
+            )
 
     @property
     def uid(self) -> str:
@@ -168,7 +175,7 @@ class Dataset:
         Prepare the dataset for processing
 
         Returns:
-            A mapping of filenames to URLs
+            A list of images or crops
         """
         im_list = []
         crop_list = []

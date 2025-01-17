@@ -7,7 +7,14 @@ import requests
 from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
-from ..shared.dataset import Document, Dataset
+from ..shared.dataset import Document, Dataset, Image as DImage
+
+EXTRACTOR_POSTPROCESS_KWARGS = {
+    "watermarks": {
+        "squarify": True,
+        "margin": 0.05,
+    },
+}
 
 
 class ExtractRegions(LoggedTask):
@@ -19,7 +26,14 @@ class ExtractRegions(LoggedTask):
         model (str, optional): The model to use for extraction (default: DEFAULT_MODEL)
     """
 
-    def __init__(self, dataset: Dataset, model: Optional[str] = None, *args, **kwargs):
+    def __init__(
+        self,
+        dataset: Dataset,
+        model: Optional[str] = None,
+        postprocess: Optional[str] = None,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.dataset = dataset
         self._model = model
@@ -27,15 +41,17 @@ class ExtractRegions(LoggedTask):
         self.result_dir = Path()
         self.annotations = {}
         self.extractor = None
+        print("POSTPROCESS", postprocess)
+        self.extractor_kwargs = EXTRACTOR_POSTPROCESS_KWARGS.get(postprocess, {})
 
     def initialize(self):
         """
         Initialize the extractor, based on the model's name prefix
         """
         if self.model.startswith(("rcnn", "fasterrcnn")):
-            self.extractor = FasterRCNNExtractor(self.weights)
+            self.extractor = FasterRCNNExtractor(self.weights, **self.extractor_kwargs)
         else:
-            self.extractor = YOLOExtractor(self.weights)
+            self.extractor = YOLOExtractor(self.weights, **self.extractor_kwargs)
 
     def terminate(self):
         """
@@ -63,45 +79,18 @@ class ExtractRegions(LoggedTask):
             return False
         return True
 
-    # def send_annotations(
-    #     self,
-    #     experiment_id: str,
-    #     annotation_file: Path,
-    # ) -> bool:
-    #     """
-    #     Deprecated, used by AIKON TODO delete
-    #     """
-    #     if not self.notify_url:
-    #         self.error_list.append("Notify URL not provided")
-    #         return True
-    #
-    #     with open(annotation_file, "r") as f:
-    #         annotation_file = f.read()
-    #
-    #     response = requests.post(
-    #         url=f"{self.notify_url}/{self.dataset.uid}",
-    #         files={"annotation_file": annotation_file},
-    #         data={
-    #             "model": self.extraction_model,
-    #             "experiment_id": experiment_id,
-    #         },
-    #     )
-    #     response.raise_for_status()
-    #     return True
-
-    def process_img(self, img_path: Path, extraction_ref: str, doc_uid: str) -> bool:
+    def process_img(self, img: DImage, extraction_ref: str, doc_uid: str) -> bool:
         """
         Process a single image, appends the annotations to self.annotations[extraction_ref]
         """
-        filename = img_path.name
         try:
-            self.print_and_log(f"====> Processing {filename} 🔍")
-            anno = self.extractor.extract_one(img_path)
+            self.print_and_log(f"====> Processing {img.path.name} 🔍")
+            anno = self.extractor.extract_one(img)
             anno["doc_uid"] = doc_uid
             self.annotations[extraction_ref].append(anno)
             return True
         except Exception as e:
-            self.handle_error(f"Error processing image {filename}", exception=e)
+            self.handle_error(f"Error processing image {img.path.name}", exception=e)
             return False
 
     def process_doc_imgs(self, doc: Document, extraction_ref: str) -> bool:
@@ -114,7 +103,7 @@ class ExtractRegions(LoggedTask):
             for i, image in enumerate(
                 self.jlogger.iterate(images, "Analyzing images"), 1
             ):
-                success = self.process_img(image.path, extraction_ref, doc.uid)
+                success = self.process_img(image, extraction_ref, doc.uid)
                 if not success:
                     self.handle_error(f"Failed to process {image}")
         except Exception as e:
