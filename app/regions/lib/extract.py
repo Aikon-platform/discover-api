@@ -5,13 +5,12 @@ import torch
 from torchvision import transforms
 from PIL import Image
 from typing import Tuple
-import numpy as np
 
 from ultralytics.utils.plotting import Annotator, colors
 from .bbox import Segment
 
 from .yolov5.models.common import DetectMultiBackend
-from .yolov5.utils.dataloaders import IMG_FORMATS
+from .yolov5.utils.dataloaders import IMG_FORMATS, LoadImages
 from .yolov5.utils.general import (
     check_file,
     check_img_size,
@@ -19,11 +18,9 @@ from .yolov5.utils.general import (
     non_max_suppression,
     scale_boxes,
 )
-from .yolov5.utils.augmentations import letterbox
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
 
 from ...shared.utils.fileutils import TPath
-from ...shared.dataset import Image as DImage
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[0]  # YOLOv5 root directory
@@ -63,14 +60,12 @@ def setup_source(source: TPath) -> str:
 
 
 class ImageAnnotator:
-    def __init__(self, image: DImage, img_w: int = None, img_h: int = None):
-        path = image.path
+    def __init__(self, path: TPath, img_w: int = None, img_h: int = None):
         if img_w is None or img_h is None:
             img_w, img_h = get_img_dim(path)
 
         self.annotations = {
-            "source": image.id,
-            "source_info": image.to_dict(),
+            "source": Path(path).name,
             "width": img_w,
             "height": img_h,
             "crops": [],
@@ -121,136 +116,95 @@ class BaseExtractor:
     A base class for extracting regions from images
     """
 
-    DEFAULT_IMG_SIZES = [640]  # used for multiscale inference
+    DEFAULT_IMG_SIZE = (640, 640)
 
-    def __init__(
-        self,
-        weights: TPath,
-        device: str = "cpu",
-        input_sizes: list[int] = None,
-        squarify: bool = False,
-        margin: float = 0.0,
-    ):
+    def __init__(self, weights: TPath, device: str = "cpu", imgsz=None):
         self.weights = weights
         self.device = torch.device(device)
-        self.input_sizes = (
-            input_sizes if input_sizes is not None else self.DEFAULT_IMG_SIZES
-        )
+        self.imgsz = imgsz if imgsz is not None else self.DEFAULT_IMG_SIZE
         self.model = self.get_model()
-        self.squarify = squarify
-        self.margin = margin
 
     def get_model(self):
         raise NotImplementedError()
 
     @smart_inference_mode()
-    def extract_one(self, img: DImage, save_img: bool = False):
+    def extract_one(self, img_path: TPath):
         raise NotImplementedError()
 
     @smart_inference_mode()
     def prepare_image(self, im):
         return transforms.ToTensor()(im).unsqueeze(0).to(self.device)
 
-    @smart_inference_mode()
-    def process_detections(
-        self,
-        detections: torch.Tensor,
-        image_tensor: torch.Tensor,
-        original_image: np.array,
-        save_img: bool,
-        source: TPath,
-        writer: ImageAnnotator,
-        class_names_examples: str = "abc",
-    ) -> bool:
-        annotator = (
-            Annotator(original_image, line_width=2, example=str(class_names_examples))
-            if save_img
-            else None
-        )
-
-        if not len(detections):
-            return False
-
-        img_h, img_w = original_image.shape[:2]
-
-        # Rescale boxes from img_size to im0 size
-        detections[:, :4] = scale_boxes(
-            image_tensor.shape[2:], detections[:, :4], original_image.shape
-        ).round()
-
-        # Write results
-        for *xyxy, conf, cls in reversed(detections):
-            # Extract coordinates
-            x, y, w, h = (xyxy[0], xyxy[1], xyxy[2] - xyxy[0], xyxy[3] - xyxy[1])
-
-            if self.squarify:
-                s = min(max(w, h), img_w, img_h)
-                x -= (s - w) // 2
-                y -= (s - h) // 2
-                w = h = s
-
-            if self.margin > 0 or self.squarify:
-                x -= w * self.margin
-                y -= h * self.margin
-                w += 2 * self.margin * w
-                h += 2 * self.margin * h
-
-            w = min(w, img_w)
-            h = min(h, img_h)
-            x = min(max(0, x), img_w - w)
-            y = min(max(0, y), img_h - h)
-
-            x, y, w, h = int(x), int(y), int(w), int(h)
-            writer.add_region(x, y, w, h, float(conf))
-
-            if save_img:
-                c = int(cls)
-                label = (
-                    None
-                    if HIDE_LABEL
-                    else (
-                        class_names_examples[c]
-                        if HIDE_CONF
-                        else f"{class_names_examples[c]} {conf:.2f}"
-                    )
-                )
-                annotator.box_label(xyxy, label, color=colors(c, True))
-
-        if save_img:
-            output_path = str(Path(source).parent / f"extracted_{Path(source).name}")
-            cv2.imwrite(output_path, annotator.result())
-
-        return True
-
 
 class YOLOExtractor(BaseExtractor):
-    DEFAULT_IMG_SIZES = [640]  # used for multiscale inference
-
     def get_model(self):
         self.device = select_device(self.device)
         return DetectMultiBackend(self.weights, device=self.device, fp16=False)
-
+    
     def prepare_image(self, im):
-        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(
-            0
-        )  # no need to swap axes
+        return (torch.from_numpy(im).to(self.device).float() / 255.0).unsqueeze(0)  # no need to swap axes
 
     @smart_inference_mode()
-    def extract_one(self, img: DImage, save_img: bool = False):
-        img_path = img.path
+    def process_detections(
+        self,
+        det,
+        im: torch.Tensor,
+        im0s,
+        names,
+        save_img: bool,
+        source: TPath,
+        writer: ImageAnnotator,
+    ):
+        annotator = (
+            Annotator(im0s, line_width=2, example=str(names)) if save_img else None
+        )
+
+        if len(det):
+            # Rescale boxes from img_size to im0 size
+            det[:, :4] = scale_boxes(im.shape[2:], det[:, :4], im0s.shape).round()
+
+            # Write results
+            for *xyxy, conf, cls in reversed(det):
+                # Extract coordinates
+                x, y, w, h = (
+                    int(xyxy[0]),
+                    int(xyxy[1]),
+                    int(xyxy[2] - xyxy[0]),
+                    int(xyxy[3] - xyxy[1]),
+                )
+
+                writer.add_region(x, y, w, h, float(conf))
+
+                if save_img:
+                    c = int(cls)
+                    label = (
+                        None
+                        if HIDE_LABEL
+                        else (names[c] if HIDE_CONF else f"{names[c]} {conf:.2f}")
+                    )
+                    annotator.box_label(xyxy, label, color=colors(c, True))
+
+            if save_img:
+                output_path = str(
+                    Path(source).parent / f"extracted_{Path(source).name}"
+                )
+                cv2.imwrite(output_path, annotator.result())
+
+    @smart_inference_mode()
+    def extract_one(self, img_path, save_img: bool = False):
         source = setup_source(img_path)
 
         stride, names, pt = self.model.stride, self.model.names, self.model.pt
-        im0 = cv2.imread(img_path)
-        writer = ImageAnnotator(img, img_w=im0.shape[1], img_h=im0.shape[0])
+        imgsz = check_img_size(self.imgsz, s=stride)
 
-        for s in self.input_sizes:
-            imgsz = check_img_size([s, s], s=stride)
-            self.model.warmup(imgsz=(1 if pt or self.model.triton else 1, 3, *imgsz))
+        dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt)
 
-            im = letterbox(im0, imgsz, stride=stride, auto=True)[0]  # padded resize
-            im = im.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
-            im = np.ascontiguousarray(im)
+        self.model.warmup(imgsz=(1 if pt or self.model.triton else 1, 3, *imgsz))
+        assert len(dataset) == 1, f"Error: {len(dataset)} images found, expected 1"
+
+        for i, (path, im, im0s, vid_cap, s) in enumerate(dataset, start=1):
+            assert i == 1, "Error: Multiple images not supported"
+            writer = ImageAnnotator(path, img_w=im0s.shape[1], img_h=im0s.shape[0])
 
             im = self.prepare_image(im)
             pred = self.model(im, augment=False)
@@ -258,85 +212,55 @@ class YOLOExtractor(BaseExtractor):
                 pred, CONF_THRES, IOU_THRES, None, False, max_det=1000
             )
 
-            if self.process_detections(
-                pred[0], im, im0, save_img, source, writer, class_names_examples=names
-            ):
-                break
+            for det in pred:
+                self.process_detections(det, im, im0s, names, save_img, source, writer)
 
         return writer.annotations
 
 
 class FasterRCNNExtractor(BaseExtractor):
-    DEFAULT_IMG_SIZES = [800, 1400, 2000]  # used for multiscale inference
+    DEFAULT_IMG_SIZE = [800, 1400, 2000]  # used for multiscale inference
 
     def get_model(self):
         model = torch.load(self.weights, map_location=self.device).eval()
         return model
 
-    def cleanup_detections(self, boxes, scores, labels, img):
-        # Remove low confidence detections
-        mask = scores > 0.4
-        boxes, scores, labels = boxes[mask], scores[mask], labels[mask]
+    @smart_inference_mode()
+    def process_detections(
+        self,
+        boxes: torch.Tensor,
+        scores: torch.Tensor,
+        im0s: Image.Image,
+        im: torch.Tensor,
+        writer: ImageAnnotator,
+    ):
+        boxes[:, :4] = scale_boxes(im.shape[2:], boxes[:, :4], im0s.size[::-1]).round()
 
-        output = []
-        crops = []
-        # Remove overlapping boxes
-        for k, box in enumerate(boxes):
-            x0, y0, x1, y1 = [float(f) for f in box]
-            # rescale to original size
-            sx, sy = img.shape[-1], img.shape[-2]
-            x0, y0, x1, y1 = x0 / sx, y0 / sy, x1 / sx, y1 / sy
-            x0, y0, x1, y1 = np.clip([x0, y0, x1, y1], 0, 1)
-            oarea = (x1 - x0) * (y1 - y0)
-            if oarea < 0.01:
-                continue
-            # compute intersections with previous crops
-            ignore = False
-            for crop in crops:
-                x0_, y0_, x1_, y1_ = crop["box"]
-                intersect = (max(x0, x0_), max(y0, y0_), min(x1, x1_), min(y1, y1_))
-                if intersect[2] < intersect[0] or intersect[3] < intersect[1]:
-                    continue
-                area = (intersect[2] - intersect[0]) * (intersect[3] - intersect[1])
-                if area / oarea > 0.5:
-                    ignore = True
-                    print(
-                        f"Ignoring box {k} overlapping box {crop['k']} by {area/oarea:0.2f}"
-                    )
-                    break
-            if ignore:
-                continue
-            crops.append({"k": k, "box": (x0, y0, x1, y1)})
-            output.append((x0 * sx, y0 * sy, x1 * sx, y1 * sy, scores[k], labels[k]))
-
-        return torch.tensor(output)
+        for box, score in zip(boxes, scores):
+            if score < 0.3:
+                break
+            x1, y1, x2, y2 = box
+            writer.add_region(int(x1), int(y1), int(x2 - x1), int(y2 - y1), float(score))
 
     @smart_inference_mode()
-    def extract_one(self, img: DImage, save_img: bool = False):
-        img_path = img.path
+    def extract_one(self, img_path: TPath):
         source = setup_source(img_path)
 
-        original_image = Image.open(source).convert("RGB")
-        writer = ImageAnnotator(
-            img, img_w=original_image.size[0], img_h=original_image.size[1]
-        )
+        im0s = Image.open(source).convert("RGB")
+        writer = ImageAnnotator(source, img_w=im0s.size[0], img_h=im0s.size[1])
 
-        for size in self.input_sizes:
-            resized_image = original_image.copy()
-            resized_image.thumbnail((size, size))
+        for size in self.imgsz:
+            im = im0s.copy()
+            im.thumbnail((size, size))
 
-            resized_image = self.prepare_image(resized_image)
-            preds = self.model(resized_image)
+            im = self.prepare_image(im)
+            preds = self.model(im)
 
             boxes = preds[0]["boxes"].cpu().numpy()
             scores = preds[0]["scores"].cpu().numpy()
-            labels = preds[0]["labels"].cpu().numpy()
 
-            preds = self.cleanup_detections(boxes, scores, labels, resized_image)
-
-            if self.process_detections(
-                preds, resized_image, np.array(original_image), save_img, source, writer
-            ):
+            if scores[0] > 0.4:
                 break
 
+        self.process_detections(boxes, scores, im0s, im, writer)
         return writer.annotations

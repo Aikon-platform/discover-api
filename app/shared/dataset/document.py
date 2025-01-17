@@ -47,30 +47,22 @@ class Document:
                 - ...jpg
             - annotations/
                 - ...json
-            - images.json
+            - mapping.json
     """
 
-    def __init__(
-        self,
-        uid: str = None,
-        dtype: str = "zip",
-        path: Path | str = None,
-        src: Optional[str] = None,
-    ):
+    def __init__(self, uid: str = None, dtype: str = "zip", path: Path | str = None, src: Optional[str] = None):
         self.uid = sanitize_str(uid if uid is not None else src)
         self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / uid)
         self.src = src
         self.dtype = dtype
-        self._images = []
+        self._mapping = {}  # A mapping of filenames to their URLs
 
     @classmethod
     def from_dict(cls, doc_dict: dict) -> "Document":
         """
         Create a new Document from a dictionary
         """
-        return Document(
-            doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]
-        )
+        return Document(doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"])
 
     def to_dict(self, with_url: bool = False) -> dict:
         """
@@ -113,63 +105,71 @@ class Document:
         return self.path / "annotations"
 
     @property
-    def images_info_path(self):
-        return self.path / "images.json"
+    def mapping_path(self):
+        return self.path / "mapping.json"
 
     @property
-    def images(self):
+    def mapping(self):
         """
-        List of images in the document
+        uid is the filename of the image
+        A mapping image filenames -> {
+            uid: url/relative_path
+        }
         """
-        if len(self._images) == 0:
-            self.load_images()
-        return self._images
+        if len(self._mapping) == 0:
+            self._load_mapping()
+        return self._mapping
 
-    def save_images(self, images: List[Image]):
+    def _save_mapping(self):
         """
-        Save the images of the document
+        Save the mapping of the document to a JSON file
         """
-        self._images = images
-        with open(self.images_info_path, "w") as f:
-            json.dump([img.to_dict() for img in images], f, default=serializer)
+        with open(self.mapping_path, "w") as f:
+            json.dump(self._mapping, f, default=serializer)
 
-    def load_images(self):
+    def _extend_mapping(self, mapping: dict):
         """
-        Load the images of the document
+        Extend the mapping of the document with a new mapping
         """
-        if not self.images_info_path.exists():
-            # TODO save it? or regenerate on each load?
-            self._images = self.list_images_from_path()
+        self._mapping.update(mapping)
+        self._save_mapping()
+
+    def _set_mapping_from_images(self):
+        """
+        Get the mapping of the document from the images in the images_path
+        """
+        self._mapping = {
+            img_path.name: img_path.relative_to(self.images_path)
+            for img_path in get_img_paths(self.images_path)
+        }
+        self._save_mapping()
+
+    def _load_mapping(self):
+        """
+        Load the mapping of the document from a JSON file
+        """
+        if not self.mapping_path.exists():
+            self._set_mapping_from_images()
             return
-        with open(self.images_info_path, "r") as f:
-            self._images = [Image.from_dict(img, self) for img in json.load(f)]
+        try:
+            with open(self.mapping_path, "r") as f:
+                self._mapping = json.load(f)
+        except json.JSONDecodeError:
+            self.mapping_path.unlink()
+            self._set_mapping_from_images()
 
     def _download_from_iiif(self, manifest_url: str):
         """
         Download images from a IIIF manifest
         """
-        manifest = IIIFManifest(manifest_url)
-        manifest.download(save_dir=self.images_path)
-        self.save_images(
-            [
-                Image(
-                    id=iiif_image.img_name,
-                    src=iiif_image.url,
-                    path=iiif_image.img_path,
-                    metadata={"page": iiif_image.idx},
-                    document=self,
-                )
-                for iiif_image in manifest.get_images()
-            ]
-        )
+        IIIFManifest(manifest_url).download(save_dir=self.images_path)
 
     def _download_from_zip(self, zip_url: str):
         """
         Download a zip file from a URL, extract its contents, and save images.
         """
-
         def zipped_chunks():
-            with httpx.stream("GET", zip_url) as r:
+            with httpx.stream('GET', zip_url) as r:
                 yield from r.iter_bytes(chunk_size=8192)
             # with requests.get(zip_url, stream=True) as r:
             #     r.raise_for_status()
@@ -200,18 +200,9 @@ class Document:
         Download images from a dictionary of URLs [img_stem -> img_url]
         """
         images_dict = get_json(images_list_url)
-        images = []
         for img_stem, img_url in images_dict.items():
             download_image(img_url, self.images_path, img_stem)
-            images.append(
-                Image(
-                    id=img_stem,
-                    src=img_url,
-                    path=self.images_path / f"{img_stem}.jpg",
-                    document=self,
-                )
-            )
-        self.save_images(images)
+        self._extend_mapping(images_dict)
 
     def _download_from_pdf(self, pdf_url: str):
         """
@@ -259,68 +250,42 @@ class Document:
         """
         Iterate over the images in the document
         """
-        return self.images
-
-    def list_images_from_path(self) -> List[Image]:
-        """
-        Iterate over the images in the document's folder
-        """
         return [
             Image(
-                id=str(img_path.relative_to(self.images_path)),
-                src=str(img_path.relative_to(self.path)),
+                id=img_path.name,
+                src=str(img_path.relative_to(self.images_path)),
                 path=img_path,
-                document=self,
-            )
-            for img_path in get_img_paths(self.images_path)
+                document=self
+            ) for img_path in get_img_paths(self.images_path)
         ]
 
     def has_images(self) -> bool:
         return check_if_file(self.images_path, extensions=ALLOWED_EXTENSIONS)
+
 
     def prepare_crops(self, crops: List[dict]) -> List[Image]:
         """
         Prepare crops for the document
 
         Args:
-            crops: A list of crops {document, source, source_info, crops: [{crop_id, relative: {x1, y1, w, h}}]}
+            crops: A list of crops {document, source, crops: [{crop_id, relative: {x1, y1, w, h}}]}
 
         Returns:
-            A list of Image objects
+            A mapping of crop_id -> crop_path
         """
         source = None
         im = None
         crop_list = []
 
-        mapping = {im.id: im for im in self.images}
+        # reversed_map = {v: k for k, v in self.mapping.items()}
 
         for img in crops:
             if img["doc_uid"] != self.uid:
                 continue
-            source_info = (
-                Image.from_dict(img["source_info"], self)
-                if img.get("source_info")
-                else None
-            )
-
             for crop in img["crops"]:
                 crop_path = self.cropped_images_path / f"{crop['crop_id']}.jpg"
-                crop_sum = ",".join(
-                    [f'{crop["relative"][k]:0.3f}' for k in ["x1", "y1", "x2", "y2"]]
-                )
 
-                crop_list.append(
-                    Image(
-                        id=crop["crop_id"],
-                        src=source_info.src if source_info else crop_path.name,
-                        path=crop_path,
-                        metadata={
-                            **(source_info.metadata if source_info else {}),
-                            "crop": crop_sum,
-                        },
-                        document=self,
-                    )
-                )
+                crop_list.append(Image(id=crop["crop_id"], src=crop_path.name, path=crop_path, document=self))
                 if crop_path.exists():
                     continue
 
@@ -328,11 +293,7 @@ class Document:
 
                 if source != img["source"]:
                     source = img["source"]
-                    if source in mapping:
-                        im = mapping[source].path
-                    else:
-                        im = self.images_path / source
-                    im = PImage.open(im).convert("RGB")
+                    im = PImage.open(self.images_path / self.mapping.get(source, source)).convert("RGB")
 
                 box = crop["relative"]
                 if "x1" in box:
@@ -340,12 +301,7 @@ class Document:
                 else:
                     x1, y1, w, h = box["x"], box["y"], box["width"], box["height"]
                     x2, y2 = x1 + w, y1 + h
-                x1, y1, x2, y2 = (
-                    int(x1 * im.width),
-                    int(y1 * im.height),
-                    int(x2 * im.width),
-                    int(y2 * im.height),
-                )
+                x1, y1, x2, y2 = int(x1 * im.width), int(y1 * im.height), int(x2 * im.width), int(y2 * im.height)
                 if x2 - x1 == 0 or y2 - y1 == 0:
                     # use placeholder image
                     im_cropped = PImage.new("RGB", (MAX_SIZE, MAX_SIZE))

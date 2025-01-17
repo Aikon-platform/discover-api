@@ -1,34 +1,20 @@
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
-from .utils import AllTranspose
 
 
 class FileListDataset(Dataset):
-    def __init__(
-        self,
-        data_paths,
-        transform=None,
-        device="cpu",
-        transpositions: list[AllTranspose] = [AllTranspose.NONE],
-    ):
+    def __init__(self, data_paths, transform=None, device="cpu"):
         self.transform = transform
         self.device = device
         self.data_paths = data_paths
-        self.rotations = transpositions
 
     def __len__(self):
-        return len(self.data_paths) * len(self.rotations)
+        return len(self.data_paths)
 
     def __getitem__(self, idx):
         # TODO here prevent UnidentifiedImageError
-        idx, rot = divmod(idx, len(self.rotations))
-        im = Image.open(self.data_paths[idx])
-        rot = self.rotations[rot]
-        if rot != AllTranspose.NONE:
-            im = im.transpose(rot.value)
-
-        img = transforms.ToTensor()(im).to(self.device)
+        img = transforms.ToTensor()(Image.open(self.data_paths[idx])).to(self.device)
         return self.transform(img)
 
     def get_image_paths(self):
