@@ -5,35 +5,35 @@ Routes:
 
 - POST ``/similarity/start``:
     Starts the similarity process for a dataset.
-    
+
     - Parameters: see start_similarity
     - Response: JSON object containing the task ID and experiment ID.
 
 - POST ``/similarity/<tracking_id>/cancel``:
     Cancel a similarity task.
-    
+
     - Parameters:
         - ``tracking_id``: The task ID.
     - Response: JSON object indicating the cancellation status.
 
 - GET ``/similarity/<tracking_id>/status``:
     Get the status of a similarity task.
-    
+
     - Response: JSON object containing the status of the task.
 
 - GET ``/similarity/qsizes``:
     List the queues of the broker and the number of tasks in each queue.
-    
+
     - Response: JSON object containing the queue sizes.
 
 - GET ``/similarity/monitor``:
     Monitor the tasks of the broker.
-    
+
     - Response: JSON object containing the monitoring information.
 
 - GET ``/similarity/models``:
     Get the list of available models.
-    
+
     - Response: JSON object containing the models and their modification dates.
 
 - POST ``/similarity/clear``:
@@ -48,6 +48,7 @@ Routes:
 
 from flask import request, Blueprint, jsonify
 from slugify import slugify
+import os, time
 
 from .tasks import compute_similarity
 from ..shared import routes as shared_routes
@@ -57,10 +58,11 @@ from .const import (
     # FEATS_PATH,
     SIM_RESULTS_PATH,
     SIM_XACCEL_PREFIX,
-    # MODEL_PATH,
+    MODEL_PATH,
 )
 
-from .lib.const import FEAT_NET, FEAT_SET, FEAT_LAYER
+from .lib.const import FEAT_NET
+from .lib.models import list_known_models
 from ..shared.utils.logging import console
 
 blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
@@ -86,6 +88,7 @@ def start_similarity(client_id):
                 "feat_layer": "layer",
                 "segswap_prefilter": true, # if algorithm is "segswap"
                 "segswap_n": 0, # if algorithm is "segswap"
+                "transpositions": ["none", "rot90"]
             }
         }
     """
@@ -93,17 +96,21 @@ def start_similarity(client_id):
     if not request.is_json:
         return "No JSON in request: Similarity task aborted!"
 
-    experiment_id, notify_url, tracking_url, dataset, param = shared_routes.receive_task(request)
+    (
+        experiment_id,
+        notify_url,
+        tracking_url,
+        dataset,
+        param,
+    ) = shared_routes.receive_task(request)
 
     parameters = {
-        # which feature extraction backbone to use
         "feat_net": param.get("feat_net", FEAT_NET),
-        "feat_set": param.get("feat_set", FEAT_SET),
-        "feat_layer": param.get("feat_layer", FEAT_LAYER),
         "algorithm": param.get("algorithm", "cosine"),
         "cosine_n_filter": param.get("cosine_n_filter", 10),
         "segswap_prefilter": param.get("segswap_prefilter", True),
         "segswap_n": param.get("segswap_n", 10),
+        "transpositions": param.get("transpositions", ["none"]),
         "client_id": client_id,
     }
 
@@ -184,34 +191,11 @@ def clear_doc(doc_id: str):
     }
 
 
-@blueprint.route("models", methods=['GET'])
+@blueprint.route("models", methods=["GET"])
 def get_models():
-    # TODO make it dynamic with the models in the folder
-    models_info = {
-        "vit": {
-            "name": "Vision Transformer",
-            "model": "dino_vitbase8_pretrain",
-            "desc": "A transformer model for image classification.",
-        },
-        "resnet": {
-            "name": "ResNet 34",
-            "model": "resnet34",
-            "desc": "A deep residual network for image classification.",
-        },
-        "moco": {
-            "name": "MoCo v2 800ep",
-            "model": "moco_v2_800ep_pretrain",
-            "desc": "A contrastive learning model for image classification.",
-        },
-        "dino": {
-            "name": "DINO DeiT-Small 16",
-            "model": "dino_deitsmall16_pretrain",
-            "desc": "A Vision Transformer model for image classification.",
-        },
-    }
+    models_info = list_known_models()
 
     try:
         return jsonify(models_info)
     except Exception:
         return jsonify("No models.")
-
