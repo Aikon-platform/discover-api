@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 import numpy as np
 import torch
 from torchvision import transforms
@@ -198,11 +198,10 @@ class ComputeSimilarity(LoggedTask):
         self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
+        self.results = {}
 
         self.dataset = dataset
-
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
-
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
 
@@ -255,8 +254,9 @@ class ComputeSimilarity(LoggedTask):
 
         return features
 
+    @staticmethod
     def format_results_per_doc(
-        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
+        pairs: list[tuple[int, int, float]], source_images: list[Image]
     ) -> list[dict]:
         """
         Format the results for output
@@ -268,7 +268,7 @@ class ComputeSimilarity(LoggedTask):
         Returns:
             A list of dictionaries {doc1: ..., doc2: ..., pairs: [(id1, id2, sim)]}
         """
-        # NOT USED NOW
+        # NOT USED NOW TO DELETE
         per_doc_pairs = {}
         for (i, j, sim) in pairs:
             assert i <= j  # avoid duplicates
@@ -292,9 +292,21 @@ class ComputeSimilarity(LoggedTask):
 
         return output_json
 
+    def format_parameters(self):
+        return {
+            "algorithm": self.algorithm,
+            "topk": self.topk,
+            "feat_net": self.feat_net,
+            "segswap_prefilter": self.segswap_prefilter,
+            "segswap_n": self.segswap_n,
+            "raw_transpositions": self.raw_transpositions,
+            "transpositions": self.transpositions,
+        }
+
     def format_results(
         self, pairs: list[tuple[int, int, float]], source_images: list[Image]
-    ) -> list[dict]:
+    ) -> dict[str, dict[str, list[str] | bool | list[Any] | str | Any] | dict[
+        str, dict[Any, dict] | list[str] | list[dict[str, Any]]] | list[tuple[Any, Any, float, Any, Any]]]:
         """
         Format the results for output
 
@@ -305,7 +317,8 @@ class ComputeSimilarity(LoggedTask):
         Returns:
             A dictionary with the document index and pairs
         """
-        output_json = {
+        return {
+            "parameters": self.format_parameters(),
             "index": {
                 "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
                 "images": [
@@ -318,8 +331,6 @@ class ComputeSimilarity(LoggedTask):
                 for im_i, im_j, sim, tr_i, tr_j in pairs
             ],
         }
-
-        return output_json
 
     @torch.no_grad()
     def compute_similarity(self) -> list[dict]:
@@ -369,6 +380,12 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] Similarity task triggered for {self.dataset.uid} with {self.feat_net}!"
         )
 
+        if scores := self.check_already_computed():
+            return {
+                "dataset_url": self.dataset.get_absolute_url(),
+                "annotations": scores
+            }
+
         try:
             similarity = self.compute_similarity()
             self.results = similarity
@@ -391,6 +408,49 @@ class ComputeSimilarity(LoggedTask):
         finally:
             pass
 
+    def check_parameters(self, parameters):
+        """
+        Return True if all the parameters are the same (meaning that the similarity has already been computed)
+        False if one of the parameters is not the same
+        """
+        if parameters is None:
+            return False
+        if parameters.get("algorithm", None) != self.algorithm:
+            return False
+        # TODO uncomment before next deployment
+        # if parameters.get("topk", None) != self.topk:
+        #     return False
+        # if parameters.get("feat_net", None) != self.feat_net:
+        #     return False
+        # if parameters.get("segswap_n", None) != self.segswap_n:
+        #     return False
+
+        # OTHER PARAMETERS TO CHECK
+        # "segswap_prefilter": self.segswap_prefilter,
+        # "raw_transpositions": self.raw_transpositions,
+        # "transpositions": self.transpositions,
+        return True
+
+    def check_already_computed(self):
+        # Search through all subdirectories
+        for path in SCORES_PATH.rglob(f"{self.dataset.uid}-scores.json"):
+            if path.is_file():
+                try:
+                    scores = orjson.loads(path.read_text())
+                    if self.check_parameters(scores.get("parameters", None)):
+                        return scores
+                except (orjson.JSONDecodeError, OSError) as e:
+                    self.print_and_log_warning(
+                        f"[task.similarity] Error reading existing scores file {path}: {e}"
+                    )
+                    continue
+        return False
+
     def check_dataset(self):
-        # TODO add more checks
-        return len(self.dataset.documents) > 0
+        if self.dataset is None:
+            return False
+
+        if len(self.dataset.documents) == 0:
+            return False
+
+        return True
