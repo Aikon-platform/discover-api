@@ -1,12 +1,14 @@
 """
 Util functions for tasks
 """
+import uuid
 
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional, Callable, Dict, Any, List
 
 from .const import DEMO_NAME
+from .dataset import Dataset
 from ..config import TIME_LIMIT, BASE_URL
 from ..shared.utils.logging import (
     notifying,
@@ -45,17 +47,21 @@ class LoggedTask(LoggingTaskMixin):
         # notify() function to send any event to frontend
         self.notifier = notifier
 
+        current_task = CurrentMessage.get_current_message()
+        self.task_id = current_task.message_id
+
         self.error_list: List[str] = []
 
     def task_update(self, event: str, message: Optional[Any] = None) -> None:
-        if self.notifier:
-            if event == "ERROR":
-                if message and isinstance(message, list):
-                    msg = ", ".join(message)
-                else:
-                    msg = message or "Unknown error"
-                self.notifier(event, message=msg)
-                raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
+        if not self.notifier:
+            return
+        msg = (
+            ", ".join(message)
+            if isinstance(message, list)
+            else message or self.error_list or "Unknown error"
+        )
+        self.notifier(event, message=msg)
+        raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
         self.print_and_log_error(
@@ -83,6 +89,7 @@ class LoggedTask(LoggingTaskMixin):
 @notifying
 def abstract_task(
     experiment_id: str,
+    dataset_uid: str,
     notify_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
@@ -91,19 +98,19 @@ def abstract_task(
     """
     Template for a task (see the source code)
     """
-    current_task = CurrentMessage.get_current_message()
-    current_task_id = current_task.message_id
+    dataset = Dataset(dataset_uid, load=True)
 
     task_instance = LoggedTask(
-        logger=logger,
-        experiment_id=experiment_id,
-        notify_url=notify_url,
-        notifier=notifier,
+        experiment_id=experiment_id,  # Used by LoggedTask
+        logger=logger,  # Used by LoggedTask
+        notify_url=notify_url,  # Used by LoggedTask
+        notifier=notifier,  # Used by LoggedTask
+        dataset=dataset,
         **task_kwargs,  # Replace with extra parameters needed for the task
     )
-    task_instance.run_task()
+    success = task_instance.run_task()
 
-    # json to be dispatch to frontend with @notifying, triggering SUCCESS event
-    return {
-        "result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result",
-    }
+    if success:
+        # json to be dispatch to frontend with @notifying, triggering SUCCESS event
+        return {doc.uid: doc.get_results_url(DEMO_NAME) for doc in dataset.documents}
+    return {"error": task_instance.error_list}

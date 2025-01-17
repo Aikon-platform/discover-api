@@ -99,7 +99,6 @@ def start_similarity(client_id):
     (
         experiment_id,
         notify_url,
-        tracking_url,
         dataset,
         param,
     ) = shared_routes.receive_task(request)

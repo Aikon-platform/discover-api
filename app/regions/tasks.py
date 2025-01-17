@@ -21,7 +21,6 @@ def extract_objects(
     model: Optional[str] = None,
     postprocess: Optional[str] = None,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
     **kwargs
@@ -41,14 +40,14 @@ def extract_objects(
     dataset = Dataset(dataset_uid, load=True)
 
     regions_extraction_task = ExtractRegions(
-        dataset=dataset,
         model=model,
         postprocess=postprocess,
+        dataset=dataset,
         logger=logger,
         experiment_id=experiment_id,
         notify_url=notify_url,
-        tracking_url=tracking_url,
         notifier=notifier,
+        **kwargs
     )
     success = regions_extraction_task.run_task()
     if success:

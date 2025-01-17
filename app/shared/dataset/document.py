@@ -19,7 +19,7 @@ from ..utils.fileutils import sanitize_str, check_if_file
 from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
-
+from ...config import BASE_URL
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".json", ".tiff", ".pdf"}
 
@@ -99,6 +99,9 @@ class Document:
         """
         return f"{self.get_absolute_url()}/download"
         # return url_for("datasets.document_download", dtype=self.dtype, uid=self.uid, _external=True)
+
+    def get_results_url(self, demo_name):
+        return f"{BASE_URL}/{demo_name}/{self.uid}/result"
 
     @property
     def images_path(self):

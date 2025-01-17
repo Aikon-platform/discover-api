@@ -86,7 +86,6 @@ def start_regions_extraction():
     (
         experiment_id,
         notify_url,
-        tracking_url,
         dataset,
         param,
     ) = shared_routes.receive_task(request, use_crops=False)
@@ -102,7 +101,6 @@ def start_regions_extraction():
             "model": model,
             "postprocess": postprocess,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,  # TODO delete
         },
     )
 

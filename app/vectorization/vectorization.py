@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Optional
 
 from ..config import BASE_URL
+from ..shared.dataset import Dataset
 from ..shared.tasks import LoggedTask
 from ..shared.utils.fileutils import download_file
 from ..shared.utils.logging import TLogger
@@ -16,6 +17,7 @@ from .const import (
     MODEL_CONFIG,
     MODEL_CHECKPOINT,
     VEC_RESULTS_PATH,
+    DEMO_NAME,
 )  # , IMG_PATH
 
 from .lib.src import build_model_main
@@ -48,15 +50,16 @@ def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_C
 
 
 class ComputeVectorization(LoggedTask):
-    def __init__(self, documents: dict, model: Optional[str] = None, **kwargs):
+    def __init__(self, dataset: Dataset, model: Optional[str] = None, **kwargs):
         super().__init__(**kwargs)
-        self.documents = documents
+        self.dataset = dataset
         self.model = model
         self.imgs = []
+        self.results = {}
 
     def check_dataset(self):
         # TODO add more checks
-        if len(list(self.documents.keys())) == 0:
+        if not self.dataset.documents:
             return False
         return True
 
@@ -65,45 +68,53 @@ class ComputeVectorization(LoggedTask):
             self.print_and_log_warning(f"[task.vectorization] No documents to download")
             raise ValueError(f"[task.vectorization] No documents to download")
 
-        results = {}
+        self.task_update("STARTED")
 
         try:
             model, postprocessors = load_model()
             model.eval()
 
-            for doc_id, document in self.documents.items():
+            for doc in self.jlogger.iterate(
+                self.dataset.documents, "Processing documents"
+            ):
                 self.print_and_log(
-                    f"[task.vectorization] Vectorization task triggered for {doc_id}!"
+                    f"[task.vectorization] Vectorization task triggered for {doc.uid}!"
                 )
-                self.download_document(doc_id, document)
-
-                output_dir = VEC_RESULTS_PATH / doc_id
-                os.makedirs(output_dir, exist_ok=True)
-
                 try:
-                    # TODO fix to use dataset path ⚠️⚠️⚠️⚠️
-                    # for path in get_img_paths(IMG_PATH / doc_id, (".jpg", ".jpeg")):
-                    #     orig_img, tr_img = preprocess_img(path)
-                    #     preds = generate_prediction(orig_img, tr_img, model, postprocessors)
-                    #     preds = postprocess_preds(preds, orig_img.size)
-                    #     save_pred_as_svg(
-                    #         path,
-                    #         img_name=os.path.splitext(os.path.basename(path))[0],
-                    #         img_size=orig_img.size,
-                    #         pred_dict=preds,
-                    #         pred_dir=output_dir,
-                    #     )
-                    doc_result = {doc_id: self.create_zip(doc_id)}
-                    self.notifier("PROGRESS", doc_result)
-                    results.update(doc_result)
+                    doc.download()
+                    if not doc.has_images():
+                        self.handle_error(f"No images were extracted from {doc.uid}")
+                        return False
+
+                    output_dir = VEC_RESULTS_PATH / doc.uid
+                    os.makedirs(output_dir, exist_ok=True)
+
+                    for image in doc.list_images():
+                        path = image.path
+                        orig_img, tr_img = preprocess_img(path)
+                        preds = generate_prediction(
+                            orig_img, tr_img, model, postprocessors
+                        )
+                        preds = postprocess_preds(preds, orig_img.size)
+                        save_pred_as_svg(
+                            path,
+                            img_name=os.path.splitext(os.path.basename(path))[0],
+                            img_size=orig_img.size,
+                            pred_dict=preds,
+                            pred_dir=output_dir,
+                        )
+                    self.create_zip(doc.uid)
+                    doc_results = {doc.uid: doc.get_results_url(DEMO_NAME)}
+                    self.notifier("PROGRESS", doc_results)
+                    self.results.update(doc_results)
                 except Exception as e:
                     self.notifier(
                         "ERROR", error=traceback.format_exc(), completed=False
                     )
                     self.error_list.append(f"{e}")
 
-            results.update({"error": self.error_list})
-            return results
+            self.results.update({"error": self.error_list})
+            return self.results
 
         except Exception as e:
             self.print_and_log(f"Error when computing vectorization", e=e)
@@ -154,8 +165,7 @@ class ComputeVectorization(LoggedTask):
                             arcname = file_path.relative_to(output_dir)
                             zipf.write(file_path, arcname)
 
-                # TODO check if XACCEL_PREFIX work and returns really
-                return f"{BASE_URL}/vectorization/{doc_id}/result"
+                return True
 
             except Exception as e:
                 self.print_and_log(

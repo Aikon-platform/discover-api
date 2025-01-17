@@ -41,26 +41,32 @@ def start_vectorization(client_id):
 
     A list of images to download + information
     """
-    if not request.is_json:
-        return "No JSON in request: Vectorization task aborted!"
-
-    json_param = request.get_json()
-
-    experiment_id = json_param.get("experiment_id")
-    documents = json_param.get("documents", {})
-    model = json_param.get("model", None)
-    # TODO unify
-    notify_url = json_param.get("notify_url", None)
-    tracking_url = json_param.get("tracking_url")
+    # if not request.is_json:
+    #     return "No JSON in request: Vectorization task aborted!"
+    #
+    # json_param = request.get_json()
+    #
+    # experiment_id = json_param.get("experiment_id")
+    # documents = json_param.get("documents", {})
+    # model = json_param.get("model", None)
+    # # TODO unify
+    # notify_url = json_param.get("notify_url", None)
+    # tracking_url = json_param.get("tracking_url")
+    (
+        experiment_id,
+        notify_url,
+        dataset,
+        param,
+    ) = shared_routes.receive_task(request, use_crops=False)
+    model = param.get("model", None)
 
     return shared_routes.start_task(
         compute_vectorization,
         experiment_id,
         {
-            "documents": documents,
+            "dataset_uid": dataset.uid,
             "model": model,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
         },
     )
 

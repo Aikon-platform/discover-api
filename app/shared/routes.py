@@ -53,7 +53,7 @@ def get_client_id(func):
 
 def receive_task(
     req: Request, save_dataset: bool = True, use_crops: bool = True
-) -> Tuple[str, str, str, Optional[Dataset], dict]:
+) -> Tuple[str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
 
@@ -103,7 +103,6 @@ def receive_task(
     console(f"Received task: {param}", color="magenta")
 
     experiment_id = param.get("experiment_id", str(uuid.uuid4()))
-    tracking_url = param.get("tracking_url", "")  # TODO delete
     notify_url = param.get("notify_url", None)
 
     dataset = None
@@ -129,7 +128,6 @@ def receive_task(
     return (
         experiment_id,
         notify_url,
-        tracking_url,
         dataset,
         param.get("parameters", param),
     )

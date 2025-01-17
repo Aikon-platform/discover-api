@@ -26,6 +26,11 @@ class Image:
             "metadata": self.metadata,
         }
 
+    @property
+    def path(self) -> Path:
+        """Returns the absolute path to the image file"""
+        return Path(self.path)
+
     @classmethod
     def from_dict(
         cls, data: Dict, document: "Document", relpath: Path = None

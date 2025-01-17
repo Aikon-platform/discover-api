@@ -388,7 +388,7 @@ class ComputeSimilarity(LoggedTask):
             return True
         except Exception as e:
             self.handle_error("Error initializing similarity task", e)
-            self.task_update("ERROR", self.error_list)
+            self.task_update("ERROR", message=self.error_list)
             return False
         finally:
             pass

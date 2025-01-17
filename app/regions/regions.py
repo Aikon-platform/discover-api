@@ -1,11 +1,12 @@
+import gc
 import json
 import os
 from pathlib import Path
 from typing import Optional
-import requests
 
-from .const import DEFAULT_MODEL, MODEL_PATH
+from .const import DEFAULT_MODEL, MODEL_PATH, DEMO_NAME
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
+from ..config import BASE_URL
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset, Image as DImage
 
@@ -31,13 +32,13 @@ class ExtractRegions(LoggedTask):
         dataset: Dataset,
         model: Optional[str] = None,
         postprocess: Optional[str] = None,
-        *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.dataset = dataset
         self._model = model
         self._extraction_model: Optional[str] = None
+
         self.result_dir = Path()
         self.annotations = {}
         self.extractor = None
@@ -57,7 +58,9 @@ class ExtractRegions(LoggedTask):
         """
         Clear memory
         """
-        del self.extractor
+        self.annotations = {}
+        self.extractor = None
+        gc.collect()
 
     @property
     def model(self) -> str:
@@ -152,7 +155,7 @@ class ExtractRegions(LoggedTask):
             self.print_and_log_warning("[task.extract_regions] No dataset to annotate")
             self.task_update(
                 "ERROR",
-                f"[API ERROR] Failed to download dataset for {self.dataset}",
+                message=f"[API ERROR] Failed to download dataset for {self.dataset}",
             )
             return False
 
@@ -168,17 +171,19 @@ class ExtractRegions(LoggedTask):
                 self.dataset.documents, "Processing documents"
             ):
                 success = self.process_doc(doc)
+                if success:
+                    self.notifier("PROGRESS", {doc.uid: doc.get_results_url(DEMO_NAME)})
                 all_successful = all_successful and success
 
             status = "SUCCESS" if all_successful else "ERROR"
             self.print_and_log(
                 f"[task.extract_regions] Task completed with status: {status}"
             )
-            self.task_update(status, self.error_list if self.error_list else [])
+            self.task_update(status, message=self.error_list if self.error_list else [])
             return all_successful
         except Exception as e:
             self.handle_error(f"Error {e} processing dataset", exception=e)
-            self.task_update("ERROR", self.error_list)
+            self.task_update("ERROR", message=self.error_list)
             return False
         finally:
             self.terminate()
