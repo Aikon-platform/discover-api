@@ -32,6 +32,7 @@ class Document:
     - downloaded from a single IIIF manifest
     - downloaded from a ZIP file
     - downloaded from a dictionary of single image URLs
+    - downloaded from a PDF file
 
     :param uid: The unique identifier of the document
     :param path: The path to the document on disk (default: DOCUMENTS_PATH/uid)
@@ -67,6 +68,11 @@ class Document:
     def from_dict(cls, doc_dict: dict) -> "Document":
         """
         Create a new Document from a dictionary
+        doc_dict = {
+            "type": "zip | pdf | img | url_list | iiif",
+            "src": "documents_to_be_downloaded",
+            ?"uid": "optional custom_id"
+        }
         """
         return Document(
             doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]

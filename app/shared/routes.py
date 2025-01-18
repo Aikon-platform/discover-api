@@ -64,7 +64,6 @@ def receive_task(
         {
             "experiment_id": "experiment_id",
             "notify_url": "http://example.com/callback",
-            "tracking_url": "http://example.com/tracking",
             "documents": "[
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json"},
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json"},
@@ -121,15 +120,16 @@ def receive_task(
         if save_dataset:
             dataset.save()
 
-    # task_kwargs = {}
-    # for param_name in additional_params:
-    #     task_kwargs[param_name] = param.get(param_name, None)
+    task_kwargs = {}
+    for k in param.keys():
+        if k not in ["crops", "documents", "experiment_id", "notify_url"]:
+            task_kwargs[k] = param[k]
 
     return (
         experiment_id,
         notify_url,
         dataset,
-        param.get("parameters", param),
+        param.get("parameters", task_kwargs),
     )
 
 

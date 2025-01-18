@@ -19,9 +19,6 @@ def start_vectorization(client_id):
     """
     Start the vectorization task.
 
-    TODO update that to fit what is sent by the frontend
-    TODO use shared_routes.receive_task
-
     Expected parameters:
 
     .. code-block:: json

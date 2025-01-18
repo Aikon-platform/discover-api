@@ -44,12 +44,6 @@ class Dataset:
         """
         Create a new dataset
         """
-        if isinstance(documents, dict):  # legacy AIKON format
-            documents = [
-                {"uid": uid, "src": src, "type": "url_list"}
-                for uid, src in documents.items()
-            ]
-
         crops_uid = None
         if crops:
             crops_uid = hash_str(orjson.dumps(crops))
