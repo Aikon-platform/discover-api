@@ -59,7 +59,8 @@ from flask import request, jsonify, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import ANNO_PATH, MODEL_PATH  # , IMG_PATH
+from .const import MODEL_PATH, EXT_XACCEL_PREFIX  # , IMG_PATH
+from ..shared.const import DOCUMENTS_PATH
 from ..shared.utils.fileutils import delete_path
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
@@ -134,12 +135,12 @@ def monitor_regions_extraction():
     """
     Monitor the tasks of the broker
     """
-    return shared_routes.monitor(ANNO_PATH, extract_objects.broker)
+    return shared_routes.monitor(DOCUMENTS_PATH, extract_objects.broker)
 
 
-# @blueprint.route("<tracking_id>/result", methods=["GET"])
-# def result_extraction(tracking_id: str):
-#     return shared_routes.result(tracking_id, ANNO_PATH, EXT_XACCEL_PREFIX, "json")
+@blueprint.route("<tracking_id>/result", methods=["GET"])
+def result_extraction(tracking_id: str):
+    return shared_routes.result(tracking_id, DOCUMENTS_PATH, EXT_XACCEL_PREFIX, "json")
 
 
 @blueprint.route("models", methods=["GET"])

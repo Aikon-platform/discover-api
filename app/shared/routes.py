@@ -188,13 +188,11 @@ def status(tracking_id: str, task_fct: Actor) -> dict:
     }
 
 
-def result(
-    tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"
-):
+def result(filename: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
     """
     Get the result of a task
 
-    :param tracking_id: The ID of the task
+    :param filename: The ID of the task / the reference of the doc / etc.
     :param results_dir: The directory where the results are stored
     :param xaccel_prefix: The prefix for the X-Accel-Redirect header
     :param extension: The extension of the result file (without the dot)
@@ -202,10 +200,10 @@ def result(
     :return: The result file as a Flask response
     """
     if not config.USE_NGINX_XACCEL:
-        return send_from_directory(results_dir, f"{slugify(tracking_id)}.{extension}")
+        return send_from_directory(results_dir, f"{slugify(filename)}.{extension}")
 
     return xaccel_send_from_directory(
-        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.{extension}"
+        results_dir, xaccel_prefix, f"{slugify(filename)}.{extension}"
     )
 
 

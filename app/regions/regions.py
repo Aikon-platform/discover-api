@@ -129,6 +129,8 @@ class ExtractRegions(LoggedTask):
             self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
 
+            # This way, same dataset can be extracted twice with same extraction model
+            # is it what we want?
             extraction_ref = f"{self.extraction_model}+{self.experiment_id}"
             annotation_file = self.result_dir / f"{extraction_ref}.json"
             with open(annotation_file, "w"):
@@ -141,6 +143,9 @@ class ExtractRegions(LoggedTask):
             if success:
                 with open(annotation_file, "w") as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
+                self.notifier(
+                    "PROGRESS", {doc.uid: doc.get_annotations_url(extraction_ref)}
+                )
 
             return success
         except Exception as e:
@@ -171,8 +176,6 @@ class ExtractRegions(LoggedTask):
                 self.dataset.documents, "Processing documents"
             ):
                 success = self.process_doc(doc)
-                if success:
-                    self.notifier("PROGRESS", {doc.uid: doc.get_results_url(DEMO_NAME)})
                 all_successful = all_successful and success
 
             status = "SUCCESS" if all_successful else "ERROR"

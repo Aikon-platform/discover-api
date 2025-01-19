@@ -20,6 +20,7 @@ from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
 from ...config import BASE_URL
+from ...regions.const import DEMO_NAME as REGIONS
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".json", ".tiff", ".pdf"}
 
@@ -107,7 +108,11 @@ class Document:
         # return url_for("datasets.document_download", dtype=self.dtype, uid=self.uid, _external=True)
 
     def get_results_url(self, demo_name):
+        # return f"{BASE_URL}/{demo_name}/{filename or self.uid}/result"
         return f"{BASE_URL}/{demo_name}/{self.uid}/result"
+
+    def get_annotations_url(self, filename=None):
+        return f"{self.get_absolute_url()}/{filename}"
 
     @property
     def images_path(self):

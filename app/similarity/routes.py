@@ -120,7 +120,6 @@ def start_similarity(client_id):
             "dataset_uid": dataset.uid,
             "parameters": parameters,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
         },
     )
 
@@ -135,7 +134,7 @@ def status_similarity(tracking_id: str):
     return shared_routes.status(tracking_id, compute_similarity)
 
 
-@blueprint.route("task/<doc_pair>/result", methods=["GET"])
+@blueprint.route("task/<doc_pair>/result", methods=["GET"])  # TODO : task in the url ?
 def result_similarity(doc_pair: str):
     """
     Sends the similarity results file for a given document pair
