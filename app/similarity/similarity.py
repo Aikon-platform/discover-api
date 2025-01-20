@@ -417,13 +417,12 @@ class ComputeSimilarity(LoggedTask):
             return False
         if parameters.get("algorithm", None) != self.algorithm:
             return False
-        # TODO uncomment before next deployment
-        # if parameters.get("topk", None) != self.topk:
-        #     return False
-        # if parameters.get("feat_net", None) != self.feat_net:
-        #     return False
-        # if parameters.get("segswap_n", None) != self.segswap_n:
-        #     return False
+        if parameters.get("topk", None) != self.topk:
+            return False
+        if parameters.get("feat_net", None) != self.feat_net:
+            return False
+        if parameters.get("segswap_n", None) != self.segswap_n:
+            return False
 
         # OTHER PARAMETERS TO CHECK
         # "segswap_prefilter": self.segswap_prefilter,
