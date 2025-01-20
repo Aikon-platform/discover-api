@@ -48,6 +48,9 @@ def compute_similarity(
     success = similarity_task.run_task()
 
     if success:
+        if isinstance(success, dict) and success.get("dataset_url", False) and success.get("annotations", False):
+            return success
+
         return {
             "dataset_url": dataset.get_absolute_url(),
             "annotations": similarity_task.results,
