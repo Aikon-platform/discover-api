@@ -40,6 +40,7 @@ class ExtractRegions(LoggedTask):
         self._extraction_model: Optional[str] = None
 
         self.result_dir = Path()
+        self.result_urls = []
         self.annotations = {}
         self.extractor = None
         print("POSTPROCESS", postprocess)
@@ -143,9 +144,11 @@ class ExtractRegions(LoggedTask):
             if success:
                 with open(annotation_file, "w") as f:
                     json.dump(self.annotations[extraction_ref], f, indent=2)
+                result_url = doc.get_annotations_url(extraction_ref)
                 self.notifier(
-                    "PROGRESS", {doc.uid: doc.get_annotations_url(extraction_ref)}
+                    "PROGRESS", output={"annotations": [{doc.uid: result_url}]}
                 )
+                self.result_urls.append({doc.uid: result_url})
 
             return success
         except Exception as e:

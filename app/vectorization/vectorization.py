@@ -105,7 +105,7 @@ class ComputeVectorization(LoggedTask):
                         )
                     self.create_zip(doc.uid)
                     doc_results = {doc.uid: doc.get_results_url(DEMO_NAME)}
-                    self.notifier("PROGRESS", doc_results)
+                    self.notifier("PROGRESS", output=doc_results)
                     self.results.update(doc_results)
                 except Exception as e:
                     self.notifier(

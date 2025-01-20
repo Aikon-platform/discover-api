@@ -33,8 +33,7 @@ def extract_objects(
     :param model: the model to use for extraction
     :param postprocess: the postprocess mode to use
     :param notify_url: the URL to notify the frontend
-    :param notifier:
-    :param tracking_url: the URL to track the task TODO delete
+    :param notifier: the function allowing to send update to the frontend
     :param logger: the logger to use
     """
     dataset = Dataset(dataset_uid, load=True)
@@ -54,7 +53,7 @@ def extract_objects(
         # json to be dispatch to frontend with @notifying
         return {
             "dataset_url": dataset.get_absolute_url(),
-            "annotations": regions_extraction_task.annotations,
+            "annotations": regions_extraction_task.result_urls,
         }
 
     # json to be dispatch to frontend with @notifying
