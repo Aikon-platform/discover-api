@@ -19,6 +19,7 @@ def extract_objects(
     experiment_id: str,
     dataset_uid: str,
     model: Optional[str] = None,
+    postprocess: Optional[str] = None,
     notify_url: Optional[str] = None,
     tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
@@ -31,6 +32,7 @@ def extract_objects(
     :param experiment_id: the experiment id
     :param dataset_uid: the dataset UID to process
     :param model: the model to use for extraction
+    :param postprocess: the postprocess mode to use
     :param notify_url: the URL to notify the frontend
     :param tracking_url: the URL to track the task
     :param logger: the logger to use
@@ -40,6 +42,7 @@ def extract_objects(
     regions_extraction_task = ExtractRegions(
         dataset=dataset,
         model=model,
+        postprocess=postprocess,
         logger=logger,
         experiment_id=experiment_id,
         notify_url=notify_url,
