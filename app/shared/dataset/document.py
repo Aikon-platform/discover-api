@@ -312,10 +312,10 @@ class Document:
                 crop_list.append(
                     Image(
                         id=crop["crop_id"],
-                        src=source_info.src if source_info else crop_path.name,
+                        src=getattr(source_info, 'src', None) or crop_path.name,
                         path=crop_path,
                         metadata={
-                            **(source_info.metadata if source_info else {}),
+                            **(getattr(source_info, 'metadata', None) or {}),
                             "crop": crop_sum,
                         },
                         document=self,

@@ -9,6 +9,7 @@ import logging
 import os
 
 import time
+from enum import Enum
 from pathlib import Path
 
 import dramatiq
@@ -33,6 +34,8 @@ T = TypeVar("T")
 
 
 def serializer(obj):
+    if isinstance(obj, Enum):
+        return obj.value
     if isinstance(obj, Path):
         return str(obj)
     raise TypeError(f"Type {type(obj)} is not JSON serializable")
