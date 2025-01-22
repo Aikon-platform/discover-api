@@ -43,7 +43,7 @@ def document_download(dtype, uid):
     files = [
         # im.src is the string of the path relative to the document folder
         (im.src, im.path) for im in document.list_images_from_path()
-        # NOTE before it was im.path.name (only filename)
+        # (f"images/{im.path.name}", im.path) for im in document.list_images()
     ] + [
         ("images.json", document.images_info_path)
     ]
