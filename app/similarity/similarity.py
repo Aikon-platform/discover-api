@@ -303,6 +303,21 @@ class ComputeSimilarity(LoggedTask):
             "transpositions": self.transpositions,
         }
 
+    @staticmethod
+    def format_pair(pair: tuple) -> tuple[int, int, float, int, int]:
+        """
+        Format a similarity pair to ensure it has 5 elements, adding default values (0) for missing transpositions.
+
+        Args:
+            pair (tuple): A tuple containing either (im_i, im_j, sim) or (im_i, im_j, sim, tr_i, tr_j)
+
+        Returns:
+            tuple[int, int, float, int, int]: A 5-element tuple (im_i, im_j, sim, tr_i, tr_j)
+        """
+        # Pad the pair with zeros to ensure we have 5 elements (for legacy format)
+        im_i, im_j, sim, tr_i, tr_j = tuple(list(pair) + [0] * (5 - len(pair)))
+        return im_i, im_j, round(float(sim), 4), tr_i, tr_j
+
     def format_results(
         self, pairs: list[tuple[int, int, float]], source_images: list[Image]
     ) -> dict[str, dict[str, list[str] | bool | list[Any] | str | Any] | dict[
@@ -326,10 +341,7 @@ class ComputeSimilarity(LoggedTask):
                 ],
                 "transpositions": self.raw_transpositions,
             },
-            "pairs": [
-                (im_i, im_j, round(float(sim), 4), tr_i, tr_j)
-                for im_i, im_j, sim, tr_i, tr_j in pairs
-            ],
+            "pairs": [self.format_pair(pair) for pair in pairs],
         }
 
     @torch.no_grad()
