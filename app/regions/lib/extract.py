@@ -21,6 +21,7 @@ from .yolov5.utils.general import (
 )
 from .yolov5.utils.augmentations import letterbox
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
+from ...shared.utils import get_device
 
 from ...shared.utils.fileutils import TPath
 from ...shared.dataset import Image as DImage
@@ -126,13 +127,13 @@ class BaseExtractor:
     def __init__(
         self,
         weights: TPath,
-        device: str = "cpu",
+        device: str = None,
         input_sizes: list[int] = None,
         squarify: bool = False,
         margin: float = 0.0,
     ):
         self.weights = weights
-        self.device = torch.device(device)
+        self.device = torch.device(device or get_device())
         self.input_sizes = (
             input_sizes if input_sizes is not None else self.DEFAULT_IMG_SIZES
         )
