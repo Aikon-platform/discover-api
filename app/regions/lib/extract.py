@@ -133,7 +133,8 @@ class BaseExtractor:
         margin: float = 0.0,
     ):
         self.weights = weights
-        self.device = torch.device(device or get_device())
+        available_device = 0 if get_device() != "cpu" else "cpu"
+        self.device = torch.device(device or available_device)
         self.input_sizes = (
             input_sizes if input_sizes is not None else self.DEFAULT_IMG_SIZES
         )
