@@ -39,11 +39,10 @@ def document_download(dtype, uid):
     Download the document
     """
     document = Document(uid, dtype)
-
+    relpath = document.path
     files = [
-        # im.src is the string of the path relative to the document folder
-        (im.src, im.path) for im in document.list_images_from_path()
-        # (f"images/{im.path.name}", im.path) for im in document.list_images()
+        # relative path beginning with "images/..."
+        (str(im.path.relative_to(relpath)), im.path) for im in document.list_images()
     ] + [
         ("images.json", document.images_info_path)
     ]
