@@ -234,7 +234,7 @@ class ComputeSimilarity(LoggedTask):
             transpositions=self.transpositions,
         )
 
-        data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
+        data_loader = DataLoader(img_dataset, batch_size=16, shuffle=False)
         cache_id = (
             f"{self.dataset.uid}@{''.join(str(t.value) for t in self.transpositions)}"
         )
