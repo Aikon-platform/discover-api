@@ -192,7 +192,11 @@ def sanitize_str(string: str) -> str:
     Sanitize a URL string to make it a valid filename
     (remove http, https, www, /, ., :, spaces)
     """
-    return re.sub(r"^https?\:\/\/|www\.|\.|\:|\s", "", string.strip()).replace("/", "^").replace(" ", "_")
+    return (
+        re.sub(r"^https?\:\/\/|www\.|\.|:|%|\s", "", string.strip())
+        .replace("/", "^")
+        .replace(" ", "_")
+    )
 
 
 def empty_file(path: TPath) -> None:

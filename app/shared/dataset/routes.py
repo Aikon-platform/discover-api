@@ -4,12 +4,11 @@ Routes for handling datasets
 Allows to fetch and download content from a dataset
 (mostly to avoid downloading IIIF manifests multiple times)
 """
-from flask import Blueprint, jsonify, request, stream_with_context, url_for, Response
-import os
+from flask import Blueprint, jsonify, stream_with_context, Response
 
 from ..utils.fileutils import zip_on_the_fly, sanitize_str
 
-from .dataset import Dataset, DATASETS_PATH
+from .dataset import Dataset
 from .document import Document
 
 blueprint = Blueprint("datasets", __name__, url_prefix="/datasets")

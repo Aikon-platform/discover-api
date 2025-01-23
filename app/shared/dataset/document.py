@@ -1,6 +1,7 @@
 """
 The Document class, which represents a document in the dataset
 """
+from urllib.parse import quote
 
 from flask import url_for
 
@@ -57,8 +58,8 @@ class Document:
         path: Path | str = None,
         src: Optional[str] = None,
     ):
-        self.uid = sanitize_str(uid if uid is not None else src)
-        self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / uid)
+        self.uid = sanitize_str(uid or src)
+        self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / self.uid)
         self.src = src
         self.dtype = dtype
         self._images = []
@@ -150,6 +151,7 @@ class Document:
         """
         manifest = IIIFManifest(manifest_url)
         manifest.download(save_dir=self.images_path)
+
         self.save_images(
             [
                 Image(
