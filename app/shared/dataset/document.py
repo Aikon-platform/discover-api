@@ -1,9 +1,7 @@
 """
 The Document class, which represents a document in the dataset
 """
-from urllib.parse import quote
-
-from flask import url_for
+from typing_extensions import NotRequired
 
 import requests
 import json
@@ -11,7 +9,7 @@ import httpx
 from pathlib import Path
 from PIL import Image as PImage
 from stream_unzip import stream_unzip
-from typing import List, Optional
+from typing import List, Optional, TypedDict, Literal
 from iiif_download import IIIFManifest
 
 from ... import config
@@ -21,9 +19,16 @@ from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
 from ...config import BASE_URL
-from ...regions.const import DEMO_NAME as REGIONS
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".json", ".tiff", ".pdf"}
+
+
+class DocDict(TypedDict):
+    uid: str
+    type: Literal["zip", "pdf", "img", "url_list", "iiif"]
+    src: str
+    url: NotRequired[str]
+    download: NotRequired[str]
 
 
 class Document:
@@ -82,11 +87,11 @@ class Document:
             doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]
         )
 
-    def to_dict(self, with_url: bool = False) -> dict:
+    def to_dict(self, with_url: bool = False) -> DocDict:
         """
         Convert the document to a dictionary
         """
-        ret = {
+        ret: DocDict = {
             "uid": self.uid,
             "type": self.dtype,
             "src": str(self.src),
