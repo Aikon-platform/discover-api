@@ -29,8 +29,9 @@ from ..shared.utils.logging import serializer
 def compute_cosine_similarity(
     features: np.ndarray,
     topk: int = COS_TOPK,
-    groups: list[Iterable[int]] = None,
+    doc_idx: list[Iterable[int]] = None,
     n_transpositions: int = 1,
+    cs_instance=None,
 ):
     """
     Compute the cosine similarity between all pairs of images in the dataset
@@ -38,15 +39,16 @@ def compute_cosine_similarity(
     Args:
         features (np.ndarray): The features of the images (n_img, n_feat)
         topk (int): The number of best matches to return
-        groups (list[Iterable[int]]): Ranges of indices for each document (default: None)
+        doc_idx (list[Iterable[int]]): Ranges of indices for each document (default: None)
         n_transpositions (int): features[i:i+n_transpositions] will be considered as referring to the same image
+        cs_instance (callable): A callable instance of the class ComputeSimilarity
 
     Returns:
         A list of unique pairs (k_i, k_j, sim, tr_i, tr_j) where k_i and k_j are feature indices,
         and tr_i and tr_j correspond to the transposition of the best match
     """
-    if groups is None:
-        groups = [range(len(features))]
+    if doc_idx is None:
+        doc_idx = [range(len(features))]
 
     all_mat = squareform(pdist(features, metric="cosine"))
     n_img = features.shape[0]
@@ -70,23 +72,29 @@ def compute_cosine_similarity(
 
     all_pairs: set[tuple[int, int, float]] = set()
 
-    # get topk matches for each group pairs
-    for group1 in groups:
-        for group2 in groups:
-            mat = all_mat[group1][:, group2]
+    # get topk matches for each doc pair
+    for doc1 in doc_idx:
+        for doc2 in doc_idx:
+            mat = all_mat[doc1][:, doc2]
             tops = np.argsort(mat, axis=1)[:, :topk]
-            all_pairs |= set(
+            docs_pairs = set(
                 (
-                    min(group1[i], group2[j]),
-                    max(group1[i], group2[j]),
+                    min(doc1[i], doc2[j]),
+                    max(doc1[i], doc2[j]),
                     1.0 - mat[i, j],
                     int(min_tr_i[i, j]),
                     int(min_tr_j[i, j]),
                 )
                 for i, row in enumerate(tops)
                 for j in row
-                if group1[i] != group2[j]
+                if doc1[i] != doc2[j]
             )
+            if cs_instance:
+                # MARKER
+                cs_instance.notifier(
+                    "PROGRESS", output=cs_instance.format_result(docs_pairs)
+                )
+            all_pairs |= docs_pairs
 
     return sorted(all_pairs)
 
@@ -255,43 +263,6 @@ class ComputeSimilarity(LoggedTask):
 
         return features
 
-    def format_results_per_doc(
-        self, pairs: list[tuple[int, int, float]], source_images: list[Image]
-    ) -> list[dict]:
-        """
-        Format the results for output
-
-        Args:
-            pairs (list[tuple[int, int, float]]): The similarity pairs
-            source_images (list[Image]): The source images
-
-        Returns:
-            A list of dictionaries {doc1: ..., doc2: ..., pairs: [(id1, id2, sim)]}
-        """
-        # NOT USED NOW
-        per_doc_pairs = {}
-        for (i, j, sim) in pairs:
-            assert i <= j  # avoid duplicates
-            im_i = source_images[i]
-            im_j = source_images[j]
-            doc_i = im_i.document
-            doc_j = im_j.document
-            key = (doc_i.uid, doc_j.uid)
-            if key not in per_doc_pairs:
-                per_doc_pairs[key] = []
-            per_doc_pairs[key].append((im_i.id, im_j.id, round(float(sim)), 4))
-
-        output_json = [
-            {
-                "doc1": doc_i,
-                "doc2": doc_j,
-                "pairs": pairs,
-            }
-            for (doc_i, doc_j), pairs in per_doc_pairs.items()
-        ]
-
-        return output_json
-
     def format_results(
         self, pairs: list[tuple[int, int, float]], source_images: list[Image]
     ) -> list[dict]:
@@ -342,7 +313,7 @@ class ComputeSimilarity(LoggedTask):
         pairs = compute_cosine_similarity(
             features.cpu().numpy(),
             topk=topk,
-            groups=source_doc_ranges,
+            doc_idx=source_doc_ranges,
             n_transpositions=len(self.transpositions),
         )
 

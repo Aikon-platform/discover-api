@@ -68,7 +68,7 @@ def receive_task(
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json"},
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json"},
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"}
-                {"type": "url_list", "src": "https://example.com/urls.txt"},
+                {"type": "url_list", "src": "https://example.com/urls_list"},
                 {"type": "zip", "src": "https://example.com/zipfile.zip"},
             ]",
             "crops": [ # optional
