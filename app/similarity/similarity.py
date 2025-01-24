@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 import numpy as np
 import torch
 from torchvision import transforms
@@ -206,11 +206,10 @@ class ComputeSimilarity(LoggedTask):
         self, dataset: Dataset, parameters: Optional[dict] = None, *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
+        self.results = {}
 
         self.dataset = dataset
-
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
-
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
 
@@ -243,7 +242,7 @@ class ComputeSimilarity(LoggedTask):
             transpositions=self.transpositions,
         )
 
-        data_loader = DataLoader(img_dataset, batch_size=128, shuffle=False)
+        data_loader = DataLoader(img_dataset, batch_size=16, shuffle=False)
         cache_id = (
             f"{self.dataset.uid}@{''.join(str(t.value) for t in self.transpositions)}"
         )
@@ -263,9 +262,40 @@ class ComputeSimilarity(LoggedTask):
 
         return features
 
+    def format_parameters(self):
+        return {
+            "algorithm": self.algorithm,
+            "topk": self.topk,
+            "feat_net": self.feat_net,
+            "segswap_prefilter": self.segswap_prefilter,
+            "segswap_n": self.segswap_n,
+            "raw_transpositions": self.raw_transpositions,
+            "transpositions": self.transpositions,
+        }
+
+    @staticmethod
+    def format_pair(pair: tuple) -> tuple[int, int, float, int, int]:
+        """
+        Format a similarity pair to ensure it has 5 elements, adding default values (0) for missing transpositions.
+
+        Args:
+            pair (tuple): A tuple containing either (im_i, im_j, sim) or (im_i, im_j, sim, tr_i, tr_j)
+
+        Returns:
+            tuple[int, int, float, int, int]: A 5-element tuple (im_i, im_j, sim, tr_i, tr_j)
+        """
+        # Pad the pair with zeros to ensure we have 5 elements (for legacy format)
+        im_i, im_j, sim, tr_i, tr_j = tuple(list(pair) + [0] * (5 - len(pair)))
+        return im_i, im_j, round(float(sim), 4), tr_i, tr_j
+
     def format_results(
         self, pairs: list[tuple[int, int, float]], source_images: list[Image]
-    ) -> list[dict]:
+    ) -> dict[
+        str,
+        dict[str, list[str] | bool | list[Any] | str | Any]
+        | dict[str, dict[Any, dict] | list[str] | list[dict[str, Any]]]
+        | list[tuple[Any, Any, float, Any, Any]],
+    ]:
         """
         Format the results for output
 
@@ -276,7 +306,8 @@ class ComputeSimilarity(LoggedTask):
         Returns:
             A dictionary with the document index and pairs
         """
-        output_json = {
+        return {
+            "parameters": self.format_parameters(),
             "index": {
                 "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
                 "images": [
@@ -284,13 +315,8 @@ class ComputeSimilarity(LoggedTask):
                 ],
                 "transpositions": self.raw_transpositions,
             },
-            "pairs": [
-                (im_i, im_j, round(float(sim), 4), tr_i, tr_j)
-                for im_i, im_j, sim, tr_i, tr_j in pairs
-            ],
+            "pairs": [self.format_pair(pair) for pair in pairs],
         }
-
-        return output_json
 
     @torch.no_grad()
     def compute_similarity(self) -> list[dict]:
@@ -304,9 +330,7 @@ class ComputeSimilarity(LoggedTask):
         self.print_and_log(
             f"[task.similarity] {len(source_images)} images downloaded and/or cropped"
         )
-
         topk = self.segswap_n if self.algorithm == "segswap" else self.topk
-
         features = self.get_features(source_paths)
 
         # TODO skip this step if self.algorithm == "segswap" && self.segswap_prefilter == false
@@ -342,6 +366,12 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] Similarity task triggered for {self.dataset.uid} with {self.feat_net}!"
         )
 
+        if scores := self.check_already_computed():
+            return {
+                "dataset_url": self.dataset.get_absolute_url(),
+                "annotations": scores,
+            }
+
         try:
             similarity = self.compute_similarity()
             self.results = similarity
@@ -364,6 +394,48 @@ class ComputeSimilarity(LoggedTask):
         finally:
             pass
 
+    def check_parameters(self, parameters):
+        """
+        Return True if all the parameters are the same (meaning that the similarity has already been computed)
+        False if one of the parameters is not the same
+        """
+        if parameters is None:
+            return False
+        if parameters.get("algorithm", None) != self.algorithm:
+            return False
+        if parameters.get("topk", None) != self.topk:
+            return False
+        if parameters.get("feat_net", None) != self.feat_net:
+            return False
+        if parameters.get("segswap_n", None) != self.segswap_n:
+            return False
+
+        # OTHER PARAMETERS TO CHECK
+        # "segswap_prefilter": self.segswap_prefilter,
+        # "raw_transpositions": self.raw_transpositions,
+        # "transpositions": self.transpositions,
+        return True
+
+    def check_already_computed(self):
+        # Search through all subdirectories
+        for path in SCORES_PATH.rglob(f"{self.dataset.uid}-scores.json"):
+            if path.is_file():
+                try:
+                    scores = orjson.loads(path.read_text())
+                    if self.check_parameters(scores.get("parameters", None)):
+                        return scores
+                except (orjson.JSONDecodeError, OSError) as e:
+                    self.print_and_log_warning(
+                        f"[task.similarity] Error reading existing scores file {path}: {e}"
+                    )
+                    continue
+        return False
+
     def check_dataset(self):
-        # TODO add more checks
-        return len(self.dataset.documents) > 0
+        if self.dataset is None:
+            return False
+
+        if len(self.dataset.documents) == 0:
+            return False
+
+        return True

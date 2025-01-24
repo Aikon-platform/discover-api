@@ -40,16 +40,19 @@ def document_download(dtype, uid):
     Download the document
     """
     document = Document(uid, dtype)
-    files = [("images/" + im.path.name, im.path) for im in document.list_images()] + [
-        ("images.json", document.images_info_path)
-    ]
-
-    fname = f"{sanitize_str(document.uid)}.zip"
+    relpath = document.path
+    files = [
+        # relative path beginning with "images/..."
+        (str(im.path.relative_to(relpath)), im.path)
+        for im in document.list_images()
+    ] + [("images.json", document.images_info_path)]
 
     return Response(
         stream_with_context(zip_on_the_fly(files)),
         mimetype="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={fname}"},
+        headers={
+            "Content-Disposition": f"attachment; filename={sanitize_str(document.uid)}.zip"
+        },
     )
 
 
