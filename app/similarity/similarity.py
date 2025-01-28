@@ -7,7 +7,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from typing import Iterable
 import orjson
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial.distance import cdist
 
 from .const import SCORES_PATH, DEMO_NAME
 from .lib.const import (
@@ -22,7 +22,7 @@ from .lib import segswap
 from .lib.models import get_model_path
 from .lib.utils import AllTranspose
 
-from ..shared.dataset import Dataset
+from ..shared.dataset import Dataset, Document
 from ..shared.dataset.document import DocDict, get_file_url
 from ..shared.dataset.utils import ImageDict, Image
 from ..shared.utils import get_device
@@ -37,25 +37,29 @@ DocPairs: TypeAlias = Dict[DocRef, PairList]
 
 
 @dataclass
+class DocInFeatures:
+    document: Document
+    range: range
+    images: List[Image]
+
+
+@dataclass
 class Pair:
     im_i: int
+    doc_i: DocInFeatures
     im_j: int
+    doc_j: DocInFeatures
     similarity: float
     trans_i: int = 0
     trans_j: int = 0
 
-    def to_tuple(self) -> PairTuple:
-        return self.im_i, self.im_j, self.similarity, self.trans_i, self.trans_j
-
-    @classmethod
-    def from_tuple(cls, data: tuple) -> "Pair":
-        values = list(data) + [0] * (5 - len(data))
-        return cls(
-            im_i=values[0],
-            im_j=values[1],
-            similarity=round(float(values[2]), 4),
-            trans_i=values[3],
-            trans_j=values[4],
+    def to_tuple(self, doc_offsets) -> PairTuple:
+        return (
+            self.im_i + doc_offsets[self.doc_i],
+            self.im_j + doc_offsets[self.doc_j],
+            self.similarity,
+            self.trans_i,
+            self.trans_j,
         )
 
 
@@ -84,45 +88,45 @@ class SimilarityResults(TypedDict):
     pairs: List[PairTuple]
 
 
-@dataclass
-class DocumentPairs:
-    doc1_uid: str
-    doc2_uid: str
-    pairs: List[PairTuple]
-
-
-def _make_diff_ranges(docs: list) -> List[range]:
+def group_by_documents(images: List[Image]) -> List[DocInFeatures]:
     """
-    Make a list of ranges of constant values in a list
+    Identify groups of consecutive images from the same document
     """
     ranges = []
     p = 0
-    for k, i in enumerate(docs):
-        if i != docs[p]:
-            ranges.append(range(p, k))
+    for k, i in enumerate(images + [None]):
+        if i is None or i.document != images[p].document:
+            ranges.append(DocInFeatures(images[p].document, range(p, k), images[p:k]))
             p = k
-    ranges.append(range(p, len(docs)))
     return ranges
 
 
 def handle_transpositions(
-    sim_matrix: np.ndarray, n_features: int, n_trans: int
+    sim_matrix: np.ndarray, n_trans_rows: int, n_trans_cols: int = None
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Handle multiple transpositions per image."""
-    n_images = n_features // n_trans
-    assert n_features % n_trans == 0, "Features must be divisible by transpositions"
+    """
+    Handle multiple transpositions per image.
+    """
+    if n_trans_cols is None:
+        n_trans_cols = n_trans_rows
+
+    n_rows, n_cols = sim_matrix.shape
+    n_im_rows = n_rows // n_trans_rows
+    n_im_cols = n_cols // n_trans_cols
+    assert n_rows % n_trans_rows == 0, "Features must be divisible by transpositions"
+    assert n_cols % n_trans_cols == 0, "Features must be divisible by transpositions"
 
     # Reshape to get all transposition combinations
     sim_trans = (
-        sim_matrix.reshape(n_images, n_trans, n_images, n_trans)
+        sim_matrix.reshape(n_im_rows, n_trans_rows, n_im_cols, n_trans_cols)
         .transpose(0, 2, 1, 3)
-        .reshape(n_images, n_images, n_trans * n_trans)
+        .reshape(n_im_rows, n_im_rows, n_trans_rows * n_trans_cols)
     )
 
     # Find best transposition pairs
     best_trans = sim_trans.argmax(axis=2, keepdims=True)
     sim_matrix = np.take_along_axis(sim_trans, best_trans, axis=2).squeeze(axis=2)
-    tr_i, tr_j = np.divmod(best_trans.squeeze(axis=2), n_trans)
+    tr_i, tr_j = np.divmod(best_trans.squeeze(axis=2), n_trans_cols)
 
     return sim_matrix, tr_i, tr_j
 
@@ -140,8 +144,9 @@ class ComputeSimilarity(LoggedTask):
 
         self.dataset = dataset
         self.images = self.dataset.prepare()
+
         # Sequences of indices for each document to compare
-        self.doc_ranges = _make_diff_ranges([i.document for i in self.images])
+        self.doc_images = group_by_documents(self.images)
 
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
         self.topk = parameters.get("topk", COS_TOPK)
@@ -212,38 +217,39 @@ class ComputeSimilarity(LoggedTask):
             "transpositions": self.transpositions,
         }
 
-    def format_results(
-        self, pairs: PairList, doc_uids: Optional[Set[str]] = None
-    ) -> SimilarityResults:
+    def format_results(self, pairs: List[Pair]) -> SimilarityResults:
         """
         Format the results for output
-        TODO change pairs processing
 
         Args:
-            pairs (List[PairTuple]): The similarity pairs
-            doc_uids (List[str]): The list of document uids to include in the output
+            pairs (List[Pair]): The similarity pairs
 
         Returns:
             A dictionary with the document index and pairs
         """
-        if doc_uids is None:
-            doc_uids = {doc.uid for doc in self.dataset.documents}
+        docs = sorted(
+            set(p.doc_i for p in pairs) | set(p.doc_j for p in pairs),
+            key=lambda d: d.uid,
+        )
+        offsets = {}
+        offset = 0
+
+        for doc in docs:
+            offsets[doc] = offset
+            offset += len(doc.range)
 
         return {
             "parameters": self.format_parameters(),
             "index": {
-                "sources": {
-                    doc.uid: doc.to_dict()
-                    for doc in self.dataset.documents
-                    if doc.uid in doc_uids
-                },
+                "sources": {doc.document.uid: doc.document.to_dict() for doc in docs},
                 "images": [
                     cast(ImageDict, {**im.to_dict(), "doc_uid": im.document.uid})
-                    for im in self.images
+                    for document in docs
+                    for im in document.images
                 ],
                 "transpositions": self.raw_transpositions,
             },
-            "pairs": [Pair.from_tuple(pair).to_tuple() for pair in pairs],
+            "pairs": [pair.to_tuple(offsets) for pair in pairs],
         }
 
     @torch.no_grad()
@@ -279,33 +285,36 @@ class ComputeSimilarity(LoggedTask):
 
         return self.format_results(all_pairs)
 
-    def get_top_pairs(
+    def get_relative_top_pairs(
         self,
-        sim_matrix: np.ndarray,
-        doc1_idx: Iterable[int],
-        doc2_idx: Iterable[int],
+        submatrix: np.ndarray,
         topk: Optional[int],
         min_tr_i: np.ndarray,
         min_tr_j: np.ndarray,
+        symmetrical: bool = False,  # i and j are from the same document
     ) -> Set[PairTuple]:
         """Get top-k matches between two documents."""
-        submatrix = sim_matrix[doc1_idx][:, doc2_idx]
         tops = np.argsort(-submatrix, axis=1)[
             :, : (topk or self.topk)
         ]  # Negative for descending order
 
-        return {
+        asym = {
             (
-                min(doc1_idx[i], doc2_idx[j]),
-                max(doc1_idx[i], doc2_idx[j]),
+                i,
+                j,
                 float(submatrix[i, j]),
                 int(min_tr_i[i, j]),
                 int(min_tr_j[i, j]),
             )
             for i, row in enumerate(tops)
             for j in row
-            if doc1_idx[i] != doc2_idx[j]
         }
+        if symmetrical:
+            return {
+                (i, j, s, tr_i, tr_j) if i < j else (j, i, s, tr_j, tr_i)
+                for i, j, s, tr_i, tr_j in asym
+            }
+        return asym
 
     @staticmethod
     def get_docs_ref(uid1, uid2) -> DocRef:
@@ -315,14 +324,14 @@ class ComputeSimilarity(LoggedTask):
         """Get the document UID for an image index."""
         return self.images[idx].document.uid
 
-    def store(self, doc1_uid, doc2_uid, pairs: PairList, algorithm="cosine"):
+    def store(self, doc1_uid, doc2_uid, pairs: List[Pair], algorithm="cosine"):
         """Store similarity pairs for a document pair and sends results to front"""
         doc_ref = self.get_docs_ref(doc1_uid, doc2_uid)
 
         score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_ref}.json"
         score_file.parent.mkdir(parents=True, exist_ok=True)
 
-        res = self.format_results(pairs, {doc1_uid, doc2_uid})
+        res = self.format_results(pairs)
         with open(score_file, "wb") as f:
             f.write(orjson.dumps(res, default=serializer))
 
@@ -356,41 +365,46 @@ class ComputeSimilarity(LoggedTask):
             - similarity: Cosine similarity score
             - trans1, trans2: Best matching transposition indices
         """
-        doc_ranges = self.doc_ranges or [range(len(features))]
+        doc_images = self.doc_images
 
         self.print_and_log(
-            f"[task.similarity] Computing cosine similarity for {len(doc_ranges)} pairs"
+            f"[task.similarity] Computing cosine similarity for {len(doc_images)} documents"
         )
 
-        sim_matrix = 1.0 - squareform(pdist(features, metric="cosine"))
-        n_features = len(features)
-
-        if n_transpositions > 1:
-            sim_matrix, tr_i, tr_j = handle_transpositions(
-                sim_matrix, n_features, n_transpositions
-            )
-        else:
-            tr_i = tr_j = np.zeros_like(sim_matrix)
-
-        np.fill_diagonal(sim_matrix, -1000)  # Exclude self-matches
-
         all_pairs: DocPairs = {}
-        for doc1_range in doc_ranges:
-            doc1_uid = self.get_doc_uid(doc1_range.start)
+        for doc1 in doc_images:
+            doc1_uid = doc1.document.uid
 
-            for doc2_range in doc_ranges:
-                doc2_uid = self.get_doc_uid(doc2_range.start)
+            for doc2 in doc_images:
+                doc2_uid = doc2.document.uid
 
-                pairs = self.get_top_pairs(
-                    sim_matrix, doc1_range, doc2_range, topk, tr_i, tr_j
+                sim_matrix = 1.0 - cdist(
+                    features[doc1.range], features[doc2.range], metric="cosine"
                 )
+
+                if n_transpositions > 1:
+                    sim_matrix, tr_i, tr_j = handle_transpositions(
+                        sim_matrix, n_transpositions, n_transpositions
+                    )
+                else:
+                    tr_i = tr_j = np.zeros_like(sim_matrix)
+
+                np.fill_diagonal(sim_matrix, -1000)  # Exclude self-matches
+
+                relative_pairs = self.get_relative_top_pairs(
+                    sim_matrix, topk, tr_i, tr_j, doc1_uid == doc2_uid
+                )
+                pairs = [
+                    Pair(i, doc1, j, doc2, sim, trans_i, trans_j)
+                    for (i, j, sim, trans_i, trans_j) in relative_pairs
+                ]
 
                 doc_refs = self.get_docs_ref(doc1_uid, doc2_uid)
                 if doc_refs not in all_pairs:
                     all_pairs[doc_refs] = set()
                 all_pairs[doc_refs].update(sorted(pairs))
 
-                self.store(doc1_uid, doc2_uid, pairs, algorithm="cosine")
+                self.store(pairs, algorithm="cosine")
 
         return all_pairs
 
