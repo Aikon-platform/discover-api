@@ -9,7 +9,7 @@ from typing import Iterable
 import orjson
 from scipy.spatial.distance import pdist, squareform
 
-from .const import SCORES_PATH
+from .const import SCORES_PATH, DEMO_NAME
 from .lib.const import (
     SEG_STRIDE,
     MAX_SIZE,
@@ -23,7 +23,7 @@ from .lib.models import get_model_path
 from .lib.utils import AllTranspose
 
 from ..shared.dataset import Dataset
-from ..shared.dataset.document import DocDict
+from ..shared.dataset.document import DocDict, get_file_url
 from ..shared.dataset.utils import ImageDict, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
@@ -317,9 +317,9 @@ class ComputeSimilarity(LoggedTask):
 
     def store(self, doc1_uid, doc2_uid, pairs: PairList, algorithm="cosine"):
         """Store similarity pairs for a document pair and sends results to front"""
-        doc_pair = self.get_docs_ref(doc1_uid, doc2_uid)
+        doc_ref = self.get_docs_ref(doc1_uid, doc2_uid)
 
-        score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_pair}.json"
+        score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_ref}.json"
         score_file.parent.mkdir(parents=True, exist_ok=True)
 
         res = self.format_results(pairs, {doc1_uid, doc2_uid})
@@ -327,7 +327,9 @@ class ComputeSimilarity(LoggedTask):
             f.write(orjson.dumps(res, default=serializer))
 
         if self.algorithm == algorithm:
-            self.notifier("PROGRESS", output=res)
+            self.notifier(
+                "PROGRESS", output={doc_ref: get_file_url(DEMO_NAME, doc_ref)}
+            )
 
     def compute_cosine_similarity(
         self,

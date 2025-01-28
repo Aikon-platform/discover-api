@@ -31,6 +31,10 @@ class DocDict(TypedDict):
     download: NotRequired[str]
 
 
+def get_file_url(demo_name, filename):
+    return f"{BASE_URL}/{demo_name}/{filename}/result"
+
+
 class Document:
     """
     A Document is a list of images that are part of a single document
@@ -116,8 +120,7 @@ class Document:
         # return url_for("datasets.document_download", dtype=self.dtype, uid=self.uid, _external=True)
 
     def get_results_url(self, demo_name):
-        # return f"{BASE_URL}/{demo_name}/{filename or self.uid}/result"
-        return f"{BASE_URL}/{demo_name}/{self.uid}/result"
+        return get_file_url(demo_name, self.uid)
 
     def get_annotations_url(self, filename=None):
         return f"{self.get_absolute_url()}/{filename}"

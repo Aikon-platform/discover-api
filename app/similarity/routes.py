@@ -134,13 +134,16 @@ def status_similarity(tracking_id: str):
     return shared_routes.status(tracking_id, compute_similarity)
 
 
-@blueprint.route("task/<doc_pair>/result", methods=["GET"])  # TODO : task in the url ?
+@blueprint.route("<doc_pair>/result", methods=["GET"])
 def result_similarity(doc_pair: str):
     """
     Sends the similarity results file for a given document pair
     """
+    # return shared_routes.result(
+    #     SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, f"{slugify(doc_pair)}.npy"
+    # )
     return shared_routes.result(
-        SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, f"{slugify(doc_pair)}.npy"
+        slugify(doc_pair), SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, "json"
     )
 
 
