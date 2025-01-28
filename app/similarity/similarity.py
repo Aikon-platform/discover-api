@@ -1,5 +1,6 @@
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Any, TypedDict, Dict, List, TypeAlias, Tuple, cast
+from typing import Optional, TypedDict, Dict, List, TypeAlias, Tuple, cast, Set, TypeVar
 import numpy as np
 import torch
 from torchvision import transforms
@@ -21,15 +22,18 @@ from .lib import segswap
 from .lib.models import get_model_path
 from .lib.utils import AllTranspose
 
-from ..shared.dataset import Dataset, Image
+from ..shared.dataset import Dataset
 from ..shared.dataset.document import DocDict
-from ..shared.dataset.utils import ImageDict
+from ..shared.dataset.utils import ImageDict, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
 from ..shared.utils.logging import serializer
 
 
 PairTuple: TypeAlias = Tuple[int, int, float, int, int]
+PairList: TypeAlias = Set[PairTuple] | List[PairTuple]
+DocRef: TypeAlias = Tuple[str, str]
+DocPairs: TypeAlias = Dict[DocRef, PairList]
 
 
 @dataclass
@@ -80,17 +84,24 @@ class SimilarityResults(TypedDict):
     pairs: List[PairTuple]
 
 
-def _make_diff_ranges(items: list) -> list[range]:
+@dataclass
+class DocumentPairs:
+    doc1_uid: str
+    doc2_uid: str
+    pairs: List[PairTuple]
+
+
+def _make_diff_ranges(docs: list) -> List[range]:
     """
     Make a list of ranges of constant values in a list
     """
     ranges = []
     p = 0
-    for k, i in enumerate(items):
-        if i != items[p]:
+    for k, i in enumerate(docs):
+        if i != docs[p]:
             ranges.append(range(p, k))
             p = k
-    ranges.append(range(p, len(items)))
+    ranges.append(range(p, len(docs)))
     return ranges
 
 
@@ -128,13 +139,17 @@ class ComputeSimilarity(LoggedTask):
         self.results: SimilarityResults | dict = {}
 
         self.dataset = dataset
+        self.images = self.dataset.prepare()
+        # Sequences of indices for each document to compare
+        self.doc_ranges = _make_diff_ranges([i.document for i in self.images])
+
         self.feat_net = parameters.get("feat_net", FEAT_NET) if parameters else FEAT_NET
         self.topk = parameters.get("topk", COS_TOPK)
         self.algorithm = parameters.get("algorithm", "cosine")
 
         # Whether to perform pre-filter using cosine similarity to keep only best matches before running segswap
         self.segswap_prefilter = parameters.get("segswap_prefilter", True)
-        # If so, how many best matches should be kept (TODO check if it is not cosine_n_filter)
+        # If so, how many best matches should be kept
         self.segswap_n = parameters.get("segswap_n", COS_TOPK)
 
         self.raw_transpositions: List[str] = parameters.get("transpositions", ["none"])
@@ -145,7 +160,7 @@ class ComputeSimilarity(LoggedTask):
         self.device = get_device()
 
     @torch.no_grad()
-    def get_features(self, source_images: List[str]):
+    def get_features(self, img_paths: List[str]):
         """
         Extract features from a list of images
         """
@@ -155,7 +170,7 @@ class ComputeSimilarity(LoggedTask):
         )
 
         img_dataset = FileListDataset(
-            data_paths=source_images,
+            data_paths=img_paths,
             transform=extractor.transforms,
             device=self.device,
             transpositions=self.transpositions,
@@ -198,31 +213,37 @@ class ComputeSimilarity(LoggedTask):
         }
 
     def format_results(
-        self, pairs: list[Pair], source_images: list[Image]
+        self, pairs: PairList, doc_uids: Optional[Set[str]] = None
     ) -> SimilarityResults:
         """
         Format the results for output
+        TODO change pairs processing
 
         Args:
-            pairs (list[tuple[int, int, float]]): The similarity pairs
-            source_images (list[Image]): The source images
+            pairs (List[PairTuple]): The similarity pairs
+            doc_uids (List[str]): The list of document uids to include in the output
 
         Returns:
             A dictionary with the document index and pairs
-
-            PairTuple
         """
+        if doc_uids is None:
+            doc_uids = {doc.uid for doc in self.dataset.documents}
+
         return {
             "parameters": self.format_parameters(),
             "index": {
-                "sources": {doc.uid: doc.to_dict() for doc in self.dataset.documents},
+                "sources": {
+                    doc.uid: doc.to_dict()
+                    for doc in self.dataset.documents
+                    if doc.uid in doc_uids
+                },
                 "images": [
                     cast(ImageDict, {**im.to_dict(), "doc_uid": im.document.uid})
-                    for im in source_images
+                    for im in self.images
                 ],
                 "transpositions": self.raw_transpositions,
             },
-            "pairs": [pair.to_tuple() for pair in pairs],
+            "pairs": [Pair.from_tuple(pair).to_tuple() for pair in pairs],
         }
 
     @torch.no_grad()
@@ -230,12 +251,10 @@ class ComputeSimilarity(LoggedTask):
         """
         Compute the similarity between images in the dataset and returns the results
         """
-        source_images = self.dataset.prepare()
-        source_paths = [str(i.path) for i in source_images]
-        source_doc_ranges = _make_diff_ranges([i.document for i in source_images])
+        source_paths = [str(i.path) for i in self.images]
 
         self.print_and_log(
-            f"[task.similarity] {len(source_images)} images downloaded and/or cropped"
+            f"[task.similarity] Prepared {len(self.images)} images to be processed"
         )
         topk = self.segswap_n if self.algorithm == "segswap" else self.topk
         features = self.get_features(source_paths)
@@ -244,23 +263,21 @@ class ComputeSimilarity(LoggedTask):
         pairs = self.compute_cosine_similarity(
             features.cpu().numpy(),
             topk=topk,
-            doc_idx=source_doc_ranges,
             n_transpositions=len(self.transpositions),
         )
 
         if self.algorithm == "segswap":
-            self.print_and_log(
-                f"[task.similarity] Computing SegSwap similarity for {len(pairs)} pairs"
-            )
             pairs = self.compute_segswap_similarity(
                 source_paths, pairs, cos_topk=topk, device=self.device
             )
 
+        all_pairs = list(set().union(*pairs.values()))
+
         self.print_and_log(
-            f"[task.similarity] Computed similarity for {len(pairs)} pairs"
+            f"[task.similarity] Computed similarity scores for {len(all_pairs)} pairs"
         )
 
-        return self.format_results(pairs, source_images)
+        return self.format_results(all_pairs)
 
     def get_top_pairs(
         self,
@@ -270,7 +287,7 @@ class ComputeSimilarity(LoggedTask):
         topk: Optional[int],
         min_tr_i: np.ndarray,
         min_tr_j: np.ndarray,
-    ) -> set[PairTuple]:
+    ) -> Set[PairTuple]:
         """Get top-k matches between two documents."""
         submatrix = sim_matrix[doc1_idx][:, doc2_idx]
         tops = np.argsort(-submatrix, axis=1)[
@@ -290,20 +307,40 @@ class ComputeSimilarity(LoggedTask):
             if doc1_idx[i] != doc2_idx[j]
         }
 
+    @staticmethod
+    def get_docs_ref(uid1, uid2) -> DocRef:
+        return tuple(sorted([uid1, uid2]))
+
+    def get_doc_uid(self, idx: int) -> str:
+        """Get the document UID for an image index."""
+        return self.images[idx].document.uid
+
+    def store(self, doc1_uid, doc2_uid, pairs: PairList, algorithm="cosine"):
+        """Store similarity pairs for a document pair and sends results to front"""
+        doc_pair = self.get_docs_ref(doc1_uid, doc2_uid)
+
+        score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_pair}.json"
+        score_file.parent.mkdir(parents=True, exist_ok=True)
+
+        res = self.format_results(pairs, {doc1_uid, doc2_uid})
+        with open(score_file, "wb") as f:
+            f.write(orjson.dumps(res, default=serializer))
+
+        if self.algorithm == algorithm:
+            self.notifier("PROGRESS", output=res)
+
     def compute_cosine_similarity(
         self,
         features: np.ndarray,
         topk: int = COS_TOPK,
-        doc_idx: list[Iterable[int]] = None,
         n_transpositions: int = 1,
-    ):
+    ) -> DocPairs:
         """
         Compute pairwise cosine similarities between feature vectors, optionally handling transpositions.
 
         Args:
             features: Feature vectors of shape (n_samples, n_features)
             topk: Number of most similar matches to return per vector
-            doc_idx: Sequences of indices for each document to compare
             n_transpositions: Number of consecutive features representing the same image
 
         Returns:
@@ -312,7 +349,11 @@ class ComputeSimilarity(LoggedTask):
             - similarity: Cosine similarity score
             - trans1, trans2: Best matching transposition indices
         """
-        doc_idx = doc_idx or [range(len(features))]
+        doc_ranges = self.doc_ranges or [range(len(features))]
+
+        self.print_and_log(
+            f"[task.similarity] Computing cosine similarity for {len(doc_ranges)} pairs"
+        )
 
         sim_matrix = 1.0 - squareform(pdist(features, metric="cosine"))
         n_features = len(features)
@@ -326,50 +367,56 @@ class ComputeSimilarity(LoggedTask):
 
         np.fill_diagonal(sim_matrix, -1000)  # Exclude self-matches
 
-        # Process document pairs and collect results
-        all_pairs = set()
-        for doc1 in doc_idx:
-            for doc2 in doc_idx:
-                pairs = self.get_top_pairs(sim_matrix, doc1, doc2, topk, tr_i, tr_j)
-                if self.algorithm == "cosine":
-                    # send intermediary results only if selected algo is cosine
-                    self.notifier("PROGRESS", output=self.format_results(pairs))
-                all_pairs |= pairs
+        all_pairs: DocPairs = {}
+        for doc1_range in doc_ranges:
+            doc1_uid = self.get_doc_uid(doc1_range.start)
 
-        return sorted(all_pairs)
+            for doc2_range in doc_ranges:
+                doc2_uid = self.get_doc_uid(doc2_range.start)
+
+                pairs = self.get_top_pairs(
+                    sim_matrix, doc1_range, doc2_range, topk, tr_i, tr_j
+                )
+
+                doc_refs = self.get_docs_ref(doc1_uid, doc2_uid)
+                if doc_refs not in all_pairs:
+                    all_pairs[doc_refs] = set()
+                all_pairs[doc_refs].update(sorted(pairs))
+
+                self.store(doc1_uid, doc2_uid, pairs, algorithm="cosine")
+
+        return all_pairs
 
     @torch.no_grad()
     def compute_segswap_similarity(
         self,
         source_images: List[str],
-        pairs: list[tuple[int, int]],
+        doc_pairs: DocPairs,
         cos_topk,
         device="cuda",
-    ) -> List[Pair]:
+    ) -> DocPairs:
         """
         Compute the similarity between pairs of images using the SegSwap algorithm
 
         Args:
             source_images (List[str]): The list of image paths
-            pairs (list[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
+            doc_pairs (List[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
             cos_topk (int): The number of best matches to return
             device (str): The device to run the computation on
 
         Returns:
             A list of pairs (k_i, k_j, sim, tr_i, tr_j)
         """
+        self.print_and_log(
+            f"[task.similarity] Computing SegSwap similarity for {len(list(doc_pairs.keys()))} documents"
+        )
+
         param = torch.load(get_model_path("hard_mining_neg5"), map_location=device)
         backbone = segswap.load_backbone(param).to(device)
         encoder = segswap.load_encoder(param).to(device)
 
         feat_size = MAX_SIZE // SEG_STRIDE
-        mask = np.ones((feat_size, feat_size), dtype=bool)
-        y_grid, x_grid = np.where(mask)
-
-        batch_size = cos_topk
-        batched_pairs = [
-            pairs[i : i + batch_size] for i in range(0, len(pairs), batch_size)
-        ]
+        y_grid, x_grid = np.where(np.ones((feat_size, feat_size), dtype=bool))
 
         img_dataset = FileListDataset(
             data_paths=source_images,
@@ -382,44 +429,46 @@ class ComputeSimilarity(LoggedTask):
             device=device,
         )
 
-        out_scores = []
-        p_i = None
+        last_img_idx = None
+        segswap_scores = {}
         # TODO make a dataloader
-        for batch in batched_pairs:
-            tensor1 = []
-            tensor2 = []
-            pairs = []
+        for (doc1_uid, doc2_uid), pairs in doc_pairs.items():
             q_tensor = None
-            for i, j, *_ in batch:
-                if (
-                    p_i != i
-                ):  # Avoid loading several times (cos_pairs are supposed sorted)
-                    q_tensor = img_dataset[i]
-                    p_i = i
+            doc_scores: PairList = []
 
-                r_tensor = img_dataset[j]
+            batched_pairs = [
+                pairs[i : i + cos_topk] for i in range(0, len(pairs), cos_topk)
+            ]
+            for batch in batched_pairs:
+                tensor1, tensor2, batch_pairs = [], [], []
+                for i, j, *_ in batch:
+                    # Reuse tensor if same image index (assumes sorted pairs)
+                    if last_img_idx != i:
+                        q_tensor = img_dataset[i]
+                        last_img_idx = i
 
-                tensor1.append(q_tensor)
-                tensor2.append(r_tensor)
-                pairs.append((i, j))
+                    tensor1.append(q_tensor)
+                    tensor2.append(img_dataset[j])
+                    batch_pairs.append((i, j))
 
-            scores = segswap.compute_score(
-                torch.stack(tensor1),
-                torch.stack(tensor2),
-                backbone,
-                encoder,
-                y_grid,
-                x_grid,
-            )
+                scores = segswap.compute_score(
+                    torch.stack(tensor1),
+                    torch.stack(tensor2),
+                    backbone,
+                    encoder,
+                    y_grid,
+                    x_grid,
+                )
+                doc_scores.extend(
+                    [
+                        (i, j, float(s), 0, 0)
+                        for (i, j, *_), s in zip(batch_pairs, scores)
+                    ]
+                )
+            self.store(doc1_uid, doc2_uid, doc_scores, "segswap")
+            segswap_scores[self.get_docs_ref(doc1_uid, doc2_uid)] = doc_scores
 
-            out_scores.extend(
-                [
-                    (pairs[i][0], pairs[i][1], float(score), 0, 0)
-                    for i, score in enumerate(scores)
-                ]
-            )
-
-        return out_scores
+        return segswap_scores
 
     def run_task(self):
         if not self.check_dataset():
@@ -484,6 +533,7 @@ class ComputeSimilarity(LoggedTask):
 
     def check_already_computed(self):
         # Search through all subdirectories
+        # TODO check for scores using same algorithm
         for path in SCORES_PATH.rglob(f"{self.dataset.uid}-scores.json"):
             if path.is_file():
                 try:
