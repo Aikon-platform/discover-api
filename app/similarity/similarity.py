@@ -327,8 +327,13 @@ class ComputeSimilarity(LoggedTask):
             f.write(orjson.dumps(res, default=serializer))
 
         if self.algorithm == algorithm:
+            file_path = f"{self.experiment_id}/{doc_ref}"
             self.notifier(
-                "PROGRESS", output={doc_ref: get_file_url(DEMO_NAME, doc_ref)}
+                "PROGRESS",
+                output={
+                    "dataset_url": self.dataset.get_absolute_url(),
+                    "annotations": [{doc_ref: get_file_url(DEMO_NAME, file_path)}],
+                },
             )
 
     def compute_cosine_similarity(
@@ -484,20 +489,21 @@ class ComputeSimilarity(LoggedTask):
         )
 
         if scores := self.check_already_computed():
+            # TODO change to use results_url
             return {
                 "dataset_url": self.dataset.get_absolute_url(),
                 "annotations": scores,
             }
 
         try:
-            similarity = self.compute_similarity()
-            self.results = similarity
+            self.results = self.compute_similarity()
 
-            tfile = SCORES_PATH / self.experiment_id / f"{self.dataset.uid}-scores.json"
-            tfile.parent.mkdir(parents=True, exist_ok=True)
-
-            with open(tfile, "wb") as f:
-                f.write(orjson.dumps(similarity, default=serializer))
+            (SCORES_PATH / self.experiment_id).parent.mkdir(parents=True, exist_ok=True)
+            with open(
+                SCORES_PATH / self.experiment_id / f"{self.dataset.uid}-scores.json",
+                "wb",
+            ) as f:
+                f.write(orjson.dumps(self.results, default=serializer))
 
             self.print_and_log(
                 f"[task.similarity] Successfully computed similarity scores"

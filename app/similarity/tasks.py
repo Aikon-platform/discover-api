@@ -55,6 +55,8 @@ def compute_similarity(
         ):
             return success
 
+        # TODO change to use results_url
+
         return {
             "dataset_url": dataset.get_absolute_url(),
             "annotations": similarity_task.results,

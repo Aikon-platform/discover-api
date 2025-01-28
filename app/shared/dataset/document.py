@@ -32,6 +32,7 @@ class DocDict(TypedDict):
 
 
 def get_file_url(demo_name, filename):
+    # filename can be relpath
     return f"{BASE_URL}/{demo_name}/{filename}/result"
 
 
