@@ -63,14 +63,12 @@ class Pair:
         )
 
 
-@dataclass
 class DocIndex(TypedDict):
     sources: Dict[str, DocDict]
     images: List[ImageDict]
     transpositions: List[str]
 
 
-@dataclass
 class SimParameters(TypedDict):
     algorithm: str
     topk: int
@@ -81,7 +79,6 @@ class SimParameters(TypedDict):
     transpositions: Optional[List[str]]
 
 
-@dataclass
 class SimilarityResults(TypedDict):
     parameters: SimParameters
     index: DocIndex
@@ -326,7 +323,7 @@ class ComputeSimilarity(LoggedTask):
 
     def store(self, doc1_uid, doc2_uid, pairs: List[Pair], algorithm="cosine"):
         """Store similarity pairs for a document pair and sends results to front"""
-        doc_ref = self.get_docs_ref(doc1_uid, doc2_uid)
+        doc_ref = "-".join(self.get_docs_ref(doc1_uid, doc2_uid))
 
         score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_ref}.json"
         score_file.parent.mkdir(parents=True, exist_ok=True)
