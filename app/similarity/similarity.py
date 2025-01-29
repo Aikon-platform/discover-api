@@ -551,6 +551,7 @@ class ComputeSimilarity(LoggedTask):
         )
 
         last_img_idx = None
+        q_tensor = None
         segswap_scores = BlockSimMatrix()
         # TODO make a dataloader
         for block in input_pairs.blocks():
@@ -558,7 +559,6 @@ class ComputeSimilarity(LoggedTask):
             doc2 = block.doc2
             doc_scores = segswap_scores[doc1, doc2]
 
-            q_tensor = None
             pairs = list(block)
 
             batched_pairs = [
@@ -569,6 +569,7 @@ class ComputeSimilarity(LoggedTask):
                 for (_, rel_i), (_, rel_j), *_ in batch:
                     i = doc1.range[rel_i]
                     j = doc2.range[rel_j]
+                    print(("i", rel_i, i, "j", rel_j, j, last_img_idx))
 
                     # Reuse tensor if same image index (assumes sorted pairs)
                     if last_img_idx != i:
@@ -589,7 +590,7 @@ class ComputeSimilarity(LoggedTask):
                 )
 
                 for (i, j), s in zip(batch_pairs, scores):
-                    doc_scores[i, j] = (float(s), 0, 0)
+                    doc_scores[i, j] = (round(float(s), 2), 0, 0)
 
             self.store(doc_scores, "segswap")
 
