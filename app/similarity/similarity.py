@@ -214,7 +214,7 @@ class SimParameters(TypedDict):
     segswap_prefilter: bool
     segswap_n: Optional[int]
     raw_transpositions: Optional[List[str]]
-    transpositions: Optional[List[str]]
+    # transpositions: Optional[List[str]]
 
 
 class SimilarityResults(TypedDict):

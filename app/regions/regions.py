@@ -137,13 +137,13 @@ class ExtractRegions(LoggedTask):
             with open(annotation_file, "w"):
                 pass
 
-            extraction_ref = f"{doc.uid}@@{extraction_ref}"
+            extraction_id = f"{doc.uid}@@{extraction_ref}"
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
-            success = self.process_doc_imgs(doc, extraction_ref)
+            success = self.process_doc_imgs(doc, extraction_id)
             if success:
                 with open(annotation_file, "w") as f:
-                    json.dump(self.annotations[extraction_ref], f, indent=2)
+                    json.dump(self.annotations[extraction_id], f, indent=2)
                 result_url = doc.get_annotations_url(extraction_ref)
                 self.notifier(
                     "PROGRESS", output={"annotations": [{doc.uid: result_url}]}

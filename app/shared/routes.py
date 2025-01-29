@@ -200,10 +200,10 @@ def result(filename: str, results_dir: str, xaccel_prefix: str, extension: str =
     :return: The result file as a Flask response
     """
     if not config.USE_NGINX_XACCEL:
-        return send_from_directory(results_dir, f"{slugify(filename)}.{extension}")
+        return send_from_directory(results_dir, f"{filename}.{extension}")
 
     return xaccel_send_from_directory(
-        results_dir, xaccel_prefix, f"{slugify(filename)}.{extension}"
+        results_dir, xaccel_prefix, f"{filename}.{extension}"
     )
 
 
