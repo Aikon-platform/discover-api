@@ -1,6 +1,17 @@
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from dataclasses import dataclass
-from typing import Optional, TypedDict, Dict, List, TypeAlias, Tuple, cast, Set, TypeVar
+from typing import (
+    Optional,
+    TypedDict,
+    Dict,
+    List,
+    TypeAlias,
+    Tuple,
+    cast,
+    Set,
+    TypeVar,
+    Union,
+)
 import numpy as np
 import torch
 from torchvision import transforms
@@ -29,11 +40,10 @@ from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
 from ..shared.utils.logging import serializer
 
-
+SimScore: TypeAlias = Tuple[float, int, int]
 PairTuple: TypeAlias = Tuple[int, int, float, int, int]
 PairList: TypeAlias = Set[PairTuple] | List[PairTuple]
 DocRef: TypeAlias = Tuple[str, str]
-DocPairs: TypeAlias = Dict[DocRef, PairList]
 
 
 @dataclass
@@ -42,35 +52,161 @@ class DocInFeatures:
     range: range
     images: List[Image]
 
+    def __eq__(self, value: "DocInFeatures") -> bool:
+        return self.document.uid == value.document.uid
 
-@dataclass
-class Pair:
-    im_i: int
-    doc_i: DocInFeatures
-    im_j: int
-    doc_j: DocInFeatures
-    similarity: float
-    trans_i: int = 0
-    trans_j: int = 0
+    def __hash__(self):
+        return hash(self.document.uid)
 
-    def to_tuple(self, doc_offsets) -> PairTuple:
+    def slice(self, scale_by: int) -> slice:
+        return slice(self.range.start * scale_by, self.range.stop * scale_by)
+
+    def __str__(self):
         return (
-            self.im_i + doc_offsets[self.doc_i],
-            self.im_j + doc_offsets[self.doc_j],
-            self.similarity,
-            self.trans_i,
-            self.trans_j,
+            f"DocInFeatures({self.document.uid}, {self.range.start}-{self.range.stop})"
         )
 
+    def __repr__(self):
+        return str(self)
 
-@dataclass
+
+Pair: TypeAlias = Tuple[Tuple[DocInFeatures, int], Tuple[DocInFeatures, int], SimScore]
+
+
+def _extend_from_dense_scores(
+    matrix,
+    scores: np.ndarray,
+    topk: int,
+    min_tr_i: np.ndarray = None,
+    min_tr_j: np.ndarray = None,
+    min_score: float = 0.0,
+) -> None:
+    """
+    Get top-k matches between two documents. Updates the output matrix with the best matches.
+    """
+    tops = np.argsort(-scores, axis=1)[:, :topk]  # Negative for descending order
+
+    for i, row in enumerate(tops):
+        for j in row:
+            if scores[i, j] < min_score:
+                break
+            matrix[i, j] = (
+                round(float(scores[i, j]), 3),
+                int(min_tr_i[i, j]),
+                int(min_tr_j[i, j]),
+            )
+
+
+class SparseDocSimMatrix:
+    def __init__(self, doc1: DocInFeatures, doc2: DocInFeatures):
+        """
+        Data structure to store the similarity matrix between two documents
+        """
+        self.data: Dict[Tuple[int, int], SimScore] = OrderedDict()
+        self.doc1 = doc1
+        self.doc2 = doc2
+        assert doc1.document.uid <= doc2.document.uid, "Documents must be sorted by UID"
+
+    def __getitem__(self, key: Tuple[int, int]) -> SimScore:
+        i, j = key
+        i, j = int(i), int(j)
+        return self.data[i, j]
+
+    def __setitem__(self, key: Tuple[int, int], value: SimScore):
+        i, j = key
+        i, j = int(i), int(j)
+        if (
+            self.doc1 == self.doc2 and i > j
+        ):  # if self-similarity, only store upper triangle
+            i, j = j, i
+        if (i, j) not in self.data or self.data[i, j][0] < value[0]:
+            self.data[i, j] = value
+
+    def __iter__(self) -> Iterable[Pair]:
+        for (i, j) in sorted(self.data.keys()):
+            yield (self.doc1, i), (self.doc2, j), self.data[i, j]
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+    def absolute_pairs(self) -> Iterable[PairTuple]:
+        for (i, j) in sorted(self.data.keys()):
+            yield self.doc1.range[i], self.doc2.range[j], *self.data[i, j]
+
+    def transposed(self) -> "TransposedSimMatrix":
+        return TransposedSimMatrix(self)
+
+    def untransposed(self):
+        return self
+
+    def extend_from_dense_scores(
+        self, scores: np.ndarray, topk: int, tr_i: np.ndarray, tr_j: np.ndarray
+    ):
+        _extend_from_dense_scores(self, scores, topk, tr_i, tr_j)
+
+
+class TransposedSimMatrix:
+    def __init__(self, obj: SparseDocSimMatrix):
+        self.obj = obj
+
+    def __getitem__(self, key: Tuple[int, int]) -> SimScore:
+        i, j = key
+        return self.obj[j, i]
+
+    def __setitem__(self, key: Tuple[int, int], value: SimScore) -> None:
+        i, j = key
+        self.obj[j, i] = value
+
+    def extend_from_dense_scores(
+        self, scores: np.ndarray, topk: int, tr_i: np.ndarray, tr_j: np.ndarray
+    ):
+        _extend_from_dense_scores(self, scores, topk, tr_i, tr_j)
+
+    def untransposed(self) -> SparseDocSimMatrix:
+        return self.obj
+
+
+class BlockSimMatrix:
+    def __init__(self):
+        """
+        Data structure to store pairwise document similarity matrices
+        """
+        self.data: Dict[Tuple[str, str], SparseDocSimMatrix] = OrderedDict()
+
+    def __getitem__(
+        self, docs: Tuple[DocInFeatures, DocInFeatures]
+    ) -> Union[SparseDocSimMatrix, TransposedSimMatrix]:
+        doc1, doc2 = docs
+        if reverse := (doc1.document.uid > doc2.document.uid):
+            doc1, doc2 = doc2, doc1
+        doc = self.data.setdefault(
+            (doc1.document.uid, doc2.document.uid), SparseDocSimMatrix(doc1, doc2)
+        )
+        if reverse:
+            return doc.transposed()
+        return doc
+
+    def __iter__(self) -> Iterable[Pair]:
+        for matrix in self.data.values():
+            yield from matrix
+
+    def __len__(self) -> int:
+        return sum(len(matrix) for matrix in self.data.values())
+
+    def absolute_pairs(self) -> Iterable[PairTuple]:
+        for matrix in self.data.values():
+            yield from matrix.absolute_pairs()
+
+    def blocks(self) -> Iterable[SparseDocSimMatrix]:
+        return self.data.values()
+
+
 class DocIndex(TypedDict):
     sources: Dict[str, DocDict]
     images: List[ImageDict]
     transpositions: List[str]
 
 
-@dataclass
 class SimParameters(TypedDict):
     algorithm: str
     topk: int
@@ -81,7 +217,6 @@ class SimParameters(TypedDict):
     transpositions: Optional[List[str]]
 
 
-@dataclass
 class SimilarityResults(TypedDict):
     parameters: SimParameters
     index: DocIndex
@@ -120,7 +255,7 @@ def handle_transpositions(
     sim_trans = (
         sim_matrix.reshape(n_im_rows, n_trans_rows, n_im_cols, n_trans_cols)
         .transpose(0, 2, 1, 3)
-        .reshape(n_im_rows, n_im_rows, n_trans_rows * n_trans_cols)
+        .reshape(n_im_rows, n_im_cols, n_trans_rows * n_trans_cols)
     )
 
     # Find best transposition pairs
@@ -214,22 +349,24 @@ class ComputeSimilarity(LoggedTask):
             "segswap_prefilter": self.segswap_prefilter,
             "segswap_n": self.segswap_n,
             "raw_transpositions": self.raw_transpositions,
-            "transpositions": self.transpositions,
+            # "transpositions": self.transpositions,
         }
 
-    def format_results(self, pairs: List[Pair]) -> SimilarityResults:
+    def format_results(self, pairs: Iterable[Pair]) -> SimilarityResults:
         """
         Format the results for output
 
         Args:
-            pairs (List[Pair]): The similarity pairs
+            pairs (Iterable[Pair]): The similarity pairs
 
         Returns:
             A dictionary with the document index and pairs
         """
+        pairs = list(pairs)
+
         docs = sorted(
-            set(p.doc_i for p in pairs) | set(p.doc_j for p in pairs),
-            key=lambda d: d.uid,
+            set(pair[0][0] for pair in pairs).union(pair[1][0] for pair in pairs),
+            key=lambda d: d.document.uid,
         )
         offsets = {}
         offset = 0
@@ -237,6 +374,8 @@ class ComputeSimilarity(LoggedTask):
         for doc in docs:
             offsets[doc] = offset
             offset += len(doc.range)
+        print("offsets", offsets)
+        print("pairs", pairs)
 
         return {
             "parameters": self.format_parameters(),
@@ -249,7 +388,10 @@ class ComputeSimilarity(LoggedTask):
                 ],
                 "transpositions": self.raw_transpositions,
             },
-            "pairs": [pair.to_tuple(offsets) for pair in pairs],
+            "pairs": [
+                (offsets[doc1] + i, offsets[doc2] + j, *sim)
+                for (doc1, i), (doc2, j), sim in pairs
+            ],
         }
 
     @torch.no_grad()
@@ -277,44 +419,11 @@ class ComputeSimilarity(LoggedTask):
                 source_paths, pairs, cos_topk=topk, device=self.device
             )
 
-        all_pairs = list(set().union(*pairs.values()))
-
         self.print_and_log(
-            f"[task.similarity] Computed similarity scores for {len(all_pairs)} pairs"
+            f"[task.similarity] Computed similarity scores for {len(pairs)} pairs"
         )
 
-        return self.format_results(all_pairs)
-
-    def get_relative_top_pairs(
-        self,
-        submatrix: np.ndarray,
-        topk: Optional[int],
-        min_tr_i: np.ndarray,
-        min_tr_j: np.ndarray,
-        symmetrical: bool = False,  # i and j are from the same document
-    ) -> Set[PairTuple]:
-        """Get top-k matches between two documents."""
-        tops = np.argsort(-submatrix, axis=1)[
-            :, : (topk or self.topk)
-        ]  # Negative for descending order
-
-        asym = {
-            (
-                i,
-                j,
-                float(submatrix[i, j]),
-                int(min_tr_i[i, j]),
-                int(min_tr_j[i, j]),
-            )
-            for i, row in enumerate(tops)
-            for j in row
-        }
-        if symmetrical:
-            return {
-                (i, j, s, tr_i, tr_j) if i < j else (j, i, s, tr_j, tr_i)
-                for i, j, s, tr_i, tr_j in asym
-            }
-        return asym
+        return self.format_results(pairs)
 
     @staticmethod
     def get_docs_ref(uid1, uid2) -> DocRef:
@@ -324,14 +433,14 @@ class ComputeSimilarity(LoggedTask):
         """Get the document UID for an image index."""
         return self.images[idx].document.uid
 
-    def store(self, doc1_uid, doc2_uid, pairs: List[Pair], algorithm="cosine"):
+    def store(self, matrix: SparseDocSimMatrix, algorithm="cosine"):
         """Store similarity pairs for a document pair and sends results to front"""
-        doc_ref = self.get_docs_ref(doc1_uid, doc2_uid)
+        doc_ref = self.get_docs_ref(matrix.doc1.document.uid, matrix.doc2.document.uid)
 
         score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_ref}.json"
         score_file.parent.mkdir(parents=True, exist_ok=True)
 
-        res = self.format_results(pairs)
+        res = self.format_results(matrix)
         with open(score_file, "wb") as f:
             f.write(orjson.dumps(res, default=serializer))
 
@@ -341,7 +450,12 @@ class ComputeSimilarity(LoggedTask):
                 "PROGRESS",
                 output={
                     "dataset_url": self.dataset.get_absolute_url(),
-                    "annotations": [{doc_ref: get_file_url(DEMO_NAME, file_path)}],
+                    "annotations": [
+                        {
+                            "doc_pair": doc_ref,
+                            "result_url": get_file_url(DEMO_NAME, file_path),
+                        }
+                    ],
                 },
             )
 
@@ -350,36 +464,31 @@ class ComputeSimilarity(LoggedTask):
         features: np.ndarray,
         topk: int = COS_TOPK,
         n_transpositions: int = 1,
-    ) -> DocPairs:
+    ) -> BlockSimMatrix:
         """
         Compute pairwise cosine similarities between feature vectors, optionally handling transpositions.
 
         Args:
-            features: Feature vectors of shape (n_samples, n_features)
+            features: Feature vectors of shape (n_samples * n_transpositions, n_features)
             topk: Number of most similar matches to return per vector
             n_transpositions: Number of consecutive features representing the same image
 
         Returns:
-            List of tuples (idx1, idx2, similarity, trans1, trans2) where:
-            - idx1, idx2: Indices of the matched feature vectors (idx1 < idx2)
-            - similarity: Cosine similarity score
-            - trans1, trans2: Best matching transposition indices
+            A BlockSimMatrix object with the similarity scores, grouped by pairs of documents
         """
         doc_images = self.doc_images
 
         self.print_and_log(
-            f"[task.similarity] Computing cosine similarity for {len(doc_images)} documents"
+            f"[task.similarity] Computing cosine similarity for {len(doc_images)} pairs"
         )
 
-        all_pairs: DocPairs = {}
+        all_scores = BlockSimMatrix()
         for doc1 in doc_images:
-            doc1_uid = doc1.document.uid
-
             for doc2 in doc_images:
-                doc2_uid = doc2.document.uid
-
                 sim_matrix = 1.0 - cdist(
-                    features[doc1.range], features[doc2.range], metric="cosine"
+                    features[doc1.slice(scale_by=n_transpositions)],
+                    features[doc2.slice(scale_by=n_transpositions)],
+                    metric="cosine",
                 )
 
                 if n_transpositions > 1:
@@ -389,39 +498,30 @@ class ComputeSimilarity(LoggedTask):
                 else:
                     tr_i = tr_j = np.zeros_like(sim_matrix)
 
-                np.fill_diagonal(sim_matrix, -1000)  # Exclude self-matches
+                if doc1 == doc2:
+                    np.fill_diagonal(sim_matrix, -1000)  # Exclude self-matches
 
-                relative_pairs = self.get_relative_top_pairs(
-                    sim_matrix, topk, tr_i, tr_j, doc1_uid == doc2_uid
-                )
-                pairs = [
-                    Pair(i, doc1, j, doc2, sim, trans_i, trans_j)
-                    for (i, j, sim, trans_i, trans_j) in relative_pairs
-                ]
+                pairs = all_scores[doc1, doc2]
+                pairs.extend_from_dense_scores(sim_matrix, topk, tr_i, tr_j)
 
-                doc_refs = self.get_docs_ref(doc1_uid, doc2_uid)
-                if doc_refs not in all_pairs:
-                    all_pairs[doc_refs] = set()
-                all_pairs[doc_refs].update(sorted(pairs))
+                self.store(pairs.untransposed(), algorithm="cosine")
 
-                self.store(pairs, algorithm="cosine")
-
-        return all_pairs
+        return all_scores
 
     @torch.no_grad()
     def compute_segswap_similarity(
         self,
         source_images: List[str],
-        doc_pairs: DocPairs,
+        input_pairs: BlockSimMatrix,
         cos_topk,
         device="cuda",
-    ) -> DocPairs:
+    ) -> BlockSimMatrix:
         """
         Compute the similarity between pairs of images using the SegSwap algorithm
 
         Args:
             source_images (List[str]): The list of image paths
-            doc_pairs (List[tuple[int, int, *any]]): The cosine similarity pairs (i, j, *any)
+            input_pairs (BlockSimMatrix): The input pairs of documents
             cos_topk (int): The number of best matches to return
             device (str): The device to run the computation on
 
@@ -429,7 +529,7 @@ class ComputeSimilarity(LoggedTask):
             A list of pairs (k_i, k_j, sim, tr_i, tr_j)
         """
         self.print_and_log(
-            f"[task.similarity] Computing SegSwap similarity for {len(list(doc_pairs.keys()))} documents"
+            f"[task.similarity] Computing SegSwap similarity for {len(input_pairs.data)} pairs of documents"
         )
 
         param = torch.load(get_model_path("hard_mining_neg5"), map_location=device)
@@ -451,18 +551,25 @@ class ComputeSimilarity(LoggedTask):
         )
 
         last_img_idx = None
-        segswap_scores = {}
+        segswap_scores = BlockSimMatrix()
         # TODO make a dataloader
-        for (doc1_uid, doc2_uid), pairs in doc_pairs.items():
+        for block in input_pairs.blocks():
+            doc1 = block.doc1
+            doc2 = block.doc2
+            doc_scores = segswap_scores[doc1, doc2]
+
             q_tensor = None
-            doc_scores: PairList = []
+            pairs = list(block)
 
             batched_pairs = [
                 pairs[i : i + cos_topk] for i in range(0, len(pairs), cos_topk)
             ]
             for batch in batched_pairs:
                 tensor1, tensor2, batch_pairs = [], [], []
-                for i, j, *_ in batch:
+                for (_, rel_i), (_, rel_j), *_ in batch:
+                    i = doc1.range[rel_i]
+                    j = doc2.range[rel_j]
+
                     # Reuse tensor if same image index (assumes sorted pairs)
                     if last_img_idx != i:
                         q_tensor = img_dataset[i]
@@ -470,7 +577,7 @@ class ComputeSimilarity(LoggedTask):
 
                     tensor1.append(q_tensor)
                     tensor2.append(img_dataset[j])
-                    batch_pairs.append((i, j))
+                    batch_pairs.append((rel_i, rel_j))
 
                 scores = segswap.compute_score(
                     torch.stack(tensor1),
@@ -480,14 +587,11 @@ class ComputeSimilarity(LoggedTask):
                     y_grid,
                     x_grid,
                 )
-                doc_scores.extend(
-                    [
-                        (i, j, float(s), 0, 0)
-                        for (i, j, *_), s in zip(batch_pairs, scores)
-                    ]
-                )
-            self.store(doc1_uid, doc2_uid, doc_scores, "segswap")
-            segswap_scores[self.get_docs_ref(doc1_uid, doc2_uid)] = doc_scores
+
+                for (i, j), s in zip(batch_pairs, scores):
+                    doc_scores[i, j] = (float(s), 0, 0)
+
+            self.store(doc_scores, "segswap")
 
         return segswap_scores
 
@@ -502,7 +606,7 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] Similarity task triggered for {self.dataset.uid} with {self.feat_net}!"
         )
 
-        if scores := self.check_already_computed():
+        if (scores := self.check_already_computed()) and False:
             # TODO change to use results_url
             return {
                 "dataset_url": self.dataset.get_absolute_url(),

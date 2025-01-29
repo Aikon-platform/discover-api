@@ -41,7 +41,7 @@ def compute_similarity(
         dataset=dataset,
         parameters=parameters,
         notify_url=notify_url,
-        tracking_url=tracking_url,
+        # tracking_url=tracking_url,
         logger=logger,
         notifier=notifier,
     )

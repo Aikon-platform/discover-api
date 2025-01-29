@@ -20,7 +20,7 @@ class ImageDict(TypedDict):
 
 @dataclass
 class Image:
-    uid: str
+    id: str
     src: str
     path: Path
     metadata: dict[str, str] | None = None
@@ -30,16 +30,16 @@ class Image:
         if relpath is None:
             relpath = self.document.path
         return {
-            "uid": self.uid,
+            "id": self.id,
             "src": self.src,
             "path": str(self.path.relative_to(relpath)),
             "metadata": self.metadata,
         }
 
-    @property
-    def path(self) -> Path:
-        """Returns the absolute path to the image file"""
-        return Path(self.path)
+    # @property
+    # def path(self) -> Path:
+    #     """Returns the absolute path to the image file"""
+    #     return Path(self.path)
 
     @classmethod
     def from_dict(
@@ -48,7 +48,7 @@ class Image:
         if relpath is None:
             relpath = document.path
         return cls(
-            uid=data["uid"],
+            id=data["id"],
             src=data["src"],
             path=relpath / data["path"],
             metadata=data.get("metadata", None),
