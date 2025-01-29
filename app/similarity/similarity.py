@@ -607,7 +607,7 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] Similarity task triggered for {self.dataset.uid} with {self.feat_net}!"
         )
 
-        if (scores := self.check_already_computed()) and False:
+        if scores := self.check_already_computed():
             # TODO change to use results_url
             return {
                 "dataset_url": self.dataset.get_absolute_url(),
