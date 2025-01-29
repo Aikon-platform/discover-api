@@ -61,6 +61,7 @@ class Document:
             - annotations/
                 - ...json
             - images.json
+            - metadata.json
     """
 
     def __init__(
@@ -92,7 +93,7 @@ class Document:
             doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]
         )
 
-    def to_dict(self, with_url: bool = False) -> DocDict:
+    def to_dict(self, with_url: bool = False, with_metadata: bool = False) -> DocDict:
         """
         Convert the document to a dictionary
         """
@@ -104,6 +105,8 @@ class Document:
         if with_url:
             ret["url"] = self.get_absolute_url()
             ret["download"] = self.get_download_url()
+        if with_metadata:
+            ret["metadata"] = self.load_metadata()
         return ret
 
     def get_absolute_url(self):
@@ -143,6 +146,24 @@ class Document:
         return self.path / "images.json"
 
     @property
+    def metadata_path(self):
+        return self.path / "metadata.json"
+
+    def save_metadata(self, metadata: dict):
+        metadata = {**self.load_metadata(), **metadata}
+        with open(self.metadata_path, "w") as f:
+            json.dump(metadata, f)
+        self._metadata = metadata
+
+    def load_metadata(self):
+        if hasattr(self, "_metadata"):
+            return self._metadata
+        if not self.metadata_path.exists():
+            return {}
+        with open(self.metadata_path, "r") as f:
+            return json.load(f)
+
+    @property
     def images(self):
         """
         List of images in the document
@@ -176,6 +197,11 @@ class Document:
         """
         manifest = IIIFManifest(manifest_url)
         manifest.download(save_dir=self.images_path)
+        self.save_metadata(
+            {
+                "title": manifest.get_meta("Title"),
+            }
+        )
 
         self.save_images(
             [
@@ -183,7 +209,14 @@ class Document:
                     id=iiif_image.img_name,
                     src=iiif_image.url,
                     path=iiif_image.img_path,
-                    metadata={"page": iiif_image.idx},
+                    metadata={
+                        "page": iiif_image.idx,
+                        **(
+                            {"label": iiif_image.resource["label"]}
+                            if iiif_image.resource.get("label")
+                            else {}
+                        ),
+                    },
                     document=self,
                 )
                 for iiif_image in manifest.get_images()
@@ -269,7 +302,7 @@ class Document:
         console(f"Downloading [{self.dtype}] {self.uid}...", color="blue")
 
         self.images_path.mkdir(parents=True, exist_ok=True)
-
+        self.save_metadata({"src": self.src})
         if self.dtype == "iiif":
             self._download_from_iiif(self.src)
         elif self.dtype == "zip":
