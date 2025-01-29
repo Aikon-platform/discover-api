@@ -61,7 +61,8 @@ class LoggedTask(LoggingTaskMixin):
             else message or self.error_list or "Unknown error"
         )
         self.notifier(event, message=msg)
-        raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
+        if event == "ERROR":
+            raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
         self.print_and_log_error(
