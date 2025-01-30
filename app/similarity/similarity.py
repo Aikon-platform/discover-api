@@ -305,7 +305,12 @@ class ComputeSimilarity(LoggedTask):
         if self._results_url:
             return self._results_url
 
-        for path in SCORES_PATH.rglob(f"{self.experiment_id}/*"):
+        self._results_url = self.get_results_url(self.experiment_id)
+        return self._results_url
+
+    def get_results_url(self, experiment_id):
+        results_url = []
+        for path in SCORES_PATH.rglob(f"{experiment_id}/*"):
             if not path.is_file() or path.suffix != ".json":
                 continue
             filename = path.stem
@@ -313,14 +318,15 @@ class ComputeSimilarity(LoggedTask):
             if not filename.startswith(self.algorithm):
                 continue
 
-            self._results_url.append(
+            results_url.append(
                 {
-                    "doc_pair": filename,
+                    "doc_pair": filename.replace(f"{self.algorithm}-", ""),
                     "result_url": get_file_url(
-                        DEMO_NAME, f"{self.experiment_id}/{filename}"
+                        DEMO_NAME, f"{experiment_id}/{filename}"
                     ),
                 }
             )
+        return results_url
 
     def add_results_url(self, value):
         self._results_url.append(value)
@@ -488,7 +494,7 @@ class ComputeSimilarity(LoggedTask):
                 "PROGRESS",
                 output={
                     "dataset_url": self.dataset.get_absolute_url(),
-                    "annotations": [result_url],
+                    "results_url": [result_url],
                 },
             )
 
@@ -640,11 +646,13 @@ class ComputeSimilarity(LoggedTask):
             f"[task.similarity] Similarity task triggered for {self.dataset.uid} with {self.feat_net}!"
         )
 
-        if scores := self.check_already_computed():
-            # TODO change to use results_url
+        scores, experiment_id = self.check_already_computed()
+        if scores:
+            # TODO change to use only results_url
             return {
                 "dataset_url": self.dataset.get_absolute_url(),
                 "annotations": scores,
+                "results_url": self.get_results_url(experiment_id),
             }
 
         try:
@@ -692,20 +700,22 @@ class ComputeSimilarity(LoggedTask):
         return True
 
     def check_already_computed(self):
-        # Search through all subdirectories
-        # TODO check for scores using same algorithm
         for path in SCORES_PATH.rglob(f"{self.dataset.uid}-scores.json"):
-            if path.is_file():
-                try:
-                    scores = orjson.loads(path.read_text())
-                    if self.check_parameters(scores.get("parameters", None)):
-                        return scores
-                except (orjson.JSONDecodeError, OSError) as e:
-                    self.print_and_log_warning(
-                        f"[task.similarity] Error reading existing scores file {path}: {e}"
-                    )
-                    continue
-        return False
+            if not path.is_file():
+                continue
+
+            try:
+                scores = orjson.loads(path.read_text())
+            except (orjson.JSONDecodeError, OSError) as e:
+                self.print_and_log_warning(
+                    f"[task.similarity] Error reading scores file {path}: {e}"
+                )
+                continue
+
+            if self.check_parameters(scores.get("parameters")):
+                return scores, path.parent.name
+
+        return False, False
 
     def check_dataset(self):
         if self.dataset is None:

@@ -51,10 +51,11 @@ def compute_similarity(
             isinstance(success, dict)
             and success.get("dataset_url", False)
             and success.get("annotations", False)
+            and success.get("results_url", False)
         ):
             return success
 
-        # TODO change to use results_url
+        # TODO change to use only results_url
 
         return {
             "dataset_url": dataset.get_absolute_url(),
