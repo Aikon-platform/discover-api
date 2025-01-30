@@ -200,7 +200,7 @@ def result(filename: str, results_dir: str, xaccel_prefix: str, extension: str =
     :return: The result file as a Flask response
     """
     # if get_file_url() was used with relative filepath
-    filename = filename.replace("+", "/")
+    filename = filename.replace("~", "/")
 
     if not config.USE_NGINX_XACCEL:
         return send_from_directory(results_dir, f"{filename}.{extension}")
