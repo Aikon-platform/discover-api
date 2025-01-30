@@ -406,7 +406,10 @@ class ComputeSimilarity(LoggedTask):
         return {
             "parameters": self.format_parameters(),
             "index": {
-                "sources": {doc.document.uid: doc.document.to_dict() for doc in docs},
+                "sources": {
+                    doc.document.uid: doc.document.to_dict(with_metadata=True)
+                    for doc in docs
+                },
                 "images": [
                     cast(ImageDict, {**im.to_dict(), "doc_uid": im.document.uid})
                     for document in docs
