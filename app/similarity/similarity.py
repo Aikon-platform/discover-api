@@ -38,7 +38,7 @@ from ..shared.dataset.document import DocDict, get_file_url
 from ..shared.dataset.utils import ImageDict, Image
 from ..shared.utils import get_device
 from ..shared.tasks import LoggedTask
-from ..shared.utils.logging import serializer
+from ..shared.utils.logging import serializer, console
 
 SimScore: TypeAlias = Tuple[float, int, int]
 PairTuple: TypeAlias = Tuple[int, int, float, int, int]
@@ -276,6 +276,7 @@ class ComputeSimilarity(LoggedTask):
     ):
         super().__init__(*args, **kwargs)
         self.results: SimilarityResults | dict = {}
+        self._results_url = []
 
         self.dataset = dataset
         self.images = self.dataset.prepare()
@@ -298,6 +299,31 @@ class ComputeSimilarity(LoggedTask):
         ]
 
         self.device = get_device()
+
+    @property
+    def results_url(self):
+        if self._results_url:
+            return self._results_url
+
+        for path in SCORES_PATH.rglob(f"{self.experiment_id}/*"):
+            if not path.is_file() or path.suffix != ".json":
+                continue
+            filename = path.stem
+
+            if not filename.startswith(self.algorithm):
+                continue
+
+            self._results_url.append(
+                {
+                    "doc_pair": filename,
+                    "result_url": get_file_url(
+                        DEMO_NAME, f"{self.experiment_id}/{filename}"
+                    ),
+                }
+            )
+
+    def add_results_url(self, value):
+        self._results_url.append(value)
 
     @torch.no_grad()
     def get_features(self, img_paths: List[str]):
@@ -374,8 +400,8 @@ class ComputeSimilarity(LoggedTask):
         for doc in docs:
             offsets[doc] = offset
             offset += len(doc.range)
-        print("offsets", offsets)
-        print("pairs", pairs)
+        # print("offsets", offsets)
+        # print("pairs", pairs)
 
         return {
             "parameters": self.format_parameters(),
@@ -438,8 +464,9 @@ class ComputeSimilarity(LoggedTask):
         doc_ref = "-".join(
             self.get_docs_ref(matrix.doc1.document.uid, matrix.doc2.document.uid)
         )
+        result_name = f"{algorithm}-{doc_ref}"
 
-        score_file = SCORES_PATH / self.experiment_id / f"{algorithm}-{doc_ref}.json"
+        score_file = SCORES_PATH / self.experiment_id / f"{result_name}.json"
         score_file.parent.mkdir(parents=True, exist_ok=True)
 
         res = self.format_results(matrix)
@@ -447,17 +474,18 @@ class ComputeSimilarity(LoggedTask):
             f.write(orjson.dumps(res, default=serializer))
 
         if self.algorithm == algorithm:
-            file_path = f"{self.experiment_id}/{doc_ref}"
+            file_path = f"{self.experiment_id}/{result_name}"
+            result_url = {
+                "doc_pair": doc_ref,
+                "result_url": get_file_url(DEMO_NAME, file_path),
+            }
+
+            self.add_results_url(result_url)
             self.notifier(
                 "PROGRESS",
                 output={
                     "dataset_url": self.dataset.get_absolute_url(),
-                    "annotations": [
-                        {
-                            "doc_pair": doc_ref,
-                            "result_url": get_file_url(DEMO_NAME, file_path),
-                        }
-                    ],
+                    "annotations": [result_url],
                 },
             )
 

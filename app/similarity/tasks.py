@@ -41,7 +41,6 @@ def compute_similarity(
         dataset=dataset,
         parameters=parameters,
         notify_url=notify_url,
-        # tracking_url=tracking_url,
         logger=logger,
         notifier=notifier,
     )
@@ -60,6 +59,7 @@ def compute_similarity(
         return {
             "dataset_url": dataset.get_absolute_url(),
             "annotations": similarity_task.results,
+            "results_url": similarity_task.results_url,
         }
 
     return {

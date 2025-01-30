@@ -64,6 +64,7 @@ from .const import (
 from .lib.const import FEAT_NET
 from .lib.models import list_known_models
 from ..shared.utils.logging import console
+from ..watermarks.routes import task_result
 
 blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 
@@ -139,12 +140,7 @@ def result_similarity(doc_pair: str):
     """
     Sends the similarity results file for a given document pair
     """
-    # return shared_routes.result(
-    #     SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, f"{slugify(doc_pair)}.npy"
-    # )
-    return shared_routes.result(
-        slugify(doc_pair), SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, "json"
-    )
+    return shared_routes.result(doc_pair, SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, "json")
 
 
 @blueprint.route("qsizes", methods=["GET"])
