@@ -7,7 +7,6 @@ import json
 import uuid
 
 from flask import request, send_from_directory, jsonify, Request
-from slugify import slugify
 from dramatiq import Actor, Broker
 from dramatiq_abort import abort
 from dramatiq.results import ResultMissing, ResultFailure
@@ -19,7 +18,7 @@ from .utils import hash_str
 from .utils.logging import console
 from .. import config
 
-from .utils.fileutils import xaccel_send_from_directory
+from .utils.fileutils import xaccel_send_from_directory, list_known_models
 
 
 def error_wrapper(func):
@@ -243,3 +242,12 @@ def monitor(results_dir: str, broker: Broker) -> dict:
         total_size += path.stat().st_size
 
     return {"total_size": total_size, **qsizes(broker)}
+
+
+def models(model_path, default_model_info=None):
+    models_info = list_known_models(model_path, default_model_info)
+
+    try:
+        return jsonify(models_info)
+    except Exception:
+        return jsonify("No models.")

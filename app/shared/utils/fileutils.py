@@ -4,7 +4,8 @@ Many functions to manipulate files and directories
 
 import os
 import shutil
-
+import time
+import orjson
 import requests
 import mimetypes
 
@@ -394,3 +395,35 @@ def download_model_if_not(url, path: Path):
     if not path.exists():
         download_file(url, path)
     return path
+
+
+def list_known_models(model_path, default_model_info={}):
+    """
+    List the models available for similarity
+    """
+    models = {}
+    if not model_path.exists():
+        return models
+
+    for file in model_path.iterdir():
+        if file.is_file() and file.suffix in [".pth", ".pt"]:
+            # look for metadata file
+            if (metadata := file.with_suffix(".json")).exists():
+                with open(metadata, "r") as f:
+                    models[file.stem] = {"path": str(file), **orjson.loads(f.read())}
+                    models[file.stem]["model"] = file.stem
+            else:
+                models[file.stem] = {
+                    "path": str(file),
+                    "date": time.ctime(os.path.getmtime(file)),
+                    "model": file.stem,
+                    "name": file.stem,
+                    "desc": "No description available",
+                }
+
+    models = {
+        **models,
+        **default_model_info,
+    }
+
+    return models

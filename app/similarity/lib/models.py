@@ -49,7 +49,7 @@ DEFAULT_MODEL_INFOS = {
     "dino_deitsmall16_pretrain": {
         "name": "DINO DeiT-Small 16",
         "model": "dino_deitsmall16_pretrain",
-        "desc": "Another Vision Transformer feature extractor.",
+        "desc": "Data-efficient Image Transformer.",
     },
 }
 
@@ -159,34 +159,3 @@ def load_model(
     else:
         feat_func = lambda x: x
     return model, feat_func
-
-
-def list_known_models():
-    """
-    List the models available for similarity
-    """
-    models = {}
-    if not MODEL_PATH.exists():
-        return models
-
-    for file in MODEL_PATH.iterdir():
-        if file.is_file() and file.suffix == ".pth":
-            # look for metadata file
-            if (metadata := file.with_suffix(".json")).exists():
-                with open(metadata, "r") as f:
-                    models[file.stem] = {"path": str(file), **orjson.loads(f.read())}
-                    models[file.stem]["model"] = file.stem
-            else:
-                models[file.stem] = {
-                    "path": str(file),
-                    "model": file.stem,
-                    "name": file.stem,
-                    "desc": "No description available",
-                }
-
-    models = {
-        **models,
-        **DEFAULT_MODEL_INFOS,
-    }
-
-    return models

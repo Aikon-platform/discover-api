@@ -5,7 +5,7 @@ import uuid
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX  # , IMG_PATH
+from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH  # , IMG_PATH
 
 from ..shared.utils.logging import console
 
@@ -129,6 +129,11 @@ def result_vectorization(doc_id: str):
     return shared_routes.result(
         doc_id, VEC_RESULTS_PATH / doc_id, VEC_XACCEL_PREFIX, "zip"
     )
+
+
+@blueprint.route("models", methods=["GET"])
+def get_models():
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
 
 
 # TODO add clear_doc + clear_old_vectorization routes (see similarity.routes)
