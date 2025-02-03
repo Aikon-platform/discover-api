@@ -4,8 +4,7 @@ import uuid
 
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
-from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH  # , IMG_PATH
+from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH, DEFAULT_MODEL_INFOS
 
 from ..shared.utils.logging import console
 
