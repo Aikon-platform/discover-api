@@ -17,6 +17,11 @@ class FileListDataset(Dataset):
         self.data_paths = data_paths
         self.rotations = transpositions
 
+        self.preprocess = transforms.Compose([
+            transforms.Lambda(lambda x: x.convert('RGB')),  # Convert grayscale to RGB
+            transforms.ToTensor(),
+        ])
+
     def __len__(self):
         return len(self.data_paths) * len(self.rotations)
 
@@ -24,11 +29,14 @@ class FileListDataset(Dataset):
         # TODO here prevent UnidentifiedImageError
         idx, rot = divmod(idx, len(self.rotations))
         im = Image.open(self.data_paths[idx])
+
         rot = self.rotations[rot]
         if rot != AllTranspose.NONE:
             im = im.transpose(rot.value)
 
-        img = transforms.ToTensor()(im).to(self.device)
+        # img = transforms.ToTensor()(im).to(self.device)
+        img = self.preprocess(im).to(self.device)
+
         return self.transform(img)
 
     def get_image_paths(self):
