@@ -397,6 +397,18 @@ def download_model_if_not(url, path: Path):
     return path
 
 
+def get_model(model_stem, model_dir):
+    """
+    Get the model path either
+    """
+    if model_stem.endswith(".pth") or model_stem.endswith(".pt"):
+        return model_dir / model_stem
+    for ext in [".pth", ".pt"]:
+        if (model_dir / f"{model_stem}.{ext}").exists():
+            return model_dir / f"{model_stem}.{ext}"
+    return None
+
+
 def list_known_models(model_path, default_model_info={}):
     """
     List the models available for similarity

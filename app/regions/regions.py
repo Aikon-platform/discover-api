@@ -9,6 +9,7 @@ from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..config import BASE_URL
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset, Image as DImage
+from ..shared.utils.fileutils import get_model
 
 EXTRACTOR_POSTPROCESS_KWARGS = {
     "watermarks": {
@@ -69,7 +70,8 @@ class ExtractRegions(LoggedTask):
 
     @property
     def weights(self) -> Path:
-        return MODEL_PATH / self.model
+        # return MODEL_PATH / self.model
+        return get_model(self.model, MODEL_PATH)
 
     @property
     def extraction_model(self) -> str:
