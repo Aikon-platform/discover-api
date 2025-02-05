@@ -1,24 +1,22 @@
 import traceback
 import zipfile
 
-import requests
 import os
 import torch
 
 from pathlib import Path
 from typing import Optional
 
-from ..config import BASE_URL
 from ..shared.dataset import Dataset
 from ..shared.tasks import LoggedTask
-from ..shared.utils.fileutils import download_file
-from ..shared.utils.logging import TLogger
+from ..shared.utils.fileutils import download_file, get_model
 from .const import (
     MODEL_CONFIG,
     MODEL_CHECKPOINT,
     VEC_RESULTS_PATH,
     DEMO_NAME,
-)  # , IMG_PATH
+    MODEL_PATH,
+)
 
 from .lib.src import build_model_main
 from .lib.src.inference import (
@@ -71,7 +69,7 @@ class ComputeVectorization(LoggedTask):
         self.task_update("STARTED")
 
         try:
-            model, postprocessors = load_model()
+            model, postprocessors = load_model(get_model(self.model, MODEL_PATH))
             model.eval()
 
             for doc in self.jlogger.iterate(

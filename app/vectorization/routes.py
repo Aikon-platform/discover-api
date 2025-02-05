@@ -6,7 +6,6 @@ from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
 from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH, DEFAULT_MODEL_INFOS
 
-from ..shared.utils.logging import console
 
 blueprint = Blueprint("vectorization", __name__, url_prefix="/vectorization")
 
@@ -24,7 +23,7 @@ def start_vectorization(client_id):
 
         {
             "experiment_id": "wit17_img17_anno17"
-            "model": "0045" # epoch number
+            "model": "checkpoint0045" # model file name stem
             "callback": "https://domain-name.com/receive-vecto",
             "tracking_url": "url for updates",
             "images": {
