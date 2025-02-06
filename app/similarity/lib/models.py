@@ -6,7 +6,7 @@ from torchvision import models, transforms
 from collections import OrderedDict
 
 from .vit import VisionTransformer
-from ..const import MODEL_PATH  # , IMG_PATH
+from ..const import MODEL_PATH
 from ...shared.utils.fileutils import download_file
 
 DEFAULT_MODEL_URLS = {

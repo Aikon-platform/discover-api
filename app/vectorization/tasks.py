@@ -5,7 +5,7 @@ import os
 import shutil
 
 from ..config import TIME_LIMIT
-from .const import VEC_QUEUE  # , IMG_PATH
+from .const import VEC_QUEUE
 from .vectorization import ComputeVectorization
 from ..shared.dataset import Dataset
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper

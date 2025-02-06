@@ -118,27 +118,6 @@ class ComputeVectorization(LoggedTask):
             self.print_and_log(f"Error when computing vectorization", e=e)
             raise e
 
-    def download_document(self, doc_id, document):
-        self.print_and_log(
-            f"[task.vectorization] Downloading {doc_id} images...", color="blue"
-        )
-        # ⚠️⚠️⚠️⚠️ TODO use new dataset way of doing thing
-        # if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
-        #     self.print_and_log(
-        #         f"[task.vectorization] {doc_id} already downloaded. Skipping..."
-        #     )
-        #     return
-
-        # for img_name, img_url in document.items():
-        #     # ⚠️⚠️⚠️⚠️ TODO use dataset download
-        #     # try:
-        #     #     download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
-        #     #
-        #     # except Exception as e:
-        #     #     self.print_and_log(
-        #     #         f"[task.vectorization] Unable to download image {img_name}", e
-        #     #     )
-
     def create_zip(self, doc_id):
         """
         Creates a zip file containing the vectorization results and saves it to disk
