@@ -3,6 +3,7 @@ import sys
 from pathlib import Path
 import torch
 from torchvision import transforms
+from torchvision.ops import nms
 from PIL import Image
 from typing import Tuple
 import numpy as np
@@ -226,9 +227,104 @@ class BaseExtractor:
         return True
 
 
-class YOLOExtractor(BaseExtractor):
-    DEFAULT_IMG_SIZES = [640]  # used for multiscale inference
+class DETRExtractor(BaseExtractor):
+    """
+    ------------------------------------------------------------------------
+    Line Predictor
+    Copyright (c) 2024 Raphaël Baena (Imagine team - LIGM)
+    Licensed under the Apache License, Version 2.0 [see LICENSE for details]
+    Copied from LinePredictor (https://github.com/raphael-baena/LinePredictor)
+    ------------------------------------------------------------------------
+    """
 
+    from .line_predictor.datasets import transforms
+
+    config = "config/DINO/DINO_4scale.py"  # TODO change
+    T = transforms
+
+    def get_model(self):
+        from .line_predictor import build_model_main
+        from .line_predictor.config.slconfig import SLConfig
+
+        self.device = select_device(self.device)
+        args = SLConfig.fromfile(self.config)
+        args.device = self.device
+        model, _, _ = build_model_main(args)
+
+        # Load model weights from the checkpoint
+        checkpoint = torch.load(self.weights, map_location="cpu")
+        model.load_state_dict(checkpoint["model"])
+        model.eval()
+        return model
+
+    @staticmethod
+    def renorm(
+        img: torch.FloatTensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+    ) -> torch.Tensor:
+        assert img.dim() in [3, 4], "Input tensor must have 3 or 4 dimensions"
+        permutation = (1, 2, 0) if img.dim() == 3 else (0, 2, 3, 1)
+        channels = img.size(0) if img.dim() == 3 else img.size(1)
+
+        assert channels == 3, "Expected 3 channels in input tensor"
+        img_perm = img.permute(*permutation)
+        img_res = img_perm * torch.Tensor(std) + torch.Tensor(mean)
+
+        return img_res.permute(*permutation)
+
+    @staticmethod
+    def poly_to_bbox(poly):
+        x0, y0, x1, y1 = poly[:, 0], poly[:, 1], poly[:, -4], poly[:, -1]
+        return torch.stack([x0, y0, x1, y1], dim=1)
+
+    def prepare_image(self, img: DImage):
+        image = Image.open(img.path)
+        orig_size = image.size
+
+        # Define image transformations
+        transform = self.T.Compose(
+            [
+                self.T.RandomResize([800], max_size=1333),
+                self.T.ToTensor(),
+                self.T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+            ]
+        )
+
+        # Apply transformations to the image
+        image, _ = transform(image, None)
+        return image, orig_size
+
+    @smart_inference_mode()
+    def extract_one(self, img: DImage, save_img: bool = False):
+        image, orig_size = self.prepare_image(img)
+        output = self.model.cuda()(image[None].cuda())
+
+        # Extract polygons and apply filtering
+        mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.1
+        actual_size = image.shape[2], image.shape[1]
+        ratios = tuple(
+            float(s) / float(s_orig) for s, s_orig in zip(orig_size, actual_size)
+        )
+        h, w = image.shape[1:]
+
+        # Scale polygons to match the current image size
+        interm_poly = output["pred_boxes"][mask].cpu().detach() * torch.tensor(
+            [w, h]
+        ).repeat(10)
+        ratios_h, ratios_w = ratios[0], ratios[1]
+        final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
+        scores = output["pred_logits"][mask].sigmoid().max(-1)[0]
+
+        # Perform Non-Maximum Suppression (NMS)
+        final_bboxes = self.poly_to_bbox(final_poly)
+        nms_bboxes = nms(final_bboxes.cuda(), scores.cuda(), iou_threshold=0.3)
+        interm_poly = interm_poly[nms_bboxes.cpu()]
+        final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
+
+        # Save final bounding boxes and apply NMS for filtering
+        return self.poly_to_bbox(final_poly)  # TODO adapt final output
+
+
+class YOLOExtractor(BaseExtractor):
     def get_model(self):
         self.device = select_device(self.device)
         return DetectMultiBackend(self.weights, device=self.device, fp16=False)

@@ -45,4 +45,14 @@ DEFAULT_MODEL_INFOS = {
         "model": "diagram_extraction",
         "desc": "YOLO model fine-tuned on historical diagrams.",
     },
+    "watermark_extraction": {
+        "name": "Watermark extraction",
+        "model": "watermark_extraction",
+        "desc": "Fast-RCNN model trained to detect watermark in historical documents.",
+    },
+    "line_extraction": {
+        "name": "Line extraction",
+        "model": "line_extraction",
+        "desc": "DINO-DETR model trained to extract line from historical documents.",
+    },
 }
