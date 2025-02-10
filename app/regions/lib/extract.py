@@ -227,7 +227,7 @@ class BaseExtractor:
         return True
 
 
-class DETRExtractor(BaseExtractor):
+class LineExtractor(BaseExtractor):
     """
     ------------------------------------------------------------------------
     Line Predictor
@@ -239,7 +239,7 @@ class DETRExtractor(BaseExtractor):
 
     from .line_predictor.datasets import transforms
 
-    config = "config/DINO/DINO_4scale.py"  # TODO change
+    config = Path(__file__).resolve() / "line_predictor" / "config" / "DINO_4scale.py"
     T = transforms
 
     def get_model(self):

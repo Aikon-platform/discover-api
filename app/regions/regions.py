@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 from .const import DEFAULT_MODEL, MODEL_PATH
-from .lib.extract import YOLOExtractor, FasterRCNNExtractor
+from .lib.extract import YOLOExtractor, FasterRCNNExtractor, LineExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset, Image as DImage
 from ..shared.utils.fileutils import get_model
@@ -48,10 +48,12 @@ class ExtractRegions(LoggedTask):
 
     def initialize(self):
         """
-        Initialize the extractor, based on the model's name prefix
+        Initialize the extractor, based on the model's name
         """
-        if self.model.startswith(("rcnn", "fasterrcnn")):
+        if "rcnn" in self.model:
             self.extractor = FasterRCNNExtractor(self.weights, **self.extractor_kwargs)
+        elif "line" in self.model:
+            self.extractor = LineExtractor(self.weights, **self.extractor_kwargs)
         else:
             self.extractor = YOLOExtractor(self.weights, **self.extractor_kwargs)
 

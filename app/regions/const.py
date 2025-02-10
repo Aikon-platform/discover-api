@@ -32,6 +32,16 @@ download_model_if_not(
     "/diagram_extraction.pt?download=true",
     MODEL_PATH / "diagram_extraction.pt",
 )
+download_model_if_not(
+    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
+    "/line_extraction.pt?download=true",
+    MODEL_PATH / "line_extraction.pt",
+)
+download_model_if_not(
+    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
+    "/watermark_extraction.pt?download=true",
+    MODEL_PATH / "fasterrcnn_watermark_extraction.pt",
+)
 DEFAULT_MODEL = "illustration_extraction.pt"
 
 DEFAULT_MODEL_INFOS = {
@@ -45,10 +55,10 @@ DEFAULT_MODEL_INFOS = {
         "model": "diagram_extraction",
         "desc": "YOLO model fine-tuned on historical diagrams.",
     },
-    "watermark_extraction": {
+    "fasterrcnn_watermark_extraction": {
         "name": "Watermark extraction",
-        "model": "watermark_extraction",
-        "desc": "Fast-RCNN model trained to detect watermark in historical documents.",
+        "model": "fasterrcnn_watermark_extraction",
+        "desc": "Faster-RCNN model trained to detect watermark in historical documents.",
     },
     "line_extraction": {
         "name": "Line extraction",
