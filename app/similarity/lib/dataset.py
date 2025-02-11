@@ -32,7 +32,8 @@ class FileListDataset(Dataset):
         # ToTensor is done in transform pipeline
         # img = transforms.ToTensor()(im).to(self.device)
 
-        return self.transform(im)
+        img = self.transform(im)
+        return img.to(self.device)
 
     def get_image_paths(self):
         return self.data_paths
