@@ -4,10 +4,8 @@ import uuid
 
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
-from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX  # , IMG_PATH
+from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH, DEFAULT_MODEL_INFOS
 
-from ..shared.utils.logging import console
 
 blueprint = Blueprint("vectorization", __name__, url_prefix="/vectorization")
 
@@ -25,7 +23,7 @@ def start_vectorization(client_id):
 
         {
             "experiment_id": "wit17_img17_anno17"
-            "model": "0045" # epoch number
+            "model": "checkpoint0045" # model file name stem
             "callback": "https://domain-name.com/receive-vecto",
             "tracking_url": "url for updates",
             "images": {
@@ -129,6 +127,11 @@ def result_vectorization(doc_id: str):
     return shared_routes.result(
         doc_id, VEC_RESULTS_PATH / doc_id, VEC_XACCEL_PREFIX, "zip"
     )
+
+
+@blueprint.route("models", methods=["GET"])
+def get_models():
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
 
 
 # TODO add clear_doc + clear_old_vectorization routes (see similarity.routes)

@@ -4,11 +4,11 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from .const import DEFAULT_MODEL, MODEL_PATH, DEMO_NAME
+from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
-from ..config import BASE_URL
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset, Image as DImage
+from ..shared.utils.fileutils import get_model
 
 EXTRACTOR_POSTPROCESS_KWARGS = {
     "watermarks": {
@@ -24,7 +24,7 @@ class ExtractRegions(LoggedTask):
 
     Args:
         dataset (Dataset): The dataset to process
-        model (str, optional): The model to use for extraction (default: DEFAULT_MODEL)
+        model (str, optional): The model file name stem to use for extraction (default: DEFAULT_MODEL)
     """
 
     def __init__(
@@ -69,7 +69,8 @@ class ExtractRegions(LoggedTask):
 
     @property
     def weights(self) -> Path:
-        return MODEL_PATH / self.model
+        # return MODEL_PATH / self.model
+        return get_model(self.model, MODEL_PATH)
 
     @property
     def extraction_model(self) -> str:

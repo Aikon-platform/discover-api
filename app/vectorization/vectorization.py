@@ -1,24 +1,22 @@
 import traceback
 import zipfile
 
-import requests
 import os
 import torch
 
 from pathlib import Path
 from typing import Optional
 
-from ..config import BASE_URL
 from ..shared.dataset import Dataset
 from ..shared.tasks import LoggedTask
-from ..shared.utils.fileutils import download_file
-from ..shared.utils.logging import TLogger
+from ..shared.utils.fileutils import download_file, get_model
 from .const import (
     MODEL_CONFIG,
     MODEL_CHECKPOINT,
     VEC_RESULTS_PATH,
     DEMO_NAME,
-)  # , IMG_PATH
+    MODEL_PATH,
+)
 
 from .lib.src import build_model_main
 from .lib.src.inference import (
@@ -71,7 +69,7 @@ class ComputeVectorization(LoggedTask):
         self.task_update("STARTED")
 
         try:
-            model, postprocessors = load_model()
+            model, postprocessors = load_model(get_model(self.model, MODEL_PATH))
             model.eval()
 
             for doc in self.jlogger.iterate(
@@ -119,27 +117,6 @@ class ComputeVectorization(LoggedTask):
         except Exception as e:
             self.print_and_log(f"Error when computing vectorization", e=e)
             raise e
-
-    def download_document(self, doc_id, document):
-        self.print_and_log(
-            f"[task.vectorization] Downloading {doc_id} images...", color="blue"
-        )
-        # ⚠️⚠️⚠️⚠️ TODO use new dataset way of doing thing
-        # if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
-        #     self.print_and_log(
-        #         f"[task.vectorization] {doc_id} already downloaded. Skipping..."
-        #     )
-        #     return
-
-        # for img_name, img_url in document.items():
-        #     # ⚠️⚠️⚠️⚠️ TODO use dataset download
-        #     # try:
-        #     #     download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
-        #     #
-        #     # except Exception as e:
-        #     #     self.print_and_log(
-        #     #         f"[task.vectorization] Unable to download image {img_name}", e
-        #     #     )
 
     def create_zip(self, doc_id):
         """

@@ -52,16 +52,12 @@ Routes:
 
 """
 
-import os
-import time
-
-from flask import request, jsonify, Blueprint
+from flask import request, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import MODEL_PATH, EXT_XACCEL_PREFIX  # , IMG_PATH
+from .const import MODEL_PATH, EXT_XACCEL_PREFIX, DEFAULT_MODEL_INFOS
 from ..shared.const import DOCUMENTS_PATH
-from ..shared.utils.fileutils import delete_path
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -145,19 +141,7 @@ def result_extraction(tracking_id: str):
 
 @blueprint.route("models", methods=["GET"])
 def get_models():
-    models_info = {}
-
-    try:
-        for filename in os.listdir(MODEL_PATH):
-            if filename.endswith((".pt", ".pth")):
-                full_path = os.path.join(MODEL_PATH, filename)
-                modification_date = os.path.getmtime(full_path)
-                models_info[filename] = time.ctime(modification_date)
-
-        return jsonify(models_info)
-
-    except Exception:
-        return jsonify("No models.")
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
 
 
 @blueprint.route("clear", methods=["POST"])
