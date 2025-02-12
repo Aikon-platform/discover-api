@@ -5,7 +5,7 @@ Many of the functions in this module are deprecated, better use the Document/Dat
 """
 
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import requests
 import shutil
@@ -61,9 +61,7 @@ def save_img(
             img = img.convert("RGB")
 
         if img.width > max_dim or img.height > max_dim:
-            img.thumbnail(
-                (max_dim, max_dim), Image.Resampling.LANCZOS
-            )
+            img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
 
         # TODO use this way of resizing images and remove resize in segswap code
         # tr_ = transforms.Resize((224, 224))
@@ -149,7 +147,10 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int = MAX_S
 
     # i = 1
     paths = []
-    for img_name, img_url in images.items():  # tqdm(images.items(), desc="Downloading Images"):
+    for (
+        img_name,
+        img_url,
+    ) in images.items():  # tqdm(images.items(), desc="Downloading Images"):
         # img_name = f"{i:0{z}}.jpg"
         # i += 1
         download_img(img_url, doc_id, img_name, img_path, max_dim)
@@ -158,7 +159,9 @@ def download_images(url: str, doc_id: str, img_path: TPath, max_dim: int = MAX_S
     return paths
 
 
-def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg"), exclude_dirs=None, absolute_path=False) -> list[Path]:
+def get_img_paths(
+    img_dir, img_ext=(".jpg", ".png", ".jpeg"), exclude_dirs=None, absolute_path=False
+) -> List[Path]:
     """
     Get all image paths in a directory
 
@@ -168,10 +171,15 @@ def get_img_paths(img_dir, img_ext=(".jpg", ".png", ".jpeg"), exclude_dirs=None,
         exclude_dirs: Optional set of directory names to exclude from search
         absolute_path: Return absolute path
     """
-    return get_all_files(img_dir, extensions=img_ext, exclude_dirs=exclude_dirs, absolute_path=absolute_path)
+    return get_all_files(
+        img_dir,
+        extensions=img_ext,
+        exclude_dirs=exclude_dirs,
+        absolute_path=absolute_path,
+    )
 
 
-def get_imgs_in_dirs(img_dirs) -> list[str]:
+def get_imgs_in_dirs(img_dirs) -> List[str]:
     images = []
     for img_dir in img_dirs:
         # TODO check if necessary to transform to strings (used only for similarity dataset)

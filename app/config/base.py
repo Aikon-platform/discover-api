@@ -18,7 +18,7 @@ API_DATA_FOLDER = (
 XACCEL_PREFIX = ENV("XACCEL_PREFIX", default="/media")
 
 # time limit for dramatiq
-TIME_LIMIT = 2000 * 60 * 60  # 2h
+TIME_LIMIT = 1000 * 60 * 60 * 24  # 24h
 
 
 class FLASK_CONFIG:

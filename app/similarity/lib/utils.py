@@ -22,13 +22,6 @@ def doc_pairs(doc_ids: list):
     raise ValueError("Input must be a non-empty list of ids.")
 
 
-# def get_doc_dirs(doc_pair):
-#     return [
-#         IMG_PATH / doc
-#         for doc in (doc_pair if doc_pair[0] != doc_pair[1] else [doc_pair[0]])
-#     ]
-
-
 def best_matches(segswap_pairs, q_img, doc_pair):
     """
     segswap_pairs = [[score, img_doc1.jpg, img_doc2.jpg]

@@ -1,3 +1,5 @@
+from typing import List
+
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
@@ -10,7 +12,7 @@ class FileListDataset(Dataset):
         data_paths,
         transform=None,
         device="cpu",
-        transpositions: list[AllTranspose] = [AllTranspose.NONE],
+        transpositions: List[AllTranspose] = [AllTranspose.NONE],
     ):
         self.transform = transform
         self.device = device

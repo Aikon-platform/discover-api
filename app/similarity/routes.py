@@ -47,23 +47,18 @@ Routes:
 """
 
 from flask import request, Blueprint, jsonify
-from slugify import slugify
-import os, time
 
 from .tasks import compute_similarity
 from ..shared import routes as shared_routes
-from ..shared.utils.fileutils import clear_dir
+from ..shared.utils.fileutils import clear_dir, list_known_models
 from .const import (
-    # IMG_PATH,
-    # FEATS_PATH,
     SIM_RESULTS_PATH,
     SIM_XACCEL_PREFIX,
     MODEL_PATH,
 )
 
 from .lib.const import FEAT_NET
-from .lib.models import list_known_models
-from ..shared.utils.logging import console
+from .lib.models import DEFAULT_MODEL_INFOS
 
 blueprint = Blueprint("similarity", __name__, url_prefix="/similarity")
 
@@ -99,7 +94,6 @@ def start_similarity(client_id):
     (
         experiment_id,
         notify_url,
-        tracking_url,
         dataset,
         param,
     ) = shared_routes.receive_task(request)
@@ -121,7 +115,6 @@ def start_similarity(client_id):
             "dataset_uid": dataset.uid,
             "parameters": parameters,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
         },
     )
 
@@ -136,14 +129,12 @@ def status_similarity(tracking_id: str):
     return shared_routes.status(tracking_id, compute_similarity)
 
 
-@blueprint.route("task/<doc_pair>/result", methods=["GET"])
+@blueprint.route("<doc_pair>/result", methods=["GET"])
 def result_similarity(doc_pair: str):
     """
     Sends the similarity results file for a given document pair
     """
-    return shared_routes.result(
-        SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, f"{slugify(doc_pair)}.npy"
-    )
+    return shared_routes.result(doc_pair, SIM_RESULTS_PATH, SIM_XACCEL_PREFIX, "json")
 
 
 @blueprint.route("qsizes", methods=["GET"])
@@ -193,9 +184,4 @@ def clear_doc(doc_id: str):
 
 @blueprint.route("models", methods=["GET"])
 def get_models():
-    models_info = list_known_models()
-
-    try:
-        return jsonify(models_info)
-    except Exception:
-        return jsonify("No models.")
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
