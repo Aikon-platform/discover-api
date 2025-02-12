@@ -397,13 +397,14 @@ def download_model_if_not(url, path: Path):
     return path
 
 
-def get_model(model_stem, model_dir):
+def get_model(model_stem, model_dir: Path):
     """
     Get the model path either
     """
     if model_stem.endswith(".pth") or model_stem.endswith(".pt"):
-        return model_dir / model_stem
-    for ext in [".pth", ".pt"]:
+        model_path = model_dir / model_stem
+        return model_path if model_path.exists() else None
+    for ext in ["pth", "pt"]:
         if (model_dir / f"{model_stem}.{ext}").exists():
             return model_dir / f"{model_stem}.{ext}"
     return None
