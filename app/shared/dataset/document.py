@@ -1,9 +1,7 @@
 """
 The Document class, which represents a document in the dataset
 """
-from urllib.parse import quote
-
-from flask import url_for
+from typing_extensions import NotRequired
 
 import requests
 import json
@@ -11,7 +9,7 @@ import httpx
 from pathlib import Path
 from PIL import Image as PImage
 from stream_unzip import stream_unzip
-from typing import List, Optional
+from typing import List, Optional, TypedDict, Literal
 from iiif_download import IIIFManifest
 
 from ... import config
@@ -20,9 +18,23 @@ from ..utils.fileutils import sanitize_str, check_if_file
 from ..utils.img import MAX_SIZE, download_image, get_img_paths, get_json
 from ..utils.logging import console, serializer
 from .utils import Image, pdf_to_img
-
+from ...config import BASE_URL
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".json", ".tiff", ".pdf"}
+
+
+class DocDict(TypedDict):
+    uid: str
+    type: Literal["zip", "pdf", "img", "url_list", "iiif"]
+    src: str
+    url: NotRequired[str]
+    download: NotRequired[str]
+
+
+def get_file_url(demo_name, filename):
+    # filename can be relpath from demo result dir
+    filename = filename.replace("/", "~")
+    return f"{BASE_URL}/{demo_name}/{filename}/result"
 
 
 class Document:
@@ -33,6 +45,7 @@ class Document:
     - downloaded from a single IIIF manifest
     - downloaded from a ZIP file
     - downloaded from a dictionary of single image URLs
+    - downloaded from a PDF file
 
     :param uid: The unique identifier of the document
     :param path: The path to the document on disk (default: DOCUMENTS_PATH/uid)
@@ -49,6 +62,7 @@ class Document:
             - annotations/
                 - ...json
             - images.json
+            - metadata.json
     """
 
     def __init__(
@@ -59,7 +73,9 @@ class Document:
         src: Optional[str] = None,
     ):
         self.uid = sanitize_str(uid or src)
-        self.path = Path(path if path is not None else DOCUMENTS_PATH / dtype / self.uid)
+        self.path = Path(
+            path if path is not None else DOCUMENTS_PATH / dtype / self.uid
+        )
         self.src = src
         self.dtype = dtype
         self._images = []
@@ -68,16 +84,21 @@ class Document:
     def from_dict(cls, doc_dict: dict) -> "Document":
         """
         Create a new Document from a dictionary
+        doc_dict = {
+            "type": "zip | pdf | img | url_list | iiif",
+            "src": "documents_to_be_downloaded",
+            ?"uid": "optional custom_id"
+        }
         """
         return Document(
             doc_dict.get("uid", None), doc_dict["type"], src=doc_dict["src"]
         )
 
-    def to_dict(self, with_url: bool = False) -> dict:
+    def to_dict(self, with_url: bool = False, with_metadata: bool = False) -> DocDict:
         """
         Convert the document to a dictionary
         """
-        ret = {
+        ret: DocDict = {
             "uid": self.uid,
             "type": self.dtype,
             "src": str(self.src),
@@ -85,6 +106,8 @@ class Document:
         if with_url:
             ret["url"] = self.get_absolute_url()
             ret["download"] = self.get_download_url()
+        if with_metadata:
+            ret["metadata"] = self.load_metadata()
         return ret
 
     def get_absolute_url(self):
@@ -101,6 +124,12 @@ class Document:
         return f"{self.get_absolute_url()}/download"
         # return url_for("datasets.document_download", dtype=self.dtype, uid=self.uid, _external=True)
 
+    def get_results_url(self, demo_name):
+        return get_file_url(demo_name, self.uid)
+
+    def get_annotations_url(self, filename=None):
+        return f"{self.get_absolute_url()}/{filename}"
+
     @property
     def images_path(self):
         return self.path / "images"
@@ -116,6 +145,24 @@ class Document:
     @property
     def images_info_path(self):
         return self.path / "images.json"
+
+    @property
+    def metadata_path(self):
+        return self.path / "metadata.json"
+
+    def save_metadata(self, metadata: dict):
+        metadata = {**self.load_metadata(), **metadata}
+        with open(self.metadata_path, "w") as f:
+            json.dump(metadata, f)
+        self._metadata = metadata
+
+    def load_metadata(self):
+        if hasattr(self, "_metadata"):
+            return self._metadata
+        if not self.metadata_path.exists():
+            return {}
+        with open(self.metadata_path, "r") as f:
+            return json.load(f)
 
     @property
     def images(self):
@@ -151,6 +198,11 @@ class Document:
         """
         manifest = IIIFManifest(manifest_url)
         manifest.download(save_dir=self.images_path)
+        self.save_metadata(
+            {
+                "title": manifest.get_meta("Title"),
+            }
+        )
 
         self.save_images(
             [
@@ -158,7 +210,14 @@ class Document:
                     id=iiif_image.img_name,
                     src=iiif_image.url,
                     path=iiif_image.img_path,
-                    metadata={"page": iiif_image.idx},
+                    metadata={
+                        "page": iiif_image.idx,
+                        **(
+                            {"label": iiif_image.resource["label"]}
+                            if iiif_image.resource.get("label")
+                            else {}
+                        ),
+                    },
                     document=self,
                 )
                 for iiif_image in manifest.get_images()
@@ -240,10 +299,11 @@ class Document:
         """
         Download a document from its source definition
         """
+        # TODO don't re-download if already existing
         console(f"Downloading [{self.dtype}] {self.uid}...", color="blue")
 
         self.images_path.mkdir(parents=True, exist_ok=True)
-
+        self.save_metadata({"src": self.src})
         if self.dtype == "iiif":
             self._download_from_iiif(self.src)
         elif self.dtype == "zip":
@@ -314,10 +374,10 @@ class Document:
                 crop_list.append(
                     Image(
                         id=crop["crop_id"],
-                        src=getattr(source_info, 'src', None) or crop_path.name,
+                        src=getattr(source_info, "src", None) or crop_path.name,
                         path=crop_path,
                         metadata={
-                            **(getattr(source_info, 'metadata', None) or {}),
+                            **(getattr(source_info, "metadata", None) or {}),
                             "crop": crop_sum,
                         },
                         document=self,

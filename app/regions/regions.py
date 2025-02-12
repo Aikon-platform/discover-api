@@ -1,13 +1,14 @@
+import gc
 import json
 import os
 from pathlib import Path
 from typing import Optional
-import requests
 
 from .const import DEFAULT_MODEL, MODEL_PATH
 from .lib.extract import YOLOExtractor, FasterRCNNExtractor
 from ..shared.tasks import LoggedTask
 from ..shared.dataset import Document, Dataset, Image as DImage
+from ..shared.utils.fileutils import get_model
 
 EXTRACTOR_POSTPROCESS_KWARGS = {
     "watermarks": {
@@ -23,7 +24,7 @@ class ExtractRegions(LoggedTask):
 
     Args:
         dataset (Dataset): The dataset to process
-        model (str, optional): The model to use for extraction (default: DEFAULT_MODEL)
+        model (str, optional): The model file name stem to use for extraction (default: DEFAULT_MODEL)
     """
 
     def __init__(
@@ -31,15 +32,17 @@ class ExtractRegions(LoggedTask):
         dataset: Dataset,
         model: Optional[str] = None,
         postprocess: Optional[str] = None,
-        *args,
         **kwargs,
     ):
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
         self.dataset = dataset
         self._model = model
         self._extraction_model: Optional[str] = None
+
         self.result_dir = Path()
+        self.result_urls = []
         self.annotations = {}
+        self.extractor = None
         print("POSTPROCESS", postprocess)
         self.extractor_kwargs = EXTRACTOR_POSTPROCESS_KWARGS.get(postprocess, {})
 
@@ -56,7 +59,9 @@ class ExtractRegions(LoggedTask):
         """
         Clear memory
         """
-        del self.extractor
+        self.annotations = {}
+        self.extractor = None
+        gc.collect()
 
     @property
     def model(self) -> str:
@@ -64,7 +69,8 @@ class ExtractRegions(LoggedTask):
 
     @property
     def weights(self) -> Path:
-        return MODEL_PATH / self.model
+        # return MODEL_PATH / self.model
+        return get_model(self.model, MODEL_PATH)
 
     @property
     def extraction_model(self) -> str:
@@ -76,32 +82,6 @@ class ExtractRegions(LoggedTask):
         # TODO improve check regarding dataset content
         if not self.dataset.documents:
             return False
-        return True
-
-    def send_annotations(
-        self,
-        experiment_id: str,
-        annotation_file: Path,
-    ) -> bool:
-        """
-        Deprecated, used by AIKON
-        """
-        if not self.notify_url:
-            self.error_list.append("Notify URL not provided")
-            return True
-
-        with open(annotation_file, "r") as f:
-            annotation_file = f.read()
-
-        response = requests.post(
-            url=f"{self.notify_url}/{self.dataset.uid}",
-            files={"annotation_file": annotation_file},
-            data={
-                "model": self.extraction_model,
-                "experiment_id": experiment_id,
-            },
-        )
-        response.raise_for_status()
         return True
 
     def process_img(self, img: DImage, extraction_ref: str, doc_uid: str) -> bool:
@@ -151,23 +131,25 @@ class ExtractRegions(LoggedTask):
             self.result_dir = doc.annotations_path
             os.makedirs(self.result_dir, exist_ok=True)
 
+            # This way, same dataset can be extracted twice with same extraction model
+            # is it what we want?
             extraction_ref = f"{self.extraction_model}+{self.experiment_id}"
             annotation_file = self.result_dir / f"{extraction_ref}.json"
             with open(annotation_file, "w"):
                 pass
 
-            extraction_ref = f"{doc.uid}@@{extraction_ref}"
+            extraction_id = f"{doc.uid}@@{extraction_ref}"
 
             self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
-            success = self.process_doc_imgs(doc, extraction_ref)
+            success = self.process_doc_imgs(doc, extraction_id)
             if success:
                 with open(annotation_file, "w") as f:
-                    json.dump(self.annotations[extraction_ref], f, indent=2)
-
-                success = self.send_annotations(
-                    self.experiment_id,
-                    annotation_file,
+                    json.dump(self.annotations[extraction_id], f, indent=2)
+                result_url = doc.get_annotations_url(extraction_ref)
+                self.notifier(
+                    "PROGRESS", output={"annotations": [{doc.uid: result_url}]}
                 )
+                self.result_urls.append({doc.uid: result_url})
 
             return success
         except Exception as e:
@@ -182,7 +164,7 @@ class ExtractRegions(LoggedTask):
             self.print_and_log_warning("[task.extract_regions] No dataset to annotate")
             self.task_update(
                 "ERROR",
-                f"[API ERROR] Failed to download dataset for {self.dataset}",
+                message=f"[API ERROR] Failed to download dataset for {self.dataset}",
             )
             return False
 
@@ -204,11 +186,11 @@ class ExtractRegions(LoggedTask):
             self.print_and_log(
                 f"[task.extract_regions] Task completed with status: {status}"
             )
-            self.task_update(status, self.error_list if self.error_list else [])
+            self.task_update(status, message=self.error_list if self.error_list else [])
             return all_successful
         except Exception as e:
             self.handle_error(f"Error {e} processing dataset", exception=e)
-            self.task_update("ERROR", self.error_list)
+            self.task_update("ERROR", message=self.error_list)
             return False
         finally:
             self.terminate()

@@ -4,10 +4,8 @@ import uuid
 
 from .tasks import compute_vectorization
 from ..shared import routes as shared_routes
-from ..shared.utils.fileutils import delete_directory
-from .const import VEC_RESULTS_PATH #, IMG_PATH
+from .const import VEC_RESULTS_PATH, VEC_XACCEL_PREFIX, MODEL_PATH, DEFAULT_MODEL_INFOS
 
-from ..shared.utils.logging import console
 
 blueprint = Blueprint("vectorization", __name__, url_prefix="/vectorization")
 
@@ -19,16 +17,13 @@ def start_vectorization(client_id):
     """
     Start the vectorization task.
 
-    TODO update that to fit what is sent by the frontend
-    TODO use shared_routes.receive_task
-
     Expected parameters:
-    
+
     .. code-block:: json
 
         {
             "experiment_id": "wit17_img17_anno17"
-            "model": "0045" # epoch number
+            "model": "checkpoint0045" # model file name stem
             "callback": "https://domain-name.com/receive-vecto",
             "tracking_url": "url for updates",
             "images": {
@@ -38,28 +33,24 @@ def start_vectorization(client_id):
                 "img_name": "..."
             }
         }
-    
+
     A list of images to download + information
     """
-    if not request.is_json:
-        return "No JSON in request: Vectorization task aborted!"
-
-    json_param = request.get_json()
-
-    experiment_id = json_param.get("experiment_id")
-    documents = json_param.get("documents", {})
-    model = json_param.get("model", None)
-    notify_url = json_param.get('notify_url', None) or json_param.get('callback', None)
-    tracking_url = json_param.get("tracking_url")
+    (
+        experiment_id,
+        notify_url,
+        dataset,
+        param,
+    ) = shared_routes.receive_task(request, use_crops=False)
+    model = param.get("model", None)
 
     return shared_routes.start_task(
         compute_vectorization,
         experiment_id,
         {
-            "documents": documents,
+            "dataset_uid": dataset.uid,
             "model": model,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
         },
     )
 
@@ -94,6 +85,9 @@ def delete_and_relaunch(client_id):
     if not request.is_json:
         return "No JSON in request: Vectorization task aborted!"
 
+    if True:
+        return jsonify({"Error": "Deprecated route, to be removed"})
+
     data = request.get_json()
     experiment_id = slugify(request.form.get("experiment_id", str(uuid.uuid4())))
     # dict of document ids with a URL containing a list of images
@@ -126,6 +120,18 @@ def delete_and_relaunch(client_id):
                 "start_vectorization": "Directory deletion failed, vectorization not started.",
             }
         )
+
+
+@blueprint.route("<doc_id>/result", methods=["GET"])
+def result_vectorization(doc_id: str):
+    return shared_routes.result(
+        doc_id, VEC_RESULTS_PATH / doc_id, VEC_XACCEL_PREFIX, "zip"
+    )
+
+
+@blueprint.route("models", methods=["GET"])
+def get_models():
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
 
 
 # TODO add clear_doc + clear_old_vectorization routes (see similarity.routes)

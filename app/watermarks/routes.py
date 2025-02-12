@@ -111,7 +111,7 @@ def task_cancel(tracking_id):
     return shared_routes.cancel_task(tracking_id)
 
 
-@blueprint.route("task/<tracking_id>/result", methods=["GET"])
+@blueprint.route("task/<tracking_id>/result", methods=["GET"])  # TODO is it used?
 def task_result(tracking_id):
     out_file = WATERMARKS_RESULTS_FOLDER / f"{tracking_id}.json"
     if not out_file.exists():

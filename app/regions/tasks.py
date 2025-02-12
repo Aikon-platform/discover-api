@@ -21,7 +21,6 @@ def extract_objects(
     model: Optional[str] = None,
     postprocess: Optional[str] = None,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
     **kwargs
@@ -34,27 +33,27 @@ def extract_objects(
     :param model: the model to use for extraction
     :param postprocess: the postprocess mode to use
     :param notify_url: the URL to notify the frontend
-    :param tracking_url: the URL to track the task
+    :param notifier: the function allowing to send update to the frontend
     :param logger: the logger to use
     """
     dataset = Dataset(dataset_uid, load=True)
 
     regions_extraction_task = ExtractRegions(
-        dataset=dataset,
         model=model,
         postprocess=postprocess,
+        dataset=dataset,
         logger=logger,
         experiment_id=experiment_id,
         notify_url=notify_url,
-        tracking_url=tracking_url,
         notifier=notifier,
+        **kwargs
     )
     success = regions_extraction_task.run_task()
     if success:
         # json to be dispatch to frontend with @notifying
         return {
             "dataset_url": dataset.get_absolute_url(),
-            "annotations": regions_extraction_task.annotations,
+            "annotations": regions_extraction_task.result_urls,
         }
 
     # json to be dispatch to frontend with @notifying

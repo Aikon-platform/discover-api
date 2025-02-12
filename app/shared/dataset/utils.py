@@ -1,6 +1,8 @@
+import typing
 from pathlib import Path
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, TypedDict
+from typing_extensions import NotRequired
 
 from ..utils.logging import console
 
@@ -8,12 +10,20 @@ if TYPE_CHECKING:
     from .document import Document
 
 
+class ImageDict(TypedDict):
+    uid: str
+    src: str
+    path: str
+    metadata: dict[str, str]
+    doc_uid: NotRequired[str]
+
+
 @dataclass
 class Image:
     id: str
     src: str
     path: Path
-    metadata: dict[str, str] = None
+    metadata: dict[str, str] | None = None
     document: "Document" = None
 
     def to_dict(self, relpath: Path = None) -> dict:
@@ -25,6 +35,11 @@ class Image:
             "path": str(self.path.relative_to(relpath)),
             "metadata": self.metadata,
         }
+
+    # @property
+    # def path(self) -> Path:
+    #     """Returns the absolute path to the image file"""
+    #     return Path(self.path)
 
     @classmethod
     def from_dict(

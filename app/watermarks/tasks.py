@@ -188,6 +188,7 @@ def pipeline(
     notifier=None,
     **kwargs,
 ):
+    # TODO add notify_url to arguments?
     image = Image.open(image_path)
     compare_to = WatermarkSource(compare_to) if compare_to else None
     output = _pipeline(image, detect, compare_to)

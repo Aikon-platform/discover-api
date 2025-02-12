@@ -29,7 +29,6 @@ from .training import (
     run_kmeans_training,
     run_sprites_training,
 )
-from ..shared.utils.download import download_dataset
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper
 
 
@@ -46,6 +45,7 @@ def train_dti(
     notifier=None,
     **kwargs,
 ):
+    # TODO add notify_url in arguments
     """
     Train a DTI model
 
@@ -69,12 +69,12 @@ def train_dti(
 
     if not dataset_ready_file.exists():
         # TODO MODIFY TO USE DATASET FROM shared.routes.receive_task
-        download_dataset(
-            dataset_url,
-            datasets_dir_path=DATASETS_PATH,
-            dataset_dir_name=f"generic/{dataset_id}",
-            sub_dir="train",
-        )
+        # download_dataset(
+        #     dataset_url,
+        #     datasets_dir_path=DATASETS_PATH,
+        #     dataset_dir_name=f"generic/{dataset_id}",
+        #     sub_dir="train",
+        # )
 
         # Create ready file
         dataset_ready_file.touch()
@@ -105,4 +105,6 @@ def train_dti(
 
             zipObj.write(file, file.relative_to(output_path))
 
-    return {"result_url": f"{BASE_URL}/clustering/{current_task_id}/result"}
+    return {
+        "result_url": f"{BASE_URL}/clustering/{current_task_id}/result",
+    }
