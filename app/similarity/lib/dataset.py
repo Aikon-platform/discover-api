@@ -1,3 +1,5 @@
+from typing import List
+
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
@@ -10,7 +12,7 @@ class FileListDataset(Dataset):
         data_paths,
         transform=None,
         device="cpu",
-        transpositions: list[AllTranspose] = [AllTranspose.NONE],
+        transpositions: List[AllTranspose] = [AllTranspose.NONE],
     ):
         self.transform = transform
         self.device = device
@@ -24,16 +26,12 @@ class FileListDataset(Dataset):
         # TODO here prevent UnidentifiedImageError
         idx, rot = divmod(idx, len(self.rotations))
         im = Image.open(self.data_paths[idx])
-
         rot = self.rotations[rot]
         if rot != AllTranspose.NONE:
             im = im.transpose(rot.value)
 
-        # ToTensor is done in transform pipeline
-        # img = transforms.ToTensor()(im).to(self.device)
-
-        img = self.transform(im)
-        return img.to(self.device)
+        img = transforms.ToTensor()(im).to(self.device)
+        return self.transform(img)
 
     def get_image_paths(self):
         return self.data_paths
