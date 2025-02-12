@@ -99,13 +99,11 @@ DEFAULT_MODEL_LOADERS = {
 DEFAULT_MODEL_TRANSFORMS = {
     "resnet18_watermarks": transforms.Compose(
         [
-            transforms.ToTensor(),
             transforms.Resize((320, 320)),
             transforms.Normalize(mean=[0.75, 0.70, 0.65], std=[0.14, 0.15, 0.16]),
         ]
     )
 }
-
 
 def download_model(model_name):
     os.makedirs(MODEL_PATH, exist_ok=True)
