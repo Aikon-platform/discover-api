@@ -3,15 +3,23 @@ The Dataset class, which represents a dataset of documents
 """
 
 from pathlib import Path
-from typing import List, Union, Optional, Dict
+from typing import List, Union, Optional, Dict, TypedDict, __all__
+from typing_extensions import NotRequired
+
 import orjson
 
 from ... import config
 from ..const import DATASETS_PATH
 from ..utils import hash_str
 
-from .document import Document
+from .document import Document, DocDict
 from .utils import Image
+
+
+class DatasetDict(TypedDict):
+    uid: str
+    documents: List[DocDict]
+    url: NotRequired[str]
 
 
 class Dataset:
@@ -44,12 +52,6 @@ class Dataset:
         """
         Create a new dataset
         """
-        if isinstance(documents, dict):  # legacy AIKON format
-            documents = [
-                {"uid": uid, "src": src, "type": "url_list"}
-                for uid, src in documents.items()
-            ]
-
         crops_uid = None
         if crops:
             crops_uid = hash_str(orjson.dumps(crops))
@@ -93,7 +95,7 @@ class Dataset:
             return f"{self.base_uid}@{self.crops_uid}"
         return self.base_uid
 
-    def to_dict(self, with_url: bool = False) -> Dict:
+    def to_dict(self, with_url: bool = False) -> DatasetDict:
         """
         Convert the dataset to a dictionary
         """
@@ -180,7 +182,6 @@ class Dataset:
         im_list = []
         crop_list = []
         for document in self.documents:
-            # TODO don't re-download if already existing
             document.download()
             im_list.extend(document.list_images())
 

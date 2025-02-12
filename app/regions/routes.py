@@ -9,7 +9,7 @@ Routes:
     - Parameters:
         - ``experiment_id``: The ID of the experiment.
         - ``notify_url``: The URL to notify when the task is done.
-        - ``tracking_url``: The URL to track the task.
+        - ``tracking_url``: The URL to track the task. TODO delete
         - ``dataset``: The dataset UID to process.
         - ``documents``: The documents to put into the dataset.
         - ``model``: The model to use for the extraction.
@@ -52,15 +52,12 @@ Routes:
 
 """
 
-import os
-import time
-
-from flask import request, jsonify, Blueprint
+from flask import request, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import ANNO_PATH, MODEL_PATH  # , IMG_PATH
-from ..shared.utils.fileutils import delete_path
+from .const import MODEL_PATH, EXT_XACCEL_PREFIX, DEFAULT_MODEL_INFOS
+from ..shared.const import DOCUMENTS_PATH
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -86,7 +83,6 @@ def start_regions_extraction():
     (
         experiment_id,
         notify_url,
-        tracking_url,
         dataset,
         param,
     ) = shared_routes.receive_task(request, use_crops=False)
@@ -102,7 +98,6 @@ def start_regions_extraction():
             "model": model,
             "postprocess": postprocess,
             "notify_url": notify_url,
-            "tracking_url": tracking_url,
         },
     )
 
@@ -136,29 +131,17 @@ def monitor_regions_extraction():
     """
     Monitor the tasks of the broker
     """
-    return shared_routes.monitor(ANNO_PATH, extract_objects.broker)
+    return shared_routes.monitor(DOCUMENTS_PATH, extract_objects.broker)
 
 
-# @blueprint.route("<tracking_id>/result", methods=["GET"])
-# def result_extraction(tracking_id: str):
-#     return shared_routes.result(tracking_id, ANNO_PATH, EXT_XACCEL_PREFIX, "json")
+@blueprint.route("<tracking_id>/result", methods=["GET"])
+def result_extraction(tracking_id: str):
+    return shared_routes.result(tracking_id, DOCUMENTS_PATH, EXT_XACCEL_PREFIX, "json")
 
 
 @blueprint.route("models", methods=["GET"])
 def get_models():
-    models_info = {}
-
-    try:
-        for filename in os.listdir(MODEL_PATH):
-            if filename.endswith((".pt", ".pth")):
-                full_path = os.path.join(MODEL_PATH, filename)
-                modification_date = os.path.getmtime(full_path)
-                models_info[filename] = time.ctime(modification_date)
-
-        return jsonify(models_info)
-
-    except Exception:
-        return jsonify("No models.")
+    return shared_routes.models(MODEL_PATH, DEFAULT_MODEL_INFOS)
 
 
 @blueprint.route("clear", methods=["POST"])

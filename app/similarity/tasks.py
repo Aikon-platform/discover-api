@@ -41,19 +41,28 @@ def compute_similarity(
         dataset=dataset,
         parameters=parameters,
         notify_url=notify_url,
-        tracking_url=tracking_url,
         logger=logger,
         notifier=notifier,
     )
     success = similarity_task.run_task()
 
     if success:
-        if isinstance(success, dict) and success.get("dataset_url", False) and success.get("annotations", False):
+        if (
+            isinstance(success, dict)
+            and success.get("dataset_url", False)
+            and success.get("annotations", False)
+            and success.get("results_url", False)
+        ):
             return success
+
+        # TODO change to use only results_url
 
         return {
             "dataset_url": dataset.get_absolute_url(),
             "annotations": similarity_task.results,
+            "results_url": similarity_task.results_url,
         }
 
-    return {"error": similarity_task.error_list}
+    return {
+        "error": similarity_task.error_list,
+    }

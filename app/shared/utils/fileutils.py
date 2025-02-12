@@ -4,7 +4,8 @@ Many functions to manipulate files and directories
 
 import os
 import shutil
-
+import time
+import orjson
 import requests
 import mimetypes
 
@@ -23,14 +24,13 @@ from .logging import console
 TPath = Union[str, os.PathLike]
 
 
-def xaccel_send_from_directory(directory: TPath, redirect: TPath, path: TPath):
+def xaccel_send_from_directory(directory: TPath, redirect: TPath, filename: TPath):
     """
     Send a file from a given directory using X-Accel-Redirect
     """
     try:
-        path = Path(path)
         directory = Path(directory)
-        file_path = directory / path
+        file_path = directory / Path(filename)
 
         assert file_path.is_relative_to(directory)
         redirect_path = Path(redirect) / file_path.relative_to(directory)
@@ -63,9 +63,9 @@ def is_too_old(filepath: Path, max_days: int = 30) -> bool:
     """
     try:
         return (
-                not filepath.exists()
-                or (datetime.now() - datetime.fromtimestamp(filepath.stat().st_mtime)).days
-                > max_days
+            not filepath.exists()
+            or (datetime.now() - datetime.fromtimestamp(filepath.stat().st_mtime)).days
+            > max_days
         )
     except Exception:
         return False
@@ -145,8 +145,12 @@ def delete_path(path: TPath) -> bool:
     return True
 
 
-def clear_dir(parent_dir: TPath, path_to_clear: str = "*", file_to_check: str = None,
-              force_deletion: bool = False) -> int:
+def clear_dir(
+    parent_dir: TPath,
+    path_to_clear: str = "*",
+    file_to_check: str = None,
+    force_deletion: bool = False,
+) -> int:
     """
     Clear a directory of files older than a default number of days
     For folders, the first file (or file_to_check) is checked for age
@@ -252,7 +256,9 @@ def download_file(url: str, filepath: TPath) -> None:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
     except Exception as e:
-        console(f"Failed to download the file. Status code: {r.status_code}: {e}", "red")
+        console(
+            f"Failed to download the file. Status code: {r.status_code}: {e}", "red"
+        )
 
 
 def process_directory(
@@ -329,7 +335,7 @@ def get_all_files(
         extensions=extensions,
         exclude_dirs=exclude_dirs,
         absolute_path=absolute_path,
-        find_first_only=False
+        find_first_only=False,
     )
 
 
@@ -353,7 +359,7 @@ def check_if_file(
         directory=directory,
         extensions=extensions,
         exclude_dirs=exclude_dirs,
-        find_first_only=True
+        find_first_only=True,
     )
 
 
@@ -366,11 +372,13 @@ def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
     """
 
     def contents(path: TPath) -> Generator[bytes, None, None]:
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             while chunk := f.read(65536):
                 yield chunk
 
-    def iter_files() -> Generator[Tuple[str, int, int, int, Generator[bytes, None, None]], None, None]:
+    def iter_files() -> Generator[
+        Tuple[str, int, int, int, Generator[bytes, None, None]], None, None
+    ]:
         for name, path in files:
             if not os.path.exists(path):
                 continue
@@ -387,3 +395,48 @@ def download_model_if_not(url, path: Path):
     if not path.exists():
         download_file(url, path)
     return path
+
+
+def get_model(model_stem, model_dir: Path):
+    """
+    Get the model path either
+    """
+    if model_stem.endswith(".pth") or model_stem.endswith(".pt"):
+        model_path = model_dir / model_stem
+        return model_path if model_path.exists() else None
+    for ext in ["pth", "pt"]:
+        if (model_dir / f"{model_stem}.{ext}").exists():
+            return model_dir / f"{model_stem}.{ext}"
+    return None
+
+
+def list_known_models(model_path, default_model_info={}):
+    """
+    List the models available for similarity
+    """
+    models = {}
+    if not model_path.exists():
+        return models
+
+    for file in model_path.iterdir():
+        if file.is_file() and file.suffix in [".pth", ".pt"]:
+            # look for metadata file
+            if (metadata := file.with_suffix(".json")).exists():
+                with open(metadata, "r") as f:
+                    models[file.stem] = {"path": str(file), **orjson.loads(f.read())}
+                    models[file.stem]["model"] = file.stem
+            else:
+                models[file.stem] = {
+                    "path": str(file),
+                    "date": time.ctime(os.path.getmtime(file)),
+                    "model": file.stem,
+                    "name": file.stem,
+                    "desc": "No description available",
+                }
+
+    models = {
+        **models,
+        **default_model_info,
+    }
+
+    return models

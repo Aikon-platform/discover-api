@@ -6,6 +6,8 @@ Allows to fetch and download content from a dataset
 """
 from flask import Blueprint, jsonify, stream_with_context, Response
 
+from .. import routes as shared_routes
+from ..const import DOCUMENTS_PATH, SHARED_XACCEL_PREFIX
 from ..utils.fileutils import zip_on_the_fly, sanitize_str
 
 from .dataset import Dataset
@@ -41,13 +43,27 @@ def document_download(dtype, uid):
     relpath = document.path
     files = [
         # relative path beginning with "images/..."
-        (str(im.path.relative_to(relpath)), im.path) for im in document.list_images()
-    ] + [
-        ("images.json", document.images_info_path)
-    ]
+        (str(im.path.relative_to(relpath)), im.path)
+        for im in document.list_images()
+    ] + [("images.json", document.images_info_path)]
 
     return Response(
         stream_with_context(zip_on_the_fly(files)),
         mimetype="application/zip",
-        headers={"Content-Disposition": f"attachment; filename={sanitize_str(document.uid)}.zip"},
+        headers={
+            "Content-Disposition": f"attachment; filename={sanitize_str(document.uid)}.zip"
+        },
+    )
+
+
+@blueprint.route("document/<dtype>/<path:uid>/<anno_file>", methods=["GET"])
+def annotation_file(dtype, uid, anno_file):
+    """
+    Expose the annotation json file
+    """
+    return shared_routes.result(
+        filename=anno_file,
+        results_dir=DOCUMENTS_PATH / dtype / uid / "annotations",
+        xaccel_prefix=SHARED_XACCEL_PREFIX,
+        extension="json",
     )

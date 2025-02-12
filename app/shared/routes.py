@@ -4,9 +4,9 @@ The main routes that handle the API requests regarding starting and monitoring t
 
 import functools
 import json
+import uuid
 
 from flask import request, send_from_directory, jsonify, Request
-from slugify import slugify
 from dramatiq import Actor, Broker
 from dramatiq_abort import abort
 from dramatiq.results import ResultMissing, ResultFailure
@@ -18,7 +18,7 @@ from .utils import hash_str
 from .utils.logging import console
 from .. import config
 
-from .utils.fileutils import xaccel_send_from_directory
+from .utils.fileutils import xaccel_send_from_directory, list_known_models
 
 
 def error_wrapper(func):
@@ -51,10 +51,8 @@ def get_client_id(func):
 
 
 def receive_task(
-    req: Request,
-    save_dataset: bool = True,
-    use_crops: bool = True
-) -> Tuple[str, str, str, Optional[Dataset], dict]:
+    req: Request, save_dataset: bool = True, use_crops: bool = True
+) -> Tuple[str, str, Optional[Dataset], dict]:
     """
     Extracts the parameters from the request and returns them
 
@@ -65,12 +63,11 @@ def receive_task(
         {
             "experiment_id": "experiment_id",
             "notify_url": "http://example.com/callback",
-            "tracking_url": "http://example.com/tracking",
             "documents": "[
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit3_man186_anno181/manifest.json"},
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit87_img87_anno87/manifest.json"},
                 {"type": "iiif", "src": "https://eida.obspm.fr/eida/iiif/auto/wit2_img2_anno2/manifest.json"}
-                {"type": "url_list", "src": "https://example.com/urls.txt"},
+                {"type": "url_list", "src": "https://example.com/urls_list"},
                 {"type": "zip", "src": "https://example.com/zipfile.zip"},
             ]",
             "crops": [ # optional
@@ -103,10 +100,8 @@ def receive_task(
 
     console(f"Received task: {param}", color="magenta")
 
-    experiment_id = param.get('experiment_id', "")
-    tracking_url = param.get("tracking_url", "")
-    # AIKON => "callback" / DISCOVER-DEMO => "notify_url" (TODO unify)
-    notify_url = param.get('notify_url', None) or param.get('callback', None)
+    experiment_id = param.get("experiment_id", str(uuid.uuid4()))
+    notify_url = param.get("notify_url", None)
 
     dataset = None
     documents = param.get("documents", [])
@@ -124,11 +119,17 @@ def receive_task(
         if save_dataset:
             dataset.save()
 
-    # task_kwargs = {}
-    # for param_name in additional_params:
-    #     task_kwargs[param_name] = param.get(param_name, None)
+    task_kwargs = {}
+    for k in param.keys():
+        if k not in ["crops", "documents", "experiment_id", "notify_url"]:
+            task_kwargs[k] = param[k]
 
-    return experiment_id, notify_url, tracking_url, dataset, param.get("parameters", param)
+    return (
+        experiment_id,
+        notify_url,
+        dataset,
+        param.get("parameters", task_kwargs),
+    )
 
 
 def start_task(task_fct: Actor, experiment_id: str, task_kwargs: dict) -> dict:
@@ -186,22 +187,25 @@ def status(tracking_id: str, task_fct: Actor) -> dict:
     }
 
 
-def result(tracking_id: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
+def result(filename: str, results_dir: str, xaccel_prefix: str, extension: str = "zip"):
     """
     Get the result of a task
 
-    :param tracking_id: The ID of the task
+    :param filename: The ID of the task / the reference of the doc / etc.
     :param results_dir: The directory where the results are stored
     :param xaccel_prefix: The prefix for the X-Accel-Redirect header
     :param extension: The extension of the result file (without the dot)
 
     :return: The result file as a Flask response
     """
+    # if get_file_url() was used with relative filepath
+    filename = filename.replace("~", "/")
+
     if not config.USE_NGINX_XACCEL:
-        return send_from_directory(results_dir, f"{slugify(tracking_id)}.{extension}")
+        return send_from_directory(results_dir, f"{filename}.{extension}")
 
     return xaccel_send_from_directory(
-        results_dir, xaccel_prefix, f"{slugify(tracking_id)}.{extension}"
+        results_dir, xaccel_prefix, f"{filename}.{extension}"
     )
 
 
@@ -238,3 +242,12 @@ def monitor(results_dir: str, broker: Broker) -> dict:
         total_size += path.stat().st_size
 
     return {"total_size": total_size, **qsizes(broker)}
+
+
+def models(model_path, default_model_info=None):
+    models_info = list_known_models(model_path, default_model_info)
+
+    try:
+        return jsonify(models_info)
+    except Exception:
+        return jsonify("No models.")

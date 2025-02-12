@@ -1,17 +1,22 @@
-import io
+import traceback
 import zipfile
 
-import requests
 import os
 import torch
 
 from pathlib import Path
 from typing import Optional
 
-from ..shared.utils.fileutils import download_file, has_content
-from ..shared.utils.img import download_img, get_img_paths
-from ..shared.utils.logging import LoggingTaskMixin, send_update
-from .const import MAX_SIZE, MODEL_CONFIG, MODEL_CHECKPOINT, VEC_RESULTS_PATH  #, IMG_PATH
+from ..shared.dataset import Dataset
+from ..shared.tasks import LoggedTask
+from ..shared.utils.fileutils import download_file, get_model
+from .const import (
+    MODEL_CONFIG,
+    MODEL_CHECKPOINT,
+    VEC_RESULTS_PATH,
+    DEMO_NAME,
+    MODEL_PATH,
+)
 
 from .lib.src import build_model_main
 from .lib.src.inference import (
@@ -42,152 +47,112 @@ def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_C
     return model, postprocessors
 
 
-class ComputeVectorization:
-    def __init__(
-        self,
-        experiment_id: str,
-        documents: dict,
-        model: Optional[str] = None,
-        notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
-    ):
-        self.experiment_id = experiment_id
-        self.documents = documents
+class ComputeVectorization(LoggedTask):
+    def __init__(self, dataset: Dataset, model: Optional[str] = None, **kwargs):
+        super().__init__(**kwargs)
+        self.dataset = dataset
         self.model = model
-        self.notify_url = notify_url
-        self.tracking_url = tracking_url
-        self.client_id = "default"
         self.imgs = []
-
-    def run_task(self):
-        pass
+        self.results = {}
 
     def check_dataset(self):
         # TODO add more checks
-        if len(list(self.documents.keys())) == 0:
+        if not self.dataset.documents:
             return False
         return True
 
-    def task_update(self, event, message=None):
-        if self.tracking_url:
-            send_update(self.experiment_id, self.tracking_url, event, message)
-            return True
-        else:
-            return False
-
-
-class LoggedComputeVectorization(LoggingTaskMixin, ComputeVectorization):
     def run_task(self):
         if not self.check_dataset():
             self.print_and_log_warning(f"[task.vectorization] No documents to download")
-            self.task_update(
-                "ERROR", f"[API ERROR] No documents to download in dataset"
-            )
-            return
+            raise ValueError(f"[task.vectorization] No documents to download")
 
-        error_list = []
+        self.task_update("STARTED")
 
         try:
-            self.task_update("STARTED")
-
-            model, postprocessors = load_model()
+            model, postprocessors = load_model(get_model(self.model, MODEL_PATH))
             model.eval()
 
-            for doc_id, document in self.documents.items():
+            for doc in self.jlogger.iterate(
+                self.dataset.documents, "Processing documents"
+            ):
                 self.print_and_log(
-                    f"[task.vectorization] Vectorization task triggered for {doc_id} !"
+                    f"[task.vectorization] Vectorization task triggered for {doc.uid}!"
                 )
-                self.download_document(doc_id, document)
+                try:
+                    doc.download()
+                    if not doc.has_images():
+                        self.handle_error(f"No images were extracted from {doc.uid}")
+                        return False
 
-                output_dir = VEC_RESULTS_PATH / doc_id
-                os.makedirs(output_dir, exist_ok=True)
+                    output_dir = VEC_RESULTS_PATH / doc.uid
+                    os.makedirs(output_dir, exist_ok=True)
 
-                # TODO fix to use dataset path ⚠️⚠️⚠️⚠️
-                # for path in get_img_paths(IMG_PATH / doc_id, (".jpg", ".jpeg")):
-                #     orig_img, tr_img = preprocess_img(path)
-                #     preds = generate_prediction(orig_img, tr_img, model, postprocessors)
-                #     preds = postprocess_preds(preds, orig_img.size)
-                #     save_pred_as_svg(
-                #         path,
-                #         img_name=os.path.splitext(os.path.basename(path))[0],
-                #         img_size=orig_img.size,
-                #         pred_dict=preds,
-                #         pred_dir=output_dir,
-                #     )
+                    for image in doc.list_images():
+                        path = image.path
+                        orig_img, tr_img = preprocess_img(path)
+                        preds = generate_prediction(
+                            orig_img, tr_img, model, postprocessors
+                        )
+                        preds = postprocess_preds(preds, orig_img.size)
+                        save_pred_as_svg(
+                            path,
+                            img_name=os.path.splitext(os.path.basename(path))[0],
+                            img_size=orig_img.size,
+                            pred_dict=preds,
+                            pred_dir=output_dir,
+                        )
+                    self.create_zip(doc.uid)
+                    doc_results = {doc.uid: doc.get_results_url(DEMO_NAME)}
+                    self.notifier("PROGRESS", output=doc_results)
+                    self.results.update(doc_results)
+                except Exception as e:
+                    self.notifier(
+                        "ERROR", error=traceback.format_exc(), completed=False
+                    )
+                    self.error_list.append(f"{e}")
 
-                self.send_zip(doc_id)
-
-            self.task_update("SUCCESS", error_list if error_list else None)
+            self.results.update({"error": self.error_list})
+            return self.results
 
         except Exception as e:
             self.print_and_log(f"Error when computing vectorization", e=e)
-            self.task_update("ERROR", f"[API ERROR] Vectorization task failed: {e}")
+            raise e
 
-    def download_document(self, doc_id, document):
-        self.print_and_log(
-            f"[task.vectorization] Downloading {doc_id} images...", color="blue"
-        )
-        # TODO use new dataset way of doing thing
-        # if has_content(f"{IMG_PATH}/{doc_id}/", file_nb=len(document.items())):
-        #     self.print_and_log(
-        #         f"[task.vectorization] {doc_id} already downloaded. Skipping..."
-        #     )
-        #     return
-
-        # for img_name, img_url in document.items():
-        #     # TODO use dataset download
-        #     # try:
-        #     #     download_img(img_url, doc_id, img_name, IMG_PATH, MAX_SIZE)
-        #     #
-        #     # except Exception as e:
-        #     #     self.print_and_log(
-        #     #         f"[task.vectorization] Unable to download image {img_name}", e
-        #     #     )
-
-    def send_zip(self, doc_id):
+    def create_zip(self, doc_id):
         """
-        Zips the vectorization results and sends the zip to the notify_url
+        Creates a zip file containing the vectorization results and saves it to disk
+        Returns the path to the created zip file
         """
         output_dir = VEC_RESULTS_PATH / doc_id
+        zip_path = output_dir / f"{doc_id}.zip"
+
         try:
             self.print_and_log(
                 f"[task.vectorization] Zipping directory {output_dir}", color="blue"
             )
 
-            zip_buffer = io.BytesIO()
             try:
-                with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
                     for root, _, files in os.walk(output_dir):
                         for file in files:
+                            # Skip the zip file itself if it exists
+                            if file == f"{doc_id}.zip":
+                                continue
                             file_path = Path(root) / file
                             arcname = file_path.relative_to(output_dir)
                             zipf.write(file_path, arcname)
-                zip_buffer.seek(0)  # Rewind buffer to the beginning
+
+                return True
+
             except Exception as e:
                 self.print_and_log(
-                    f"[task.vectorization] Failed to zip directory {output_dir}", e
+                    f"[task.vectorization] Failed to create zip file for directory {output_dir}",
+                    e,
                 )
-                return
-
-            response = requests.post(
-                url=self.notify_url,
-                files={"file": (f"{doc_id}.zip", zip_buffer, "application/zip")},
-                data={"experiment_id": self.experiment_id, "model": self.model},
-            )
-
-            if response.status_code == 200:
-                self.print_and_log(
-                    f"[task.vectorization] Zip successfully sent to {self.notify_url}",
-                    color="yellow",
-                )
-                return
-
-            self.print_and_log(
-                f"[task.vectorization] Failed to send zip to {self.notify_url}. Status code: {response.status_code}",
-                color="red",
-            )
+                raise e
 
         except Exception as e:
             self.print_and_log(
-                f"[task.vectorization] Failed to zip and send directory {output_dir}", e
+                f"[task.vectorization] Failed to zip directory {output_dir}", e
             )
+            raise e

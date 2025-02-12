@@ -1,18 +1,19 @@
 """
 Util functions for tasks
 """
+import uuid
 
 import dramatiq
 from dramatiq.middleware import CurrentMessage
 from typing import Optional, Callable, Dict, Any, List
 
 from .const import DEMO_NAME
+from .dataset import Dataset
 from ..config import TIME_LIMIT, BASE_URL
 from ..shared.utils.logging import (
     notifying,
     TLogger,
     LoggerHelper,
-    send_update,
     LoggingTaskMixin,
 )
 
@@ -20,6 +21,12 @@ from ..shared.utils.logging import (
 class LoggedTask(LoggingTaskMixin):
     """
     Base class for tasks that need to log their progress and errors
+    - experiment_id: the ID of the vecto task
+    - notify_url: the URL to be called when the task is finished
+
+    added by @notifying decorator
+    - logger: a logger object
+    - notifier: notify() function that can be used to send event updates to the frontend
     """
 
     def __init__(
@@ -27,7 +34,6 @@ class LoggedTask(LoggingTaskMixin):
         logger: TLogger,
         experiment_id: str,
         notify_url: Optional[str] = None,
-        tracking_url: Optional[str] = None,
         notifier: Optional[Callable[[str, Dict[str, Any]], None]] = None,
         *args,
         **kwargs,
@@ -36,23 +42,27 @@ class LoggedTask(LoggingTaskMixin):
         self.experiment_id = experiment_id
         # Frontend endpoint to sends results and task events to
         self.notify_url = notify_url
-        # Frontend endpoint to sends task events to (used only in AIKON) => TODO unify with notify_url
         # Discover-demo frontend uses /status endpoint to retrieve task message (@dramatiq.store_results=True)
-        self.tracking_url = tracking_url
+
+        # notify() function to send any event to frontend
         self.notifier = notifier
+
+        current_task = CurrentMessage.get_current_message()
+        self.task_id = current_task.message_id
+
         self.error_list: List[str] = []
 
     def task_update(self, event: str, message: Optional[Any] = None) -> None:
-        if self.tracking_url:
-            send_update(self.experiment_id, self.tracking_url, event, message)
-        if self.notifier:
-            if event == "ERROR":
-                if message and isinstance(message, list):
-                    msg = ", ".join(message)
-                else:
-                    msg = message or "Unknown error"
-                self.notifier(event, message=msg)
-                raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
+        if not self.notifier:
+            return
+        msg = (
+            ", ".join(message)
+            if isinstance(message, list)
+            else message or self.error_list or "Unknown error"
+        )
+        self.notifier(event, message=msg)
+        if event == "ERROR":
+            raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
         self.print_and_log_error(
@@ -80,27 +90,28 @@ class LoggedTask(LoggingTaskMixin):
 @notifying
 def abstract_task(
     experiment_id: str,
+    dataset_uid: str,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
-    **kwargs,
+    **task_kwargs,  # Replace with extra parameters needed for the task
 ):
     """
     Template for a task (see the source code)
     """
-    current_task = CurrentMessage.get_current_message()
-    current_task_id = current_task.message_id
+    dataset = Dataset(dataset_uid, load=True)
 
     task_instance = LoggedTask(
-        # Add here the extra parameters needed for the task
-        logger=logger,
-        experiment_id=experiment_id,
-        notify_url=notify_url,
-        tracking_url=tracking_url,
-        notifier=notifier,
+        experiment_id=experiment_id,  # Used by LoggedTask
+        logger=logger,  # Used by LoggedTask
+        notify_url=notify_url,  # Used by LoggedTask
+        notifier=notifier,  # Used by LoggedTask
+        dataset=dataset,
+        **task_kwargs,  # Replace with extra parameters needed for the task
     )
-    task_instance.run_task()
+    success = task_instance.run_task()
 
-    # json to be dispatch to frontend with @notifying
-    return {"result_url": f"{BASE_URL}/{DEMO_NAME}/{current_task_id}/result"}
+    if success:
+        # json to be dispatch to frontend with @notifying, triggering SUCCESS event
+        return {doc.uid: doc.get_results_url(DEMO_NAME) for doc in dataset.documents}
+    return {"error": task_instance.error_list}

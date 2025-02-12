@@ -33,6 +33,63 @@ import requests
 T = TypeVar("T")
 
 
+def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
+    """
+    A decorator to notify the task of the progress of a function
+    Sends back to frontend the results returned be the task when it is done
+    Gives the task a logger and a notifier to log/notify its progress as a kwarg
+
+    Raised exceptions are dispatched as ERROR events to frontend
+
+    Statuses:
+    - STARTED indicates that the task has been triggered
+    - PROGRESS when intermediary results are dispatched to the frontend but task is not done
+    - SUCCESS indicates that the task has completed successfully
+    - ERROR indicates that the task has failed because an Exception was raised
+            (if notify("ERROR", ..., completed=False) => AIKON doesn't trigger the end of the task)
+    """
+
+    @functools.wraps(func)
+    def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
+        @functools.wraps(fct)
+        def execute(*args, **kwargs):
+            logger = JobLogger.getLogger(create=True)
+            logger.info(f"Starting task {fct.__name__}")
+            current_task_id = getattr(logger, "_id", None)
+            notify_url = kwargs.get("notify_url", None)
+            experiment_id = kwargs.get("experiment_id", None)
+
+            def notify(event: str, **data):
+                if notify_url:
+                    requests.post(
+                        notify_url,
+                        json={
+                            "event": event,
+                            "tracking_id": current_task_id,
+                            "experiment_id": experiment_id,
+                            **json.loads(json.dumps(data, default=serializer)),
+                        },
+                    )
+
+            try:
+                notify("STARTED")
+                result = fct(*args, **kwargs, logger=logger, notifier=notify)
+                # dispatch result to frontend
+                notify("SUCCESS", success=True, output=result)
+
+                return result
+            except Exception as e:
+                logger.error(f"Error in task {fct.__name__}", exception=e)
+                try:
+                    notify("ERROR", error=traceback.format_exc(), completed=True)
+                except Exception as e:
+                    logger.error("Error while notifying", exception=e)
+
+        return execute
+
+    return wrapper if func is None else wrapper(func)
+
+
 def serializer(obj):
     if isinstance(obj, Enum):
         return obj.value
@@ -72,10 +129,7 @@ def pprint(o):
         except TypeError:
             try:
                 if isinstance(o, dict):
-                    sanitized = {
-                        str(k): sanitize(v)
-                        for k, v in o.items()
-                    }
+                    sanitized = {str(k): sanitize(v) for k, v in o.items()}
                 else:
                     sanitized = [sanitize(v) for v in o]
                 return json.dumps(sanitized, indent=4, sort_keys=True)
@@ -197,7 +251,7 @@ class LoggerHelper:
 
     @classmethod
     def progress(
-            cls, current: int = 0, total: int = None, title: str = "", **kwargs
+        cls, current: int = 0, total: int = None, title: str = "", **kwargs
     ) -> None:
         """
         Log the progress of a task
@@ -301,7 +355,7 @@ class JobLogger:
 
     @classmethod
     def clearLogger(
-            cls: Type[TJobLogger], job_id: Optional[str] = None
+        cls: Type[TJobLogger], job_id: Optional[str] = None
     ) -> Optional[TLogger]:
         """
         Clear the logger for the job
@@ -354,8 +408,8 @@ class JobLogger:
             if self._grouped_warnings:
                 for collapse, ws in self._grouped_warnings.items():
                     warnings = [
-                                   f"{len(ws)} {collapse} warnings. Examples of such warning messages:\n\n{ws[0]}\n{ws[1]}\n{ws[2]}"
-                               ] + warnings
+                        f"{len(ws)} {collapse} warnings. Examples of such warning messages:\n\n{ws[0]}\n{ws[1]}\n{ws[2]}"
+                    ] + warnings
             if warnings:
                 state["warnings"] = warnings
 
@@ -385,11 +439,11 @@ class JobLogger:
         LoggerHelper.info(*s, **kwargs)
 
     def warning(
-            self,
-            *s,
-            collapse: Optional[str] = None,
-            exception: bool = False,
-            send: bool = False,
+        self,
+        *s,
+        collapse: Optional[str] = None,
+        exception: bool = False,
+        send: bool = False,
     ) -> None:
         """
         Log a warning message
@@ -433,15 +487,15 @@ class JobLogger:
         self._send_state()
 
     def progress(
-            self,
-            current: int = 0,
-            total: int = None,
-            title: str = "",
-            key: Optional[str] = None,
-            end: bool = False,
-            display: bool = False,
-            send: bool = True,
-            **kwargs,
+        self,
+        current: int = 0,
+        total: int = None,
+        title: str = "",
+        key: Optional[str] = None,
+        end: bool = False,
+        display: bool = False,
+        send: bool = True,
+        **kwargs,
     ) -> None:
         """
         Log the progress of a task
@@ -479,11 +533,11 @@ class JobLogger:
             self._send_state(with_warnings=False)
 
     def iterate(
-            self,
-            iterable: Iterable[T],
-            title: str = "",
-            total: Optional[int] = None,
-            rate_limit: float = 1.0,
+        self,
+        iterable: Iterable[T],
+        title: str = "",
+        total: Optional[int] = None,
+        rate_limit: float = 1.0,
     ) -> TqdmProgress:
         """
         Monitor the progress of iterating an iterable (through tqdm)
@@ -510,52 +564,6 @@ class JobLogger:
         )
 
 
-def notifying(func: Optional[Callable[..., Any]] = None) -> Callable[..., Any]:
-    """
-    A decorator to notify the task of the progress of a function
-    Sends back to frontend the results returned be the task when it is done
-    Gives the task a logger to log its progress as a kwarg
-    """
-
-    @functools.wraps(func)
-    def wrapper(fct: Callable[..., Any]) -> Callable[..., Any]:
-        @functools.wraps(fct)
-        def execute(*args, **kwargs):
-            logger = JobLogger.getLogger(create=True)
-            logger.info(f"Starting task {fct.__name__}")
-            current_task_id = getattr(logger, "_id", None)
-            notify_url = kwargs.get("notify_url", None)
-
-            def notify(event: str, **data):
-                if notify_url:
-                    requests.post(
-                        notify_url,
-                        json={
-                            "event": event,
-                            "tracking_id": current_task_id,
-                            **json.loads(json.dumps(data, default=serializer))
-                        },
-                    )
-
-            try:
-                notify("STARTED")
-                result = fct(*args, **kwargs, logger=logger, notifier=notify)
-                # dispatch results to frontend
-                notify("SUCCESS", success=True, output=result)
-
-                return result
-            except Exception as e:
-                logger.error(f"Error in task {fct.__name__}", exception=e)
-                try:
-                    notify("ERROR", error=traceback.format_exc())
-                except Exception as e:
-                    logger.error("Error while notifying", exception=e)
-
-        return execute
-
-    return wrapper if func is None else wrapper(func)
-
-
 class LoggedResults(Results):
     """
     A class to store the results of a task in Dramatiq backend
@@ -570,7 +578,9 @@ class LoggedResults(Results):
 
 
 def console(msg, color="bold", e: Exception = None, log=True):
-    msg = f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
+    msg = (
+        f"\n\n\n\n[{get_time()}]\n{get_color(color)}{pprint(msg)}{ConsoleColors.end}\n"
+    )
     if e:
         msg += f"\nStack Trace:\n{get_color('red')}{traceback.format_exc()}{ConsoleColors.end}\n"
 
@@ -613,15 +623,15 @@ class LoggingTaskMixin:
         return result
 
 
-def send_update(experiment_id, tracking_url, event, message):
-    # TODO
-    response = requests.post(
-        url=tracking_url,
-        data={
-            "experiment_id": experiment_id,
-            "event": event,
-            "message": message or "",
-        },
-    )
-    response.raise_for_status()
-    return True
+# def send_update(experiment_id, tracking_url, event, message):
+#     # TODO delete
+#     response = requests.post(
+#         url=tracking_url,  # TODO delete
+#         data={
+#             "experiment_id": experiment_id,
+#             "event": event,
+#             "message": message or "",
+#         },
+#     )
+#     response.raise_for_status()
+#     return True
