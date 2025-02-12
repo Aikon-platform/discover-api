@@ -126,7 +126,6 @@ def get_transforms_for_model(model_name):
     if model_name in DEFAULT_MODEL_TRANSFORMS:
         return DEFAULT_MODEL_TRANSFORMS[model_name]
     return transforms.Compose([
-        transforms.ToTensor(),
         transforms.Resize((224, 224)),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
