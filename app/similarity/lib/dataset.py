@@ -18,23 +18,15 @@ class FileListDataset(Dataset):
         self.device = device
         self.data_paths = data_paths
         self.rotations = transpositions
+        self.transforms = transform
 
-        self.tensor_transforms, self.pil_transforms = self._split_transforms(transform)
+        self._tensor_transforms = None
+        self._pil_transforms = None
+        self._target_size = None
         self.to_tensor = transforms.ToTensor()
 
     def __len__(self):
         return len(self.data_paths) * len(self.rotations)
-
-    @property
-    def target_size(self):
-        default_size = 224, 224
-        if self.tensor_transforms is None:
-            return default_size
-
-        for t in self.tensor_transforms:
-            if isinstance(t, transforms.Resize):
-                return (t.size, t.size) if isinstance(t.size, int) else t.size
-        return default_size
 
     def __getitem__(self, idx):
         zeros = torch.zeros(3, self.target_size[0], self.target_size[1]).to(self.device)
@@ -67,11 +59,11 @@ class FileListDataset(Dataset):
 
             im = transforms.Resize(self.target_size, antialias=True)(im)
 
-            if self.pil_transforms is not None:
+            if self.pil_transforms:
                 im = self.pil_transforms(im)
 
             img = self.to_tensor(im)
-            if self.tensor_transforms is not None:
+            if self.tensor_transforms:
                 img = self.tensor_transforms(img)
 
             return img.to(self.device)
@@ -83,27 +75,48 @@ class FileListDataset(Dataset):
             )
             return zeros
 
-    def get_image_paths(self):
-        return self.data_paths
+    @property
+    def target_size(self):
+        default_size = (224, 224)
+        if self._target_size is not None:
+            return self._target_size
 
-    @staticmethod
-    def _split_transforms(transform):
-        if transform is None:
-            return None, None
+        self._target_size = default_size
 
-        if not hasattr(transform, 'transforms'):
-            return None, transform
+        if not self.transforms or not hasattr(self.transforms, 'transforms'):
+            return self._target_size
+
+        for t in self.transforms.transforms:
+            if isinstance(t, transforms.Resize):
+                self._target_size = (t.size, t.size) if isinstance(t.size, int) else t.size
+        return self._target_size
+
+    @property
+    def tensor_transforms(self):
+        if self._tensor_transforms is None:
+            self._split_transforms()
+        return self._tensor_transforms
+
+    @property
+    def pil_transforms(self):
+        if self._pil_transforms is None:
+            self._split_transforms()
+        return self._pil_transforms
+
+    def _split_transforms(self) -> None:
+        if self.transforms is None or not hasattr(self.transforms, 'transforms'):
+            self._pil_transforms = transforms.Compose([])
+            self._tensor_transforms = self.transforms or []
+            return
 
         pil_transforms = []
         tensor_transforms = []
 
-        for t in transform.transforms:
-            if isinstance(t, (transforms.Normalize, transforms.Resize)):
+        for t in self.transforms.transforms:
+            if isinstance(t, transforms.Normalize):
                 tensor_transforms.append(t)
             elif not isinstance(t, transforms.ToTensor):
                 pil_transforms.append(t)
 
-        return (
-            transforms.Compose(pil_transforms) if pil_transforms else None,
-            transforms.Compose(tensor_transforms) if tensor_transforms else None
-        )
+        self._pil_transforms = transforms.Compose(pil_transforms)
+        self._tensor_transforms = transforms.Compose(tensor_transforms)
