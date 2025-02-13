@@ -25,8 +25,15 @@ class FileListDataset(Dataset):
     def __len__(self):
         return len(self.data_paths) * len(self.rotations)
 
+    @property
+    def target_size(self):
+        for t in self.tensor_transforms:
+            if isinstance(t, transforms.Resize):
+                return (t.size, t.size) if isinstance(t.size, int) else t.size
+        return 224, 224
+
     def __getitem__(self, idx):
-        zeros = torch.zeros(3, 224, 224).to(self.device)
+        zeros = torch.zeros(3, self.target_size[0], self.target_size[1]).to(self.device)
 
         try:
             img_path = self.data_paths[idx]
@@ -53,6 +60,11 @@ class FileListDataset(Dataset):
             rot = self.rotations[rot]
             if rot != AllTranspose.NONE:
                 im = im.transpose(rot.value)
+
+            im = transforms.Resize(self.target_size, antialias=True)(im)
+
+            if self.pil_transforms is not None:
+                im = self.pil_transforms(im)
 
             img = self.to_tensor(im)
             if self.tensor_transforms is not None:
