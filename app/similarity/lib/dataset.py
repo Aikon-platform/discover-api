@@ -27,10 +27,14 @@ class FileListDataset(Dataset):
 
     @property
     def target_size(self):
+        default_size = 224, 224
+        if self.tensor_transforms is None:
+            return default_size
+
         for t in self.tensor_transforms:
             if isinstance(t, transforms.Resize):
                 return (t.size, t.size) if isinstance(t.size, int) else t.size
-        return 224, 224
+        return default_size
 
     def __getitem__(self, idx):
         zeros = torch.zeros(3, self.target_size[0], self.target_size[1]).to(self.device)
