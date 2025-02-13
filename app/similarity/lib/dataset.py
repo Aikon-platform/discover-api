@@ -26,12 +26,16 @@ class FileListDataset(Dataset):
         # TODO here prevent UnidentifiedImageError
         idx, rot = divmod(idx, len(self.rotations))
         im = Image.open(self.data_paths[idx])
+
         rot = self.rotations[rot]
         if rot != AllTranspose.NONE:
             im = im.transpose(rot.value)
 
-        img = transforms.ToTensor()(im).to(self.device)
-        return self.transform(img)
+        # ToTensor is done in transform pipeline
+        # img = transforms.ToTensor()(im).to(self.device)
+
+        img = self.transform(im)
+        return img.to(self.device)
 
     def get_image_paths(self):
         return self.data_paths

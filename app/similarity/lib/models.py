@@ -105,6 +105,7 @@ DEFAULT_MODEL_LOADERS = {
 DEFAULT_MODEL_TRANSFORMS = {
     "resnet18_watermarks": transforms.Compose(
         [
+            transforms.ToTensor(),
             transforms.Resize((320, 320)),
             transforms.Normalize(mean=[0.75, 0.70, 0.65], std=[0.14, 0.15, 0.16]),
         ]
@@ -129,14 +130,14 @@ def get_model_path(model_name):
 
 
 def get_transforms_for_model(model_name):
+    # transforms.Lambda(lambda x: x.convert('RGB'))
     if model_name in DEFAULT_MODEL_TRANSFORMS:
         return DEFAULT_MODEL_TRANSFORMS[model_name]
-    return transforms.Compose(
-        [
-            transforms.Resize((224, 224)),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
+    return transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize((224, 224)),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
 
 
 def load_model(

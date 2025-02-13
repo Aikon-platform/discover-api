@@ -22,7 +22,6 @@ from .yolov5.utils.general import (
 )
 from .yolov5.utils.augmentations import letterbox
 from .yolov5.utils.torch_utils import select_device, smart_inference_mode
-from ...shared.utils import get_device
 
 from ...shared.utils.fileutils import TPath
 from ...shared.dataset import Image as DImage

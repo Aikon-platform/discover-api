@@ -1,6 +1,12 @@
 # Final image (change image based on the version showed with $ nvidia-smi)
 FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+
+ENV HTTP_PROXY=${HTTP_PROXY}
+ENV HTTPS_PROXY=${HTTPS_PROXY}
+
 ENV USER=demoapi
 ARG USERID
 

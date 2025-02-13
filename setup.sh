@@ -51,6 +51,7 @@ sudo apt-get install redis-server python3.10 python3.10-venv python3.10-dev curl
 
 colorEcho yellow "\nAPI virtual env ..."
 python3.10 -m venv venv
+venv/bin/pip install wheel>=0.45.1
 venv/bin/pip install -r requirements.txt
 venv/bin/pip install python-dotenv
 
@@ -171,4 +172,4 @@ echoTitle "DOWNLOADING SUBMODULES"
 git submodule init
 git submodule update
 
-echoTitle "SETUP COMPLETE"
+echoTitle "🎉 API SET UP COMPLETED ! 🎉"

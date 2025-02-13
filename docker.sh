@@ -21,10 +21,11 @@ CONTAINER_NAME="demoapi"
 
 rebuild_image() {
     # Add error checking for the build process
-    if ! docker build --rm -t "$CONTAINER_NAME" . -f Dockerfile --build-arg USERID=$DEMO_UID; then
-        echo "Docker build failed"
-        exit 1
-    fi
+    docker build --rm -t "$CONTAINER_NAME" . \
+        -f Dockerfile \
+        --build-arg USERID=$DEMO_UID \
+        --build-arg HTTP_PROXY=${HTTP_PROXY} \
+        --build-arg HTTPS_PROXY=${HTTPS_PROXY} || { echo "Docker build failed"; exit 1; }
     cd ../
 }
 
