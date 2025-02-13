@@ -19,7 +19,7 @@ class FileListDataset(Dataset):
         self.data_paths = data_paths
         self.rotations = transpositions
 
-        self.tensor_transforms = self._get_tensor_transforms(transform) if transform else None
+        self.tensor_transforms, self.pil_transforms = self._split_transforms(transform)
         self.to_tensor = transforms.ToTensor()
 
     def __len__(self):
@@ -71,14 +71,23 @@ class FileListDataset(Dataset):
         return self.data_paths
 
     @staticmethod
-    def _get_tensor_transforms(transform):
-        """Extract only the tensor-compatible transforms."""
-        if not hasattr(transform, 'transforms'):
-            return transform
+    def _split_transforms(transform):
+        if transform is None:
+            return None, None
 
+        if not hasattr(transform, 'transforms'):
+            return None, transform
+
+        pil_transforms = []
         tensor_transforms = []
+
         for t in transform.transforms:
             if isinstance(t, (transforms.Normalize, transforms.Resize)):
                 tensor_transforms.append(t)
+            elif not isinstance(t, transforms.ToTensor):
+                pil_transforms.append(t)
 
-        return transforms.Compose(tensor_transforms) if tensor_transforms else None
+        return (
+            transforms.Compose(pil_transforms) if pil_transforms else None,
+            transforms.Compose(tensor_transforms) if tensor_transforms else None
+        )
