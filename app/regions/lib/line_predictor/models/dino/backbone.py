@@ -14,6 +14,7 @@
 """
 Backbone modules.
 """
+from collections import OrderedDict
 import os
 
 import torch
@@ -24,11 +25,12 @@ from torchvision.models._utils import IntermediateLayerGetter
 from typing import Dict, List
 
 
-from ...util.misc import NestedTensor, clean_state_dict, is_main_process
+from util.misc import NestedTensor, clean_state_dict, is_main_process
 
 from .position_encoding import build_position_encoding
 from .convnext import build_convnext
 from .swin_transformer import build_swin_transformer
+
 
 
 class FrozenBatchNorm2d(torch.nn.Module):
@@ -47,29 +49,15 @@ class FrozenBatchNorm2d(torch.nn.Module):
         self.register_buffer("running_mean", torch.zeros(n))
         self.register_buffer("running_var", torch.ones(n))
 
-    def _load_from_state_dict(
-        self,
-        state_dict,
-        prefix,
-        local_metadata,
-        strict,
-        missing_keys,
-        unexpected_keys,
-        error_msgs,
-    ):
-        num_batches_tracked_key = prefix + "num_batches_tracked"
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict,
+                              missing_keys, unexpected_keys, error_msgs):
+        num_batches_tracked_key = prefix + 'num_batches_tracked'
         if num_batches_tracked_key in state_dict:
             del state_dict[num_batches_tracked_key]
 
         super(FrozenBatchNorm2d, self)._load_from_state_dict(
-            state_dict,
-            prefix,
-            local_metadata,
-            strict,
-            missing_keys,
-            unexpected_keys,
-            error_msgs,
-        )
+            state_dict, prefix, local_metadata, strict,
+            missing_keys, unexpected_keys, error_msgs)
 
     def forward(self, x):
         # move reshapes to the beginning
@@ -85,32 +73,16 @@ class FrozenBatchNorm2d(torch.nn.Module):
 
 
 class BackboneBase(nn.Module):
-    def __init__(
-        self,
-        backbone: nn.Module,
-        train_backbone: bool,
-        num_channels: int,
-        return_interm_indices: list,
-    ):
+
+    def __init__(self, backbone: nn.Module, train_backbone: bool, num_channels: int, return_interm_indices: list):
         super().__init__()
         for name, parameter in backbone.named_parameters():
-            if (
-                not train_backbone
-                or "layer2" not in name
-                and "layer3" not in name
-                and "layer4" not in name
-            ):
+            if not train_backbone or 'layer2' not in name and 'layer3' not in name and 'layer4' not in name:
                 parameter.requires_grad_(False)
 
         return_layers = {}
         for idx, layer_index in enumerate(return_interm_indices):
-            return_layers.update(
-                {
-                    "layer{}".format(5 - len(return_interm_indices) + idx): "{}".format(
-                        layer_index
-                    )
-                }
-            )
+            return_layers.update({"layer{}".format(5 - len(return_interm_indices) + idx): "{}".format(layer_index)})
 
         # if len:
         #     if use_stage1_feature:
@@ -136,31 +108,23 @@ class BackboneBase(nn.Module):
 
 class Backbone(BackboneBase):
     """ResNet backbone with frozen BatchNorm."""
-
-    def __init__(
-        self,
-        name: str,
-        train_backbone: bool,
-        dilation: bool,
-        return_interm_indices: list,
-        batch_norm=FrozenBatchNorm2d,
-    ):
-        if name in ["resnet18", "resnet34", "resnet50", "resnet101"]:
+    def __init__(self, name: str,
+                 train_backbone: bool,
+                 dilation: bool,
+                 return_interm_indices:list,
+                 batch_norm=FrozenBatchNorm2d,
+                 ):
+        if name in ['resnet18', 'resnet34', 'resnet50', 'resnet101']:
             backbone = getattr(torchvision.models, name)(
                 replace_stride_with_dilation=[False, False, dilation],
-                pretrained=is_main_process(),
-                norm_layer=batch_norm,
-            )
+                pretrained=is_main_process(), norm_layer=batch_norm)
         else:
             raise NotImplementedError("Why you can get here with name {}".format(name))
         # num_channels = 512 if name in ('resnet18', 'resnet34') else 2048
-        assert name not in (
-            "resnet18",
-            "resnet34",
-        ), "Only resnet50 and resnet101 are available."
-        assert return_interm_indices in [[0, 1, 2, 3], [1, 2, 3], [3]]
+        assert name not in ('resnet18', 'resnet34'), "Only resnet50 and resnet101 are available."
+        assert return_interm_indices in [[0,1,2,3], [1,2,3], [3]]
         num_channels_all = [256, 512, 1024, 2048]
-        num_channels = num_channels_all[4 - len(return_interm_indices) :]
+        num_channels = num_channels_all[4-len(return_interm_indices):]
         super().__init__(backbone, train_backbone, num_channels, return_interm_indices)
 
 
@@ -184,10 +148,10 @@ def build_backbone(args):
     """
     Useful args:
         - backbone: backbone name
-        - lr_backbone:
+        - lr_backbone: 
         - dilation
         - return_interm_indices: available: [0,1,2,3], [1,2,3], [3]
-        - backbone_freeze_keywords:
+        - backbone_freeze_keywords: 
         - use_checkpoint: for swin only for now
 
     """
@@ -196,34 +160,21 @@ def build_backbone(args):
     if not train_backbone:
         raise ValueError("Please set lr_backbone > 0")
     return_interm_indices = args.return_interm_indices
-    assert return_interm_indices in [[0, 1, 2, 3], [1, 2, 3], [3]]
+    assert return_interm_indices in [[0,1,2,3], [1,2,3], [3]]
     backbone_freeze_keywords = args.backbone_freeze_keywords
-    use_checkpoint = getattr(args, "use_checkpoint", False)
+    use_checkpoint = getattr(args, 'use_checkpoint', False)
 
-    if args.backbone in ["resnet50", "resnet101"]:
-        backbone = Backbone(
-            args.backbone,
-            train_backbone,
-            args.dilation,
-            return_interm_indices,
-            batch_norm=FrozenBatchNorm2d,
-        )
+    if args.backbone in ['resnet50', 'resnet101']:
+        backbone = Backbone(args.backbone, train_backbone, args.dilation,   
+                                return_interm_indices,   
+                                batch_norm=FrozenBatchNorm2d)
         bb_num_channels = backbone.num_channels
-    elif args.backbone in [
-        "swin_T_224_1k",
-        "swin_B_224_22k",
-        "swin_B_384_22k",
-        "swin_L_224_22k",
-        "swin_L_384_22k",
-    ]:
-        pretrain_img_size = int(args.backbone.split("_")[-2])
-        backbone = build_swin_transformer(
-            args.backbone,
-            pretrain_img_size=pretrain_img_size,
-            out_indices=tuple(return_interm_indices),
-            dilation=args.dilation,
-            use_checkpoint=use_checkpoint,
-        )
+    elif args.backbone in ['swin_T_224_1k', 'swin_B_224_22k', 'swin_B_384_22k', 'swin_L_224_22k', 'swin_L_384_22k']:
+        pretrain_img_size = int(args.backbone.split('_')[-2])
+        backbone = build_swin_transformer(args.backbone, \
+                    pretrain_img_size=pretrain_img_size, \
+                    out_indices=tuple(return_interm_indices), \
+                dilation=args.dilation, use_checkpoint=use_checkpoint)
 
         # freeze some layers
         if backbone_freeze_keywords is not None:
@@ -235,49 +186,34 @@ def build_backbone(args):
         if "backbone_dir" in args:
             pretrained_dir = args.backbone_dir
             PTDICT = {
-                "swin_T_224_1k": "swin_tiny_patch4_window7_224.pth",
-                "swin_B_384_22k": "swin_base_patch4_window12_384.pth",
-                "swin_L_384_22k": "swin_large_patch4_window12_384_22k.pth",
+                'swin_T_224_1k': 'swin_tiny_patch4_window7_224.pth',
+                'swin_B_384_22k': 'swin_base_patch4_window12_384.pth',
+                'swin_L_384_22k': 'swin_large_patch4_window12_384_22k.pth',
             }
             pretrainedpath = os.path.join(pretrained_dir, PTDICT[args.backbone])
-            checkpoint = torch.load(pretrainedpath, map_location="cpu")["model"]
+            checkpoint = torch.load(pretrainedpath, map_location='cpu')['model']
             from collections import OrderedDict
-
             def key_select_function(keyname):
-                if "head" in keyname:
+                if 'head' in keyname:
                     return False
-                if args.dilation and "layers.3" in keyname:
+                if args.dilation and 'layers.3' in keyname:
                     return False
                 return True
-
-            _tmp_st = OrderedDict(
-                {
-                    k: v
-                    for k, v in clean_state_dict(checkpoint).items()
-                    if key_select_function(k)
-                }
-            )
+            _tmp_st = OrderedDict({k:v for k, v in clean_state_dict(checkpoint).items() if key_select_function(k)})
             _tmp_st_output = backbone.load_state_dict(_tmp_st, strict=False)
             print(str(_tmp_st_output))
-        bb_num_channels = backbone.num_features[4 - len(return_interm_indices) :]
-    elif args.backbone in ["convnext_xlarge_22k"]:
-        backbone = build_convnext(
-            modelname=args.backbone,
-            pretrained=True,
-            out_indices=tuple(return_interm_indices),
-            backbone_dir=args.backbone_dir,
-        )
-        bb_num_channels = backbone.dims[4 - len(return_interm_indices) :]
+        bb_num_channels = backbone.num_features[4 - len(return_interm_indices):]
+    elif args.backbone in ['convnext_xlarge_22k']:
+        backbone = build_convnext(modelname=args.backbone, pretrained=True, out_indices=tuple(return_interm_indices),backbone_dir=args.backbone_dir)
+        bb_num_channels = backbone.dims[4 - len(return_interm_indices):]
     else:
         raise NotImplementedError("Unknown backbone {}".format(args.backbone))
+    
 
-    assert len(bb_num_channels) == len(
-        return_interm_indices
-    ), f"len(bb_num_channels) {len(bb_num_channels)} != len(return_interm_indices) {len(return_interm_indices)}"
+    assert len(bb_num_channels) == len(return_interm_indices), f"len(bb_num_channels) {len(bb_num_channels)} != len(return_interm_indices) {len(return_interm_indices)}"
+
 
     model = Joiner(backbone, position_embedding)
-    model.num_channels = bb_num_channels
-    assert isinstance(
-        bb_num_channels, List
-    ), "bb_num_channels is expected to be a List but {}".format(type(bb_num_channels))
+    model.num_channels = bb_num_channels 
+    assert isinstance(bb_num_channels, List), "bb_num_channels is expected to be a List but {}".format(type(bb_num_channels))
     return model

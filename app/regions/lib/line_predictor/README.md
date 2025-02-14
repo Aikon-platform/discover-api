@@ -11,13 +11,17 @@ In order to use line predictor for extraction, you first need to compile CUDA op
     # find CUDA version with (pay attention to version mismatches)
     nvcc --version
     nvidia-smi
-
+   
     # set CUDA_HOME
     export CUDA_HOME=<path/to/cuda>
+    # make sure nvcc version matches selected CUDA_HOME
+    export PATH=$CUDA_HOME/bin:$PATH
+    export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
     ```
-2. Activate python environment in the api root folder
+2. Activate python environment in the `api/` root folder
     ```bash
     source venv/bin/activate
+    cd app/regions/lib/line_predictor
     ```
 3. Inside `line_predictor/` folder, run
     ```bash
@@ -26,6 +30,24 @@ In order to use line predictor for extraction, you first need to compile CUDA op
     # Unit test => could output an outofmemory error
     python ./models/dino/ops/test.py
     ```
+   
+### Troubleshooting
+
+Versions setup know to work:
+```bash
+$ nvcc --version
+nvcc: NVIDIA (R) Cuda compiler driver
+Copyright (c) 2005-2024 NVIDIA Corporation
+Built on Thu_Mar_28_02:18:24_PDT_2024
+Cuda compilation tools, release 12.4, V12.4.131
+Build cuda_12.4.r12.4/compiler.34097967_0
+
+$ python -c "import torch; print(torch.version)"
+2.6.0+cu124
+
+$ python -c "import torchvision; print(torchvision.version)"
+0.21.0+cu124
+```
 
 ## Copyright
 

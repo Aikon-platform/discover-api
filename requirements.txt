@@ -33,6 +33,7 @@ numpy
 yapf==0.3.1
 ultralytics
 git+https://github.com/cocodataset/panopticapi.git#egg=panopticapi
+git+https://github.com/cocodataset/cocoapi.git#subdirectory=PythonAPI&egg=pycocotools
 
 kornia==0.7.* # TODO update
 
