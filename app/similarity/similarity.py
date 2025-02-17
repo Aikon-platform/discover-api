@@ -313,19 +313,27 @@ class ComputeSimilarity(LoggedTask):
         for path in SCORES_PATH.rglob(f"{experiment_id}/*"):
             if not path.is_file() or path.suffix != ".json":
                 continue
-            filename = path.stem
 
-            if not filename.startswith(self.algorithm):
+            filename = path.stem
+            file_path = f"{experiment_id}/{filename}"
+
+            if filename == f"{self.dataset.uid}-scores":
+                results_url.append(
+                    {
+                        "doc_pair": "dataset",
+                        "result_url": get_file_url(DEMO_NAME, file_path),
+                    }
+                )
                 continue
 
-            results_url.append(
-                {
-                    "doc_pair": filename.replace(f"{self.algorithm}-", ""),
-                    "result_url": get_file_url(
-                        DEMO_NAME, f"{experiment_id}/{filename}"
-                    ),
-                }
-            )
+            if filename.startswith(self.algorithm):
+                results_url.append(
+                    {
+                        "doc_pair": filename.replace(f"{self.algorithm}-", ""),
+                        "result_url": get_file_url(DEMO_NAME, file_path),
+                    }
+                )
+
         return results_url
 
     def add_results_url(self, value):
@@ -664,6 +672,14 @@ class ComputeSimilarity(LoggedTask):
                 "wb",
             ) as f:
                 f.write(orjson.dumps(self.results, default=serializer))
+                self.add_results_url(
+                    {
+                        "doc_pair": "dataset",
+                        "result_url": get_file_url(
+                            DEMO_NAME, f"{self.experiment_id}/{self.dataset.uid}-scores"
+                        ),
+                    }
+                )
 
             self.print_and_log(
                 f"[task.similarity] Successfully computed similarity scores"

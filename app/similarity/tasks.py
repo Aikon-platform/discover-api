@@ -1,9 +1,10 @@
 import dramatiq
 from typing import Optional
 
-from .const import SIM_QUEUE
+from .const import SIM_QUEUE, DEMO_NAME
 from .similarity import ComputeSimilarity
 from ..config import TIME_LIMIT
+from ..shared.dataset.document import get_file_url
 from ..shared.utils.logging import notifying, TLogger, LoggerHelper, console
 from ..shared.dataset import Dataset
 
@@ -17,7 +18,6 @@ def compute_similarity(
     dataset_uid: str,
     parameters: Optional[dict] = None,
     notify_url: Optional[str] = None,
-    tracking_url: Optional[str] = None,
     logger: TLogger = LoggerHelper,
     notifier=None,
     **kwargs
@@ -55,10 +55,9 @@ def compute_similarity(
         ):
             return success
 
-        # TODO change to use only results_url
-
         return {
             "dataset_url": dataset.get_absolute_url(),
+            # TODO change to use only results_url (and remove annotations)
             "annotations": similarity_task.results,
             "results_url": similarity_task.results_url,
         }

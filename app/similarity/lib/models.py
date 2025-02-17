@@ -51,6 +51,11 @@ DEFAULT_MODEL_INFOS = {
         "model": "dino_deitsmall16_pretrain",
         "desc": "Data-efficient Image Transformer.",
     },
+    "hard_mining_neg5": {
+        "name": "Hard Negative Mining",
+        "model": "hard_mining_neg5",
+        "desc": "A model trained with hard negative mining (not recommended for features extraction).",
+    },
 }
 
 
@@ -105,6 +110,7 @@ DEFAULT_MODEL_TRANSFORMS = {
     )
 }
 
+
 def download_model(model_name):
     os.makedirs(MODEL_PATH, exist_ok=True)
 
@@ -125,10 +131,12 @@ def get_transforms_for_model(model_name):
     # transforms.Lambda(lambda x: x.convert('RGB'))
     if model_name in DEFAULT_MODEL_TRANSFORMS:
         return DEFAULT_MODEL_TRANSFORMS[model_name]
-    return transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-    ])
+    return transforms.Compose(
+        [
+            transforms.Resize((224, 224)),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ]
+    )
 
 
 def load_model(
