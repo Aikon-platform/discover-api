@@ -1,12 +1,14 @@
 import os
 import sys
 from pathlib import Path
+from typing import Tuple
+
 import torch
 from torchvision import transforms
 from torchvision.ops import nms
 from PIL import Image
-from typing import Tuple
 import numpy as np
+import cv2
 
 from ultralytics.utils.plotting import Annotator, colors
 from .bbox import Segment
@@ -16,7 +18,6 @@ from .yolov5.utils.dataloaders import IMG_FORMATS
 from .yolov5.utils.general import (
     check_file,
     check_img_size,
-    cv2,
     non_max_suppression,
     scale_boxes,
 )

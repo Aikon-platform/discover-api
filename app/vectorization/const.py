@@ -23,14 +23,18 @@ MODEL_CHECKPOINT = MODEL_PATH / "checkpoint0045.pth"
 MODEL_CONFIG = MODEL_PATH / "config_cfg.py"
 
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/"
-    "resolve/main/checkpoint0045.pth?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Diagram-Vectorization",
+        "filename": "checkpoint0045.pth",
+    },
     MODEL_PATH / "checkpoint0045.pth",
 )
 
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/"
-    "resolve/main/config_cfg.py?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Diagram-Vectorization",
+        "filename": "config_cfg.py",
+    },
     MODEL_PATH / "config_cfg.py",
 )
 

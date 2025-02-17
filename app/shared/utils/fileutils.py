@@ -13,11 +13,12 @@ from datetime import datetime
 from os.path import exists
 from pathlib import Path
 from slugify import slugify
-from typing import Union, Optional, Set, List, Tuple, Generator, Iterable
+from typing import Union, Optional, Set, List, Tuple, Generator, Iterable, Dict
 from flask import Response
 from stat import S_IFREG
 from stream_zip import ZIP_32, stream_zip
 import re
+from huggingface_hub import hf_hub_download
 
 from .logging import console
 
@@ -292,8 +293,7 @@ def process_directory(
     if not directory.exists():
         return False if find_first_only else []
 
-    if not find_first_only:
-        files = []
+    files = [] if not find_first_only else False
 
     try:
         for item in directory.rglob("*"):
@@ -388,12 +388,23 @@ def zip_on_the_fly(files: List[Tuple[str, TPath]]) -> Iterable[bytes]:
     return stream_zip(iter_files())
 
 
-def download_model_if_not(url, path: Path):
+def download_model_if_not(url: str | Dict[str, str], path: Path) -> Path:
     """
     Download a model if it does not exist
+
+    Either URL for direct download or dictionary for Hugging Face Hub
+    dict = {"repo_id": "user/model_repo", "filename": "model.pth"}
+    Returns:
+        Path to the model file
     """
     if not path.exists():
-        download_file(url, path)
+        try:
+            if type(url) is str:
+                download_file(url, path)
+            else:
+                hf_hub_download(local_dir=path, **url)
+        except Exception as e:
+            console("Failed to download the model", e=e)
     return path
 
 

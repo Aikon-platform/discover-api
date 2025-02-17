@@ -23,13 +23,17 @@ create_dirs_if_not([MODEL_PATH])
 
 # TODO retrieve available model instead
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
-    "/illustration_extraction.pt?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "illustration_extraction.pt",
+    },
     MODEL_PATH / "illustration_extraction.pt",
 )
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
-    "/diagram_extraction.pt?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "diagram_extraction.pt",
+    },
     MODEL_PATH / "diagram_extraction.pt",
 )
 download_model_if_not(
