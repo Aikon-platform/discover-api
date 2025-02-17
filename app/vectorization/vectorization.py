@@ -30,16 +30,6 @@ from .lib.src.inference import (
 
 def load_model(model_checkpoint_path=MODEL_CHECKPOINT, model_config_path=MODEL_CONFIG):
     # TODO allow for multiple models
-    if not os.path.exists(model_checkpoint_path):
-        download_file(
-            "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/resolve/main/checkpoint0045.pth?download=true",
-            model_checkpoint_path,
-        )
-        download_file(
-            "https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/resolve/main/config_cfg.py?download=true",
-            model_config_path,
-        )
-
     config = set_config(model_config_path)
     model, _, postprocessors = build_model_main(config)
     checkpoint = torch.load(model_checkpoint_path, map_location="cuda")
