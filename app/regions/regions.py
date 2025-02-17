@@ -1,6 +1,7 @@
 import gc
 import json
 import os
+import torch
 from pathlib import Path
 from typing import Optional
 
@@ -60,7 +61,9 @@ class ExtractRegions(LoggedTask):
         Clear memory
         """
         self.annotations = {}
+        del self.extractor
         self.extractor = None
+        torch.cuda.empty_cache()
         gc.collect()
 
     @property
