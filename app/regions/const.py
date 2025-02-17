@@ -37,13 +37,17 @@ download_model_if_not(
     MODEL_PATH / "diagram_extraction.pt",
 )
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
-    "/line_extraction.pt?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "line_extraction.pt",
+    },
     MODEL_PATH / "line_extraction.pt",
 )
 download_model_if_not(
-    "https://huggingface.co/seglinglin/Historical-Illustration-Extraction/resolve/main"
-    "/watermark_extraction.pt?download=true",
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "watermark_extraction.pt",
+    },
     MODEL_PATH / "fasterrcnn_watermark_extraction.pt",
 )
 DEFAULT_MODEL = "illustration_extraction.pt"

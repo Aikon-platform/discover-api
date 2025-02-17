@@ -15,7 +15,10 @@ DEFAULT_MODEL_URLS = {
     "dino_vitbase8_pretrain": "https://dl.fbaipublicfiles.com/dino/dino_vitbase8_pretrain/dino_vitbase8_pretrain.pth",
     "hard_mining_neg5": "https://github.com/XiSHEN0220/SegSwap/raw/main/model/hard_mining_neg5.pth",
     "resnet18": "https://download.pytorch.org/models/resnet18-5c106cde.pth",
-    "resnet18_watermarks": "https://huggingface.co/seglinglin/Historical-Document-Backbone/resolve/main/resnet18_watermarks.pth?download=true",
+    "resnet18_watermarks": {
+        "repo_id": "seglinglin/Historical-Document-Backbone",
+        "filename": "resnet18_watermarks.pth",
+    },
     "resnet34": "https://download.pytorch.org/models/resnet34-333f7ec4.pth",
     "resnet50": "https://download.pytorch.org/models/resnet50-19c8e357.pth",
     "resnet101": "https://download.pytorch.org/models/resnet101-5d3b4d8f.pth",
