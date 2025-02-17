@@ -109,7 +109,7 @@ class SLConfig(object):
                 # close temp file
                 temp_config_file.close()
         elif filename.lower().endswith((".yml", ".yaml", ".json")):
-            from .slio import slload
+            from ..util.slio import slload
 
             cfg_dict = slload(filename)
         else:

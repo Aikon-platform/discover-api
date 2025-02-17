@@ -27,10 +27,10 @@ from ...shared.utils.fileutils import TPath
 from ...shared.dataset import Image as DImage
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # YOLOv5 root directory
+ROOT = FILE.parents[0]  # lib root directory
 if str(ROOT) not in sys.path:
     sys.path.append(str(ROOT))  # add ROOT to PATH
-ROOT = "api" / Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+# ROOT = "api" / Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 # Constants
 CONF_THRES = 0.25
@@ -39,8 +39,6 @@ HIDE_LABEL = False
 HIDE_CONF = False
 
 # UTILS
-
-
 def get_img_dim(source: TPath) -> Tuple[int, int]:
     """
     Get the dimensions of an image (width, height)
