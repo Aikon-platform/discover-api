@@ -684,7 +684,6 @@ class ComputeSimilarity(LoggedTask):
             self.print_and_log(
                 f"[task.similarity] Successfully computed similarity scores"
             )
-            self.task_update("SUCCESS")
             return True
         except Exception as e:
             self.handle_error("Error initializing similarity task", e)
