@@ -136,6 +136,13 @@ nvidia-smi
 which nvcc
 ```
 
+If your production server network uses proxies, you may need to run:
+```bash
+sudo echo "export HTTP_PROXY=<proxy-url>" >> ~/.bashrc
+sudo echo "export HTTPS_PROXY=<proxy-url>" >> ~/.bashrc
+sudo echo "export NO_PROXY=localhost,127.0.0.1" >> ~/.bashrc
+```
+
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
 ```bash
 mkdir </path/to/results/> # e.g. /media/<docker-user>/
