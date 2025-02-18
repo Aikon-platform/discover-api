@@ -60,7 +60,7 @@ class ExtractRegions(LoggedTask):
         """
         Clear memory
         """
-        self.annotations = {}
+        # self.annotations = {}
         del self.extractor
         self.extractor = None
         torch.cuda.empty_cache()
@@ -153,7 +153,7 @@ class ExtractRegions(LoggedTask):
                     # TODO unify to use only results url
                     "PROGRESS",
                     output={
-                        "annotations": [{doc.uid: result_url}],
+                        "annotations": self.annotations[extraction_id],
                         "results_url": [{doc.uid: result_url}],
                     },
                 )
