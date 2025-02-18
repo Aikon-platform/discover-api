@@ -150,7 +150,12 @@ class ExtractRegions(LoggedTask):
                     json.dump(self.annotations[extraction_id], f, indent=2)
                 result_url = doc.get_annotations_url(extraction_ref)
                 self.notifier(
-                    "PROGRESS", output={"annotations": [{doc.uid: result_url}]}
+                    # TODO unify to use only results url
+                    "PROGRESS",
+                    output={
+                        "annotations": [{doc.uid: result_url}],
+                        "results_url": [{doc.uid: result_url}],
+                    },
                 )
                 self.result_urls.append({doc.uid: result_url})
 
@@ -192,14 +197,6 @@ class ExtractRegions(LoggedTask):
             if not all_successful:
                 self.task_update(
                     status, message=self.error_list if self.error_list else []
-                )
-            else:
-                self.task_update(
-                    status,
-                    output={
-                        "dataset_url": self.dataset.get_absolute_url(),
-                        "annotations": self.result_urls,
-                    },
                 )
             return all_successful
         except Exception as e:
