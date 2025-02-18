@@ -62,7 +62,7 @@ class ExtractRegions(LoggedTask):
         """
         Clear memory
         """
-        self.annotations = {}
+        # self.annotations = {}
         del self.extractor
         self.extractor = None
         torch.cuda.empty_cache()
@@ -152,7 +152,12 @@ class ExtractRegions(LoggedTask):
                     json.dump(self.annotations[extraction_id], f, indent=2)
                 result_url = doc.get_annotations_url(extraction_ref)
                 self.notifier(
-                    "PROGRESS", output={"annotations": [{doc.uid: result_url}]}
+                    # TODO unify to use only results url
+                    "PROGRESS",
+                    output={
+                        "annotations": self.annotations[extraction_id],
+                        "results_url": [{doc.uid: result_url}],
+                    },
                 )
                 self.result_urls.append({doc.uid: result_url})
 
@@ -191,7 +196,10 @@ class ExtractRegions(LoggedTask):
             self.print_and_log(
                 f"[task.extract_regions] Task completed with status: {status}"
             )
-            self.task_update(status, message=self.error_list if self.error_list else [])
+            if not all_successful:
+                self.task_update(
+                    status, message=self.error_list if self.error_list else []
+                )
             return all_successful
         except Exception as e:
             self.handle_error(f"Error while extracting regions: {e}", exception=e)
