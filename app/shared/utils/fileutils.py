@@ -18,7 +18,6 @@ from flask import Response
 from stat import S_IFREG
 from stream_zip import ZIP_32, stream_zip
 import re
-from huggingface_hub import hf_hub_download
 
 from .logging import console
 
@@ -402,7 +401,10 @@ def download_model_if_not(url: str | Dict[str, str], path: Path) -> Path:
             if type(url) is str:
                 download_file(url, path)
             else:
-                hf_hub_download(local_dir=path, **url)
+                pass
+                # TODO fix hugging-face download
+                # from huggingface_hub import hf_hub_download
+                # hf_hub_download(local_dir=path, **url)
         except Exception as e:
             console("Failed to download the model", e=e)
     return path
