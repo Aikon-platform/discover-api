@@ -52,7 +52,7 @@ class LoggedTask(LoggingTaskMixin):
 
         self.error_list: List[str] = []
 
-    def task_update(self, event: str, message: Optional[Any] = None) -> None:
+    def task_update(self, event: str, message: Optional[Any] = None, **kwargs) -> None:
         if not self.notifier:
             return
         msg = (
@@ -60,7 +60,7 @@ class LoggedTask(LoggingTaskMixin):
             if isinstance(message, list)
             else message or self.error_list or "Unknown error"
         )
-        self.notifier(event, message=msg)
+        self.notifier(event, message=msg, **kwargs)
         if event == "ERROR":
             raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
 
