@@ -7,15 +7,15 @@
 ###############################
 
 # Machine path where docker will store its /data/ folder (API_DATA_FOLDER)
-DATA_FOLDER=/media/demoapi/
+DATA_FOLDER=/media/dyonisos/data/dtidemo/
 # GPU device number to be used by docker
 DEVICE_NB=2
 # User ID to be used by docker
-DEMO_UID=1000
+DEMO_UID=1019
 # Path to CUDA installation (/usr/local/cuda-<version> => find your version with nvidia-smi)
-CUDA_HOME=/usr/local/cuda
+CUDA_HOME="/usr/local/cuda-12.4"
 # Host where the API will be accessible, (put 127.0.0.1 for spiped configuration)
-CONTAINER_HOST="0.0.0.0"
+CONTAINER_HOST="127.0.0.1"
 # Name of the container
 CONTAINER_NAME="demoapi"
 
