@@ -28,10 +28,10 @@ from ...shared.utils.fileutils import TPath
 from ...shared.dataset import Image as DImage
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[0]  # lib root directory
-if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
-# ROOT = "api" / Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+LIB_ROOT = FILE.parents[0]  # lib root directory
+if str(LIB_ROOT) not in sys.path:
+    sys.path.append(str(LIB_ROOT))  # add LIB_ROOT to PATH
+# LIB_ROOT = "api" / Path(os.path.relpath(LIB_ROOT, Path.cwd()))  # relative
 
 # Constants
 CONF_THRES = 0.25
@@ -237,7 +237,7 @@ class LineExtractor(BaseExtractor):
 
     from .line_predictor.datasets import transforms
 
-    config = Path(__file__).resolve() / "line_predictor" / "config" / "DINO_4scale.py"
+    config = LIB_ROOT / "line_predictor" / "config" / "DINO_4scale.py"
     T = transforms
 
     def get_model(self):
