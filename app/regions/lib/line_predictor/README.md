@@ -11,7 +11,7 @@ In order to use line predictor for extraction, you first need to compile CUDA op
     # find CUDA version with (pay attention to version mismatches)
     nvcc --version
     nvidia-smi
-   
+
     # set CUDA_HOME
     export CUDA_HOME=<path/to/cuda>
     # make sure nvcc version matches selected CUDA_HOME
@@ -26,11 +26,11 @@ In order to use line predictor for extraction, you first need to compile CUDA op
 3. Inside `line_predictor/` folder, run
     ```bash
     # Compile CUDA operators
-    python ./models/dino/ops/setup.py build install
+    python ./dino/ops/setup.py build install
     # Unit test => could output an outofmemory error
-    python ./models/dino/ops/test.py
+    python ./dino/ops/test.py
     ```
-   
+
 ### Troubleshooting
 
 Versions setup know to work:

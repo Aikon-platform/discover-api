@@ -18,7 +18,7 @@ from torch import nn
 import torch.nn.functional as F
 from torch.nn.init import xavier_uniform_, constant_
 
-from line_predictor.models.dino.functions import MSDeformAttnFunction
+from ..functions import MSDeformAttnFunction
 
 
 def _is_power_of_2(n):
