@@ -193,6 +193,14 @@ class ExtractRegions(LoggedTask):
                 self.task_update(
                     status, message=self.error_list if self.error_list else []
                 )
+            else:
+                self.task_update(
+                    status,
+                    output={
+                        "dataset_url": self.dataset.get_absolute_url(),
+                        "annotations": self.result_urls,
+                    },
+                )
             return all_successful
         except Exception as e:
             self.handle_error(f"Error while extracting regions: {e}", exception=e)
