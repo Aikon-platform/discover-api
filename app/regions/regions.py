@@ -44,7 +44,6 @@ class ExtractRegions(LoggedTask):
         self.result_urls = []
         self.annotations = {}
         self.extractor = None
-        print("POSTPROCESS", postprocess)
         self.extractor_kwargs = EXTRACTOR_POSTPROCESS_KWARGS.get(postprocess, {})
 
     def initialize(self):
@@ -74,7 +73,6 @@ class ExtractRegions(LoggedTask):
 
     @property
     def weights(self) -> Path:
-        # return MODEL_PATH / self.model
         return get_model(self.model, MODEL_PATH)
 
     @property
@@ -93,78 +91,58 @@ class ExtractRegions(LoggedTask):
         """
         Process a single image, appends the annotations to self.annotations[extraction_ref]
         """
-        try:
-            self.print_and_log(f"====> Processing {img.path.name} 🔍")
-            anno = self.extractor.extract_one(img)
-            anno["doc_uid"] = doc_uid
-            self.annotations[extraction_ref].append(anno)
-            return True
-        except Exception as e:
-            self.handle_error(f"Error processing image {img.path.name}", exception=e)
-            return False
+        self.print_and_log(f"====> Processing {img.path.name} 🔍")
+        anno = self.extractor.extract_one(img)
+        anno["doc_uid"] = doc_uid
+        self.annotations[extraction_ref].append(anno)
+        return True
 
     def process_doc_imgs(self, doc: Document, extraction_ref: str) -> bool:
         """
         Process all images in a document, store the annotations in self.annotations[extraction_ref] (clears it first)
         """
-        images = doc.list_images()
         self.annotations[extraction_ref] = []
-        try:
-            for i, image in enumerate(
-                self.jlogger.iterate(images, "Analyzing images"), 1
-            ):
-                success = self.process_img(image, extraction_ref, doc.uid)
-                if not success:
-                    self.handle_error(f"Failed to process {image}")
-        except Exception as e:
-            self.handle_error(f"Error processing images for {doc.uid}", exception=e)
-            return False
+        for img in self.jlogger.iterate(doc.list_images(), "Analyzing images"):
+            self.process_img(img, extraction_ref, doc.uid)
         return True
 
     def process_doc(self, doc: Document) -> bool:
         """
         Process a whole document, download it, process all images, save annotations
         """
-        try:
-            self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
+        self.print_and_log(f"[task.extract_regions] Downloading {doc.uid}...")
 
-            doc.download()
-            if not doc.has_images():
-                self.handle_error(f"No images were extracted from {doc.uid}")
-                return False
-
-            self.result_dir = doc.annotations_path
-            os.makedirs(self.result_dir, exist_ok=True)
-
-            # This way, same dataset can be extracted twice with same extraction model
-            # is it what we want?
-            extraction_ref = f"{self.extraction_model}+{self.experiment_id}"
-            annotation_file = self.result_dir / f"{extraction_ref}.json"
-            with open(annotation_file, "w"):
-                pass
-
-            extraction_id = f"{doc.uid}@@{extraction_ref}"
-
-            self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
-            success = self.process_doc_imgs(doc, extraction_id)
-            if success:
-                with open(annotation_file, "w") as f:
-                    json.dump(self.annotations[extraction_id], f, indent=2)
-                result_url = doc.get_annotations_url(extraction_ref)
-                self.notifier(
-                    # TODO unify to use only results url
-                    "PROGRESS",
-                    output={
-                        "annotations": self.annotations[extraction_id],
-                        "results_url": [{doc.uid: result_url}],
-                    },
-                )
-                self.result_urls.append({doc.uid: result_url})
-
-            return success
-        except Exception as e:
-            self.handle_error(f"Error processing document {doc.uid}", exception=e)
+        doc.download()
+        if not doc.has_images():
+            self.handle_error(f"No images were extracted from {doc.uid}")
             return False
+
+        self.result_dir = doc.annotations_path
+        os.makedirs(self.result_dir, exist_ok=True)
+
+        # This way, same dataset can be extracted twice with same extraction model
+        # is it what we want?
+        extraction_ref = f"{self.extraction_model}+{self.experiment_id}"
+        annotation_file = self.result_dir / f"{extraction_ref}.json"
+        with open(annotation_file, "w"):
+            pass
+
+        extraction_id = f"{doc.uid}@@{extraction_ref}"
+
+        self.print_and_log(f"DETECTING VISUAL ELEMENTS FOR {doc.uid} 🕵️")
+        if self.process_doc_imgs(doc, extraction_id):
+            with open(annotation_file, "w") as f:
+                json.dump(self.annotations[extraction_id], f, indent=2)
+            result_url = doc.get_annotations_url(extraction_ref)
+            self.notifier(
+                # TODO unify to use only results url
+                "PROGRESS",
+                output={
+                    "annotations": self.annotations[extraction_id],
+                    "results_url": [{doc.uid: result_url}],
+                },
+            )
+            self.result_urls.append({doc.uid: result_url})
 
     def run_task(self) -> bool:
         """
@@ -175,6 +153,7 @@ class ExtractRegions(LoggedTask):
             self.task_update(
                 "ERROR",
                 message=f"[API ERROR] Failed to download dataset for {self.dataset}",
+                exception=Exception("No images where to extract regions"),
             )
             return False
 
@@ -185,25 +164,21 @@ class ExtractRegions(LoggedTask):
 
         try:
             self.initialize()
-            all_successful = True
             for doc in self.jlogger.iterate(
                 self.dataset.documents, "Processing documents"
             ):
-                success = self.process_doc(doc)
-                all_successful = all_successful and success
+                self.process_doc(doc)
 
-            status = "SUCCESS" if all_successful else "ERROR"
             self.print_and_log(
-                f"[task.extract_regions] Task completed with status: {status}"
+                f"[task.extract_regions] Task completed with status: SUCCESS"
             )
-            if not all_successful:
-                self.task_update(
-                    status, message=self.error_list if self.error_list else []
-                )
-            return all_successful
+            return True
         except Exception as e:
-            self.handle_error(f"Error while extracting regions: {e}", exception=e)
-            self.task_update("ERROR", message=self.error_list)
+            self.task_update(
+                "ERROR",
+                message=[f"Error while extracting regions: {e}"] + self.error_list,
+                exception=e,
+            )
             return False
         finally:
             self.terminate()

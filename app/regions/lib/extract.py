@@ -27,6 +27,7 @@ from .yolov5.utils.torch_utils import select_device, smart_inference_mode
 from ...shared.utils import get_device
 from ...shared.utils.fileutils import TPath
 from ...shared.dataset import Image as DImage
+from ...shared.utils.logging import console
 
 FILE = Path(__file__).resolve()
 LIB_ROOT = FILE.parents[0]  # lib root directory
@@ -294,6 +295,8 @@ class LineExtractor(BaseExtractor):
     @smart_inference_mode()
     def extract_one(self, img: DImage, save_img: bool = False):
         image, orig_size = self.prepare_image(img)
+        writer = ImageAnnotator(img, img_w=orig_size[0], img_h=orig_size[1])
+
         output = self.model.cuda()(image[None].cuda())
 
         # Extract polygons and apply filtering
@@ -310,16 +313,47 @@ class LineExtractor(BaseExtractor):
         ).repeat(10)
         ratios_h, ratios_w = ratios[0], ratios[1]
         final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
-        scores = output["pred_logits"][mask].sigmoid().max(-1)[0]
+        scores = output["pred_logits"][mask].sigmoid().max(-1)[0].cpu()
 
         # Perform Non-Maximum Suppression (NMS)
         final_bboxes = self.poly_to_bbox(final_poly)
-        nms_bboxes = nms(final_bboxes.cuda(), scores.cuda(), iou_threshold=0.3)
-        interm_poly = interm_poly[nms_bboxes.cpu()]
-        final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
+        # nms_bboxes = nms(final_bboxes.cuda(), scores.cuda(), iou_threshold=0.3)
+        # interm_poly = interm_poly[nms_bboxes.cpu()]
+        # final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
+        detections = torch.cat(
+            [
+                final_bboxes,
+                scores.unsqueeze(1),
+                torch.zeros(
+                    len(scores), 1, device=final_bboxes.device
+                ),  # class id, using 0 for all
+            ],
+            dim=1,
+        )
+
+        # for bbox, score in zip(final_bboxes, scores):
+        #     x1, y1, x2, y2 = bbox.tolist()
+        #     width = x2 - x1
+        #     height = y2 - y1
+        #     writer.add_region(
+        #         x=int(x1),
+        #         y=int(y1),
+        #         w=int(width),
+        #         h=int(height),
+        #         conf=float(score)
+        #     )
+        self.process_detections(
+            detections=detections,
+            image_tensor=image,
+            original_image=np.array(Image.open(img.path)),
+            save_img=save_img,
+            source=str(img.path),
+            writer=writer,
+        )
 
         # Save final bounding boxes and apply NMS for filtering
-        return self.poly_to_bbox(final_poly)  # TODO adapt final output
+        # return self.poly_to_bbox(final_poly)  # TODO adapt final output
+        return writer.annotations
 
 
 class YOLOExtractor(BaseExtractor):
