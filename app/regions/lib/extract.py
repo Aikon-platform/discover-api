@@ -284,10 +284,12 @@ class LineExtractor(BaseExtractor):
     @staticmethod
     def poly_to_bbox(poly):
         x0, y0, x1, y1 = poly[:, 0], poly[:, 1], poly[:, -4], poly[:, -1]
-        return torch.stack([x0, y0, x1, y1], dim=1)
+        # return torch.stack([x0, y0, x1, y1], dim=1)
+        x_min, x_max = torch.min(x0, x1), torch.max(x0, x1)
+        y_min, y_max = torch.min(y0, y1), torch.max(y0, y1)
+        return torch.stack([x_min, y_min, x_max, y_max], dim=1)
 
     def prepare_image(self, img: DImage):
-        # Define image transformations
         transform = self.T.Compose(
             [
                 self.T.RandomResize([800], max_size=1333),
@@ -295,8 +297,6 @@ class LineExtractor(BaseExtractor):
                 self.T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
             ]
         )
-
-        # Apply transformations to the image
         image, _ = transform(img, None)
         return image
 
@@ -308,36 +308,18 @@ class LineExtractor(BaseExtractor):
         curr_w, curr_h = curr_size
         # scaled_polygons = self.scale(polygons, w_ratio, h_ratio)
         scaled_polygons = self.scale(polygons, curr_w, curr_h)
-        bboxes = self.poly_to_bbox(scaled_polygons)
+
+        bboxes = self.poly_to_bbox(scaled_polygons).to(self.device)
+        scores = scores.to(self.device)
 
         # Perform Non-Maximum Suppression (NMS)
-        nms_filter = nms(
-            bboxes.to(self.device), scores.to(self.device), iou_threshold=0.3
-        ).cpu()
+        nms_filter = nms(bboxes, scores, iou_threshold=0.3).cpu()
         bboxes = bboxes[nms_filter]
-        scores = scores[nms_filter]
-        # final_poly = self.scale(polygons[nms_filter], w_ratio, h_ratio)
-
-        # output = []
-        # sx, sy = img.shape[-1], img.shape[-2]
-        # for box, score in zip(bboxes, scores):
-        #     x0, y0, x1, y1 = box
-        #     output.append((
-        #         x0 * sx,
-        #         y0 * sy,
-        #         x1 * sx,
-        #         y1 * sy,
-        #         score,
-        #         0  # class id
-        #     ))
-        # return torch.tensor(output)
+        scores = scores[nms_filter].unsqueeze(1)
+        labels = torch.zeros(len(scores), 1, device=self.device)
 
         return torch.cat(
-            [
-                bboxes,
-                scores.unsqueeze(1),
-                torch.zeros(len(scores), 1, device=self.device),  # class id
-            ],
+            [bboxes, scores, labels],
             dim=1,
         )
 
@@ -351,6 +333,7 @@ class LineExtractor(BaseExtractor):
         for size in self.input_sizes:
             image = self.prepare_image(self.resize(orig_img, size))
             curr_h, curr_w = image.shape[1:]
+            # h_ratio, w_ratio = float(curr_h) / float(orig_h), float(curr_w) / float(orig_w)
 
             output = self.model.to(self.device)(image[None].to(self.device))
             mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.1
