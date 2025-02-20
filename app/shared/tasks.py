@@ -85,6 +85,10 @@ class LoggedTask(LoggingTaskMixin):
         self.error_list.append(f"{exc}")
 
     def run_task(self) -> bool:
+        """
+        🚫 Try/Except block should only be implemented in run_task() and not in sub-functions
+        in order to catch most relevant exceptions and send them to the frontend
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
     class Meta:

@@ -17,6 +17,7 @@ from tqdm import tqdm
 from dramatiq.middleware import CurrentMessage
 from dramatiq.results import Results, ResultBackend
 import traceback
+from torch import Tensor
 from typing import (
     Any,
     Callable,
@@ -135,6 +136,8 @@ def pprint(o):
                 return json.dumps(sanitized, indent=4, sort_keys=True)
             except Exception:
                 return str(o)
+    elif isinstance(o, Tensor):
+        return pprint(o.tolist())
     return str(o)
 
 

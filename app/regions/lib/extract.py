@@ -154,6 +154,12 @@ class BaseExtractor:
     def prepare_image(self, im):
         return transforms.ToTensor()(im).unsqueeze(0).to(self.device)
 
+    @staticmethod
+    def resize(img, size):
+        resized_image = img.copy()
+        resized_image.thumbnail((size, size))
+        return resized_image
+
     @smart_inference_mode()
     def process_detections(
         self,
@@ -260,6 +266,10 @@ class LineExtractor(BaseExtractor):
     def renorm(
         img: torch.FloatTensor, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
     ) -> torch.Tensor:
+        """
+        Function to re-normalize images: converts normalized tensors back to the original image scale
+        Use for visualization
+        """
         assert img.dim() in [3, 4], "Input tensor must have 3 or 4 dimensions"
         permutation = (1, 2, 0) if img.dim() == 3 else (0, 2, 3, 1)
         channels = img.size(0) if img.dim() == 3 else img.size(1)
@@ -268,7 +278,8 @@ class LineExtractor(BaseExtractor):
         img_perm = img.permute(*permutation)
         img_res = img_perm * torch.Tensor(std) + torch.Tensor(mean)
 
-        return img_res.permute(*permutation)
+        img_renorm = img_res.permute(*permutation)
+        return img_renorm.permute(1, 2, 0)
 
     @staticmethod
     def poly_to_bbox(poly):
@@ -276,9 +287,6 @@ class LineExtractor(BaseExtractor):
         return torch.stack([x0, y0, x1, y1], dim=1)
 
     def prepare_image(self, img: DImage):
-        image = Image.open(img.path)
-        orig_size = image.size
-
         # Define image transformations
         transform = self.T.Compose(
             [
@@ -289,70 +297,78 @@ class LineExtractor(BaseExtractor):
         )
 
         # Apply transformations to the image
-        image, _ = transform(image, None)
-        return image, orig_size
+        image, _ = transform(img, None)
+        return image
 
-    @smart_inference_mode()
-    def extract_one(self, img: DImage, save_img: bool = False):
-        image, orig_size = self.prepare_image(img)
-        writer = ImageAnnotator(img, img_w=orig_size[0], img_h=orig_size[1])
+    @staticmethod
+    def scale(poly, w, h):
+        return poly * torch.tensor([w, h]).repeat(10)
 
-        output = self.model.cuda()(image[None].cuda())
-
-        # Extract polygons and apply filtering
-        mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.1
-        actual_size = image.shape[2], image.shape[1]
-        ratios = tuple(
-            float(s) / float(s_orig) for s, s_orig in zip(orig_size, actual_size)
-        )
-        h, w = image.shape[1:]
-
-        # Scale polygons to match the current image size
-        interm_poly = output["pred_boxes"][mask].cpu().detach() * torch.tensor(
-            [w, h]
-        ).repeat(10)
-        ratios_h, ratios_w = ratios[0], ratios[1]
-        final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
-        scores = output["pred_logits"][mask].sigmoid().max(-1)[0].cpu()
+    def cleanup_detections(self, polygons, scores, curr_size):
+        curr_w, curr_h = curr_size
+        # scaled_polygons = self.scale(polygons, w_ratio, h_ratio)
+        scaled_polygons = self.scale(polygons, curr_w, curr_h)
+        bboxes = self.poly_to_bbox(scaled_polygons)
 
         # Perform Non-Maximum Suppression (NMS)
-        final_bboxes = self.poly_to_bbox(final_poly)
-        # nms_bboxes = nms(final_bboxes.cuda(), scores.cuda(), iou_threshold=0.3)
-        # interm_poly = interm_poly[nms_bboxes.cpu()]
-        # final_poly = interm_poly * torch.tensor([ratios_w, ratios_h]).repeat(10)
-        detections = torch.cat(
+        nms_filter = nms(
+            bboxes.to(self.device), scores.to(self.device), iou_threshold=0.3
+        ).cpu()
+        bboxes = bboxes[nms_filter]
+        scores = scores[nms_filter]
+        # final_poly = self.scale(polygons[nms_filter], w_ratio, h_ratio)
+
+        # output = []
+        # sx, sy = img.shape[-1], img.shape[-2]
+        # for box, score in zip(bboxes, scores):
+        #     x0, y0, x1, y1 = box
+        #     output.append((
+        #         x0 * sx,
+        #         y0 * sy,
+        #         x1 * sx,
+        #         y1 * sy,
+        #         score,
+        #         0  # class id
+        #     ))
+        # return torch.tensor(output)
+
+        return torch.cat(
             [
-                final_bboxes,
+                bboxes,
                 scores.unsqueeze(1),
-                torch.zeros(
-                    len(scores), 1, device=final_bboxes.device
-                ),  # class id, using 0 for all
+                torch.zeros(len(scores), 1, device=self.device),  # class id
             ],
             dim=1,
         )
 
-        # for bbox, score in zip(final_bboxes, scores):
-        #     x1, y1, x2, y2 = bbox.tolist()
-        #     width = x2 - x1
-        #     height = y2 - y1
-        #     writer.add_region(
-        #         x=int(x1),
-        #         y=int(y1),
-        #         w=int(width),
-        #         h=int(height),
-        #         conf=float(score)
-        #     )
-        self.process_detections(
-            detections=detections,
-            image_tensor=image,
-            original_image=np.array(Image.open(img.path)),
-            save_img=save_img,
-            source=str(img.path),
-            writer=writer,
-        )
+    @smart_inference_mode()
+    def extract_one(self, img: DImage, save_img: bool = False):
+        source = setup_source(img.path)
+        orig_img = Image.open(source).convert("RGB")
+        orig_w, orig_h = orig_img.size
+        writer = ImageAnnotator(img, img_w=orig_w, img_h=orig_h)
 
-        # Save final bounding boxes and apply NMS for filtering
-        # return self.poly_to_bbox(final_poly)  # TODO adapt final output
+        for size in self.input_sizes:
+            image = self.prepare_image(self.resize(orig_img, size))
+            curr_h, curr_w = image.shape[1:]
+
+            output = self.model.to(self.device)(image[None].to(self.device))
+            mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.1
+            polygons = output["pred_boxes"][mask].cpu().detach()
+            # polygons = self.scale(output["pred_boxes"][mask].cpu().detach(), curr_w, curr_h)
+            scores = output["pred_logits"][mask].sigmoid().max(-1)[0].cpu()
+
+            preds = self.cleanup_detections(polygons, scores, (curr_w, curr_h))
+
+            if self.process_detections(
+                detections=preds,
+                image_tensor=image.unsqueeze(0).to(self.device),
+                original_image=np.array(orig_img),
+                save_img=save_img,
+                source=source,
+                writer=writer,
+            ):
+                break
         return writer.annotations
 
 
@@ -390,7 +406,13 @@ class YOLOExtractor(BaseExtractor):
             )
 
             if self.process_detections(
-                pred[0], im, im0, save_img, source, writer, class_names_examples=names
+                detections=pred[0],
+                image_tensor=im,
+                original_image=im0,
+                save_img=save_img,
+                source=source,
+                writer=writer,
+                class_names_examples=names,
             ):
                 break
 
@@ -404,7 +426,8 @@ class FasterRCNNExtractor(BaseExtractor):
         model = torch.load(self.weights, map_location=self.device).eval()
         return model
 
-    def cleanup_detections(self, boxes, scores, labels, img):
+    @staticmethod
+    def cleanup_detections(boxes, scores, labels, img):
         # Remove low confidence detections
         mask = scores > 0.4
         boxes, scores, labels = boxes[mask], scores[mask], labels[mask]
@@ -453,10 +476,7 @@ class FasterRCNNExtractor(BaseExtractor):
         )
 
         for size in self.input_sizes:
-            resized_image = original_image.copy()
-            resized_image.thumbnail((size, size))
-
-            resized_image = self.prepare_image(resized_image)
+            resized_image = self.prepare_image(self.resize(original_image, size))
             preds = self.model(resized_image)
 
             boxes = preds[0]["boxes"].cpu().numpy()
@@ -466,7 +486,12 @@ class FasterRCNNExtractor(BaseExtractor):
             preds = self.cleanup_detections(boxes, scores, labels, resized_image)
 
             if self.process_detections(
-                preds, resized_image, np.array(original_image), save_img, source, writer
+                detections=preds,
+                image_tensor=resized_image,
+                original_image=np.array(original_image),
+                save_img=save_img,
+                source=source,
+                writer=writer,
             ):
                 break
 
