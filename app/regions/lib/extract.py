@@ -313,7 +313,7 @@ class LineExtractor(BaseExtractor):
         scores = scores.to(self.device)
 
         # Perform Non-Maximum Suppression (NMS)
-        nms_filter = nms(bboxes, scores, iou_threshold=0.3).cpu()
+        nms_filter = nms(bboxes, scores, iou_threshold=0.8).cpu()
         bboxes = bboxes[nms_filter]
         scores = scores[nms_filter].unsqueeze(1)
         labels = torch.zeros(len(scores), 1, device=self.device)
@@ -336,7 +336,7 @@ class LineExtractor(BaseExtractor):
             # h_ratio, w_ratio = float(curr_h) / float(orig_h), float(curr_w) / float(orig_w)
 
             output = self.model.to(self.device)(image[None].to(self.device))
-            mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.1
+            mask = output["pred_logits"].sigmoid().max(-1)[0] > 0.3
             polygons = output["pred_boxes"][mask].cpu().detach()
             # polygons = self.scale(output["pred_boxes"][mask].cpu().detach(), curr_w, curr_h)
             scores = output["pred_logits"][mask].sigmoid().max(-1)[0].cpu()
