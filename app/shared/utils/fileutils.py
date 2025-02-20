@@ -18,7 +18,6 @@ from flask import Response
 from stat import S_IFREG
 from stream_zip import ZIP_32, stream_zip
 import re
-from huggingface_hub import hf_hub_download
 
 from .logging import console
 
