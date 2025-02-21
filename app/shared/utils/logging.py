@@ -17,6 +17,7 @@ from tqdm import tqdm
 from dramatiq.middleware import CurrentMessage
 from dramatiq.results import Results, ResultBackend
 import traceback
+from torch import Tensor
 from typing import (
     Any,
     Callable,
@@ -135,6 +136,8 @@ def pprint(o):
                 return json.dumps(sanitized, indent=4, sort_keys=True)
             except Exception:
                 return str(o)
+    elif isinstance(o, Tensor):
+        return pprint(o.tolist())
     return str(o)
 
 
@@ -217,7 +220,7 @@ class LoggerHelper:
         """
         Log an info message
         """
-        base_logger.info(" ".join(str(p) for p in s))
+        base_logger.info("\n".join(str(p) for p in s))
 
     @staticmethod
     def warning(*s, exception: bool = False, **kwargs) -> None:
@@ -227,10 +230,10 @@ class LoggerHelper:
         :param s: The messages to log
         :param exception: Add the exception to the log
         """
-        text = " ".join(str(p) for p in s)
+        text = "\n".join(str(p) for p in s)
 
         if exception:
-            text += f"\n {traceback.format_exc(limit=1)}"
+            text += f"\n\n{traceback.format_exc(limit=1)}"
 
         base_logger.warning(text)
 
@@ -242,10 +245,10 @@ class LoggerHelper:
         :param s: The messages to log
         :param exception: Add the exception to the log
         """
-        text = " ".join(str(p) for p in s)
+        text = "\n".join(str(p) for p in s)
 
         if exception:
-            text += f"\n {traceback.format_exc()}"
+            text += f"\n\n{traceback.format_exc()}"
 
         base_logger.error(text)
 
@@ -432,7 +435,7 @@ class JobLogger:
         """
         Log an info message
         """
-        text = " ".join(str(k) for k in s)
+        text = "\n".join(str(k) for k in s)
         self._latest_infos.append(text)
         self._latest_infos = self._latest_infos[-10:]
         self._send_state(with_warnings=False)
@@ -453,7 +456,7 @@ class JobLogger:
         :param exception: Add the exception to the log
         :param send: Whether to send the state to the frontend right now
         """
-        text = " ".join(str(k) for k in s)
+        text = "\n".join(str(k) for k in s)
 
         if exception:
             text += "\n " + traceback.format_exc(limit=1)
@@ -476,10 +479,10 @@ class JobLogger:
         :param s: The messages to log
         :param exception: Add the exception to the log
         """
-        text = " ".join(str(k) for k in s)
+        text = "\n".join(str(k) for k in s)
 
         if exception:
-            text += "\n " + traceback.format_exc()
+            text += f"\n\n{traceback.format_exc()}"
 
         LoggerHelper.error(*s, exception=exception)
 

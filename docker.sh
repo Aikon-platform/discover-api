@@ -18,6 +18,9 @@ CUDA_HOME=/usr/local/cuda
 CONTAINER_HOST="0.0.0.0"
 # Name of the container
 CONTAINER_NAME="demoapi"
+# Hugging face read token
+HUGGING_FACE_HUB_TOKEN="your_access_token"
+
 
 rebuild_image() {
     # Add error checking for the build process
@@ -25,7 +28,9 @@ rebuild_image() {
         -f Dockerfile \
         --build-arg USERID=$DEMO_UID \
         --build-arg HTTP_PROXY=${HTTP_PROXY} \
-        --build-arg HTTPS_PROXY=${HTTPS_PROXY} || { echo "Docker build failed"; exit 1; }
+        --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
+        --build-arg NO_PROXY=${NO_PROXY} \
+        --build-arg HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN} || { echo "Docker build failed"; exit 1; }
     cd ../
 }
 

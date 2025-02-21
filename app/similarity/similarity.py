@@ -369,7 +369,13 @@ class ComputeSimilarity(LoggedTask):
 
         if not features.numel():
             self.print_and_log_warning("[task.similarity] No features extracted")
-            self.task_update("ERROR", "[API ERROR] No features extracted")
+            self.task_update(
+                "ERROR",
+                "[API ERROR] No features extracted",
+                exception=Exception(
+                    f"No features were extracted for {self.dataset.uid}"
+                ),
+            )
             return
 
         try:
@@ -646,7 +652,11 @@ class ComputeSimilarity(LoggedTask):
     def run_task(self):
         if not self.check_dataset():
             self.print_and_log_warning("[task.similarity] No documents to compare")
-            self.task_update("ERROR", "[API ERROR] No documents to compare")
+            self.task_update(
+                "ERROR",
+                "[API ERROR] No documents to compare",
+                exception=Exception(f"No images to compare"),
+            )
             return
 
         self.task_update("STARTED")
@@ -686,8 +696,11 @@ class ComputeSimilarity(LoggedTask):
             )
             return True
         except Exception as e:
-            self.handle_error("Error initializing similarity task", e)
-            self.task_update("ERROR", message=self.error_list)
+            self.task_update(
+                "ERROR",
+                message=[f"Error initializing similarity task: {e}"] + self.error_list,
+                exception=e,
+            )
             return False
         finally:
             pass
