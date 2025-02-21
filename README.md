@@ -141,6 +141,9 @@ If your production server network uses proxies, you may need to run:
 sudo echo "export HTTP_PROXY=<proxy-url>" >> ~/.bashrc
 sudo echo "export HTTPS_PROXY=<proxy-url>" >> ~/.bashrc
 sudo echo "export NO_PROXY=localhost,127.0.0.1" >> ~/.bashrc
+sudo echo "export http_proxy=<proxy-url>" >> ~/.bashrc
+sudo echo "export https_proxy=<proxy-url>" >> ~/.bashrc
+sudo echo "export no_proxy=localhost,127.0.0.1" >> ~/.bashrc
 ```
 
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
