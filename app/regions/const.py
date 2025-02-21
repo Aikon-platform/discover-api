@@ -36,6 +36,20 @@ download_model_if_not(
     },
     MODEL_PATH / "diagram_extraction.pt",
 )
+download_model_if_not(
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "line_extraction.pt",
+    },
+    MODEL_PATH / "line_extraction.pt",
+)
+download_model_if_not(
+    {
+        "repo_id": "seglinglin/Historical-Illustration-Extraction",
+        "filename": "watermark_extraction.pt",
+    },
+    MODEL_PATH / "fasterrcnn_watermark_extraction.pt",
+)
 DEFAULT_MODEL = "illustration_extraction.pt"
 
 DEFAULT_MODEL_INFOS = {
@@ -48,5 +62,15 @@ DEFAULT_MODEL_INFOS = {
         "name": "Diagram extraction",
         "model": "diagram_extraction",
         "desc": "YOLO model fine-tuned on historical diagrams.",
+    },
+    "fasterrcnn_watermark_extraction": {
+        "name": "Watermark extraction",
+        "model": "fasterrcnn_watermark_extraction",
+        "desc": "Faster-RCNN model trained to detect watermark in historical documents.",
+    },
+    "line_extraction": {
+        "name": "Line extraction",
+        "model": "line_extraction",
+        "desc": "DINO-DETR model trained to extract line from historical documents.",
     },
 }

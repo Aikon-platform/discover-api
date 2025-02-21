@@ -52,25 +52,43 @@ class LoggedTask(LoggingTaskMixin):
 
         self.error_list: List[str] = []
 
-    def task_update(self, event: str, message: Optional[Any] = None, **kwargs) -> None:
+    def task_update(
+        self,
+        event: str,
+        message: Optional[Any] = None,
+        exception: Exception = None,
+        **kwargs,
+    ) -> None:
+        """
+        Used to send event notification to frontend (STARTED / ERROR)
+        SUCCESS is notified to frontend with abstract_task() returned value
+        """
         if not self.notifier:
             return
-        msg = (
-            ", ".join(message)
-            if isinstance(message, list)
-            else message or self.error_list or "Unknown error"
-        )
-        self.notifier(event, message=msg, **kwargs)
+
+        if message:
+            messages = message if isinstance(message, list) else [message]
+            if exception:
+                self.handle_error(messages[0], exception)
+            message = "\n".join(messages + self.error_list)
+
         if event == "ERROR":
-            raise Exception(f"Task {self.experiment_id} failed with error:\n{msg}")
+            # raisong exception will trigger @notifying to send ERROR event to frontend
+            raise exception or Exception(
+                f"Task {self.experiment_id} failed with error:\n{message}"
+            )
+        self.notifier(event, message=message, **kwargs)
 
     def handle_error(self, message: str, exception: Optional[Exception] = None) -> None:
-        self.print_and_log_error(
-            f"[task.{self.__class__.__name__}] {message}", e=exception
-        )
-        self.error_list.append(f"[API ERROR] {message}")
+        exc = exception or Exception(message)
+        self.print_and_log_error(f"[task.{self.__class__.__name__}] {message}", e=exc)
+        self.error_list.append(f"{exc}")
 
     def run_task(self) -> bool:
+        """
+        🚫 Try/Except block should only be implemented in run_task() and not in sub-functions
+        in order to catch most relevant exceptions and send them to the frontend
+        """
         raise NotImplementedError("Subclasses must implement this method")
 
     class Meta:
