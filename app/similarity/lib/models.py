@@ -1,12 +1,12 @@
-import os, sys, torch
+import os, torch
 from typing import Tuple, Callable, Any
-import orjson
 from torchvision.models.feature_extraction import create_feature_extractor
 from torchvision import models, transforms
 from collections import OrderedDict
 
 from .vit import VisionTransformer
 from ..const import MODEL_PATH
+from ...shared.utils import clear_cuda
 from ...shared.utils.fileutils import download_file
 
 DEFAULT_MODEL_URLS = {
@@ -80,12 +80,15 @@ def _instantiate_dino_vitbase8_pretrain(weights_path, device) -> torch.nn.Module
 
 
 def _instantiate_resnet34(weights_path, device) -> torch.nn.Module:
-    try:
-        weights = torch.load(weights_path, weights_only=True, map_location=device)
-    except RuntimeError:
-        weights = torch.load(weights_path, weights_only=False, map_location=device)
-    # model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1, weights_only=True, map_location=device)
-    model = models.resnet34(weights=weights)
+    # try:
+    #     weights = torch.load(weights_path, weights_only=True, map_location=device)
+    # except RuntimeError:
+    #     weights = torch.load(weights_path, weights_only=False, map_location=device)
+    # # model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1, weights_only=True, map_location=device)
+    # model = models.resnet34(weights=weights)
+    model = models.resnet34(
+        torch.load(weights_path, weights_only=False, map_location=device)
+    )
     return model
 
 
@@ -149,6 +152,7 @@ def load_model(
         model_path = get_model_path(feat_net)
 
     print(f"Loading model {feat_net} from {model_path}")
+    clear_cuda()
 
     if feat_net in DEFAULT_MODEL_LOADERS:
         model = DEFAULT_MODEL_LOADERS[feat_net](model_path, device)

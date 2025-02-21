@@ -7,6 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from .const import FEAT_NET
 from .models import load_model, get_transforms_for_model
+from ...shared.utils import clear_cuda
 from ...shared.utils.logging import console
 
 
@@ -40,36 +41,45 @@ class FeatureExtractor:
     def extract_features(
         self, data_loader, cache_dir: Path = None, cache_id: str = None
     ) -> torch.Tensor:
-        """ """
-        torch.cuda.empty_cache()
+        clear_cuda()
+
+        feat_path = None
         if cache_dir is not None:
-            feat_path = (
-                cache_dir / f"{cache_id}_{self.extractor_label}.pt"
-            )  # _{self.feat_layer}.pt"
+            feat_path = cache_dir / f"{cache_id}_{self.extractor_label}.pt"
 
             if os.path.exists(feat_path):
                 feats = torch.load(feat_path, map_location=self.device)
+                # feats = torch.load(feat_path, map_location="cpu")
+
                 if feats.numel() != 0:
                     console(f"Loaded extracted features from {feat_path}")
+                    # for feat in feats:
+                    #     yield feat.to(self.device, non_blocking=True)
                     return feats
-                console(
-                    f"[extract_features] No cache: recomputing...",
-                    color="yellow",
-                )
+                console("No cache: recomputing features...")
 
-        console(f"[extract_features] Extracting features...")
+        console("Extracting features...")
 
         self.initialize()
         features = []
-        for i, img in enumerate(data_loader):
+        for img in data_loader:
             features.append(self._calc_feats(img).detach().cpu())
+            # feats = self._calc_feats(img).detach().cpu()
+            # for feat in feats:
+            #     yield feat
+            # if cache_dir is not None:
+            #     features.append(feats)
+            # del feats
+            # torch.cuda.empty_cache()
 
         features = torch.cat(features).to(torch.float16)
 
         if cache_dir is not None:
             cache_dir.mkdir(parents=True, exist_ok=True)
             torch.save(features, feat_path)
+            # torch.save(torch.cat(features, dim=0).to(torch.float16), feat_path)
 
+        clear_cuda()
         return features
 
 
