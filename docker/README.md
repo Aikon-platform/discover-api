@@ -72,7 +72,14 @@ sudo chown -R $DOCKER_USER:$DOCKER_USER $RESULT_PATH
 
 #### Download models
 
-[//]: # (TODO: Add instructions to download models)
+Download models on Hugging face
+
+- **Regions**: [Historical Illustration Extraction](https://huggingface.co/seglinglin/Historical-Illustration-Extraction/tree/main)
+    - Download the models inside `$DATA_FOLDER/regions/models`
+- **Vectorization**: [Historical Diagram Vectorization](https://huggingface.co/seglinglin/Historical-Diagram-Vectorization/tree/main)
+    - Download the model AND config inside `$DATA_FOLDER/vectorization/models`
+- **Similarity**: [Historical Document Backbone](https://huggingface.co/seglinglin/Historical-Document-Backbone/tree/main)
+    - Download the models inside `$DATA_FOLDER/similarity/models`
 
 #### Build Docker
 
@@ -114,7 +121,7 @@ The API is now accessible locally at `http://localhost:$API_PORT`.
     <h4>Secure connection with <a href="https://www.tarsnap.com/spiped.html">spiped</a></h4>
   </summary>
 
-> ⚠️ If you are not using `spiped` modify the `docker.sh` file to expose `0.0.0.0:$API_PORT:$API_PORT` instead of `127.0.0.1:$API_PORT:$API_PORT`
+> ⚠️ If you are not using `spiped` modify the `docker/.env` file to set `CONTAINER_HOST=0.0.0.0` instead of `CONTAINER_HOST=127.0.0.1`
 
 A good thing is to tunnel securely the connection between API and front. For `discover-demo.enpc.fr`, it is done with `spiped`, based on [this tutorial](https://www.digitalocean.com/community/tutorials/how-to-encrypt-traffic-to-redis-with-spiped-on-ubuntu-16-04).
 The Docker process running on port `localhost:$API_PORT` is encrypted and redirected to port `8080`.
@@ -140,7 +147,7 @@ After=network-online.target
 StartLimitIntervalSec=300
 
 [Service]
-# Redirects <docker-ip>:8001 to 0.0.0.0:8080 and encrypts it with discover.key on the way
+# Redirects <docker-ip>:<api-port> to 0.0.0.0:8080 and encrypts it with discover.key on the way
 ExecStart=/usr/bin/spiped -F -d -s [0.0.0.0]:8080 -t [<docker-ip>]:<api-port> -k /etc/spiped/discover.key
 Restart=on-failure
 
@@ -173,7 +180,7 @@ sudo cp ~/discover.key /etc/spiped/ # Copy key to spiped folder
 Create service config file for spiped on front machine (`sudo vi /etc/systemd/system/spiped-connect.service`)
 - Get `<gpu-ip>` with `hostname -I` on the machine where is deployed the API.
 
-⚠️ Note to match the output IP (`127.0.0.1:$API_PORT` in this example) to the `API_URL` in [`front/.env`](../front/.env)
+⚠️ Note to match the output IP (`127.0.0.1:<spiped-port>` in this example) to the `API_URL` in [`front/.env`](../front/.env)
 
 ```bash
 [Unit]
@@ -183,8 +190,8 @@ After=network-online.target
 StartLimitIntervalSec=300
 
 [Service]
-# Redirects <gpu-ip>:8080 output to 127.0.0.1:8001 and decrypts it with discover.key on the way
-ExecStart=/usr/bin/spiped -F -e -s [127.0.0.1]:<api-port> -t [<gpu-ip>]:8080 -k /etc/spiped/discover.key
+# Redirects <gpu-ip>:8080 output to 127.0.0.1:<spiped-port> and decrypts it with discover.key on the way
+ExecStart=/usr/bin/spiped -F -e -s [127.0.0.1]:<spiped-port> -t [<gpu-ip>]:8080 -k /etc/spiped/discover.key
 Restart=Always
 
 [Install]
@@ -201,7 +208,7 @@ sudo systemctl enable spiped-connect.service
 Test connexion between worker and front
 ```bash
 curl --http0.9 <gpu-ip>:8080/<installed_app>/monitor # outputs the encrypted message
-curl localhost:$API_PORT/<installed_app>/monitor # outputs decrypted message
+curl localhost:<spiped-port>/<installed_app>/monitor # outputs decrypted message
 ```
 </details>
 

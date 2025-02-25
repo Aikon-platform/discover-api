@@ -35,6 +35,7 @@ build_image() {
     colorEcho blue "\nBuilding Docker image $CONTAINER_NAME"
     docker build --rm -t "$CONTAINER_NAME" -f Dockerfile .. \
         --build-arg USERID=$DEMO_UID \
+        --build-arg API_PORT=$API_PORT \
         --build-arg HTTP_PROXY=${HTTP_PROXY} \
         --build-arg HTTPS_PROXY=${HTTPS_PROXY} \
         --build-arg NO_PROXY=${NO_PROXY} \
