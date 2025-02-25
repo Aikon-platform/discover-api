@@ -1,10 +1,11 @@
 # Deploy with Docker
 
-Requirements:
+## Requirements
 - Docker
 - [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - Python >=3.10
 
+## Docker user creation
 Create a user (replace `<docker-user>` by the name you want) to run the Docker
 ```bash
 # OPTIONAL: create a user to run the docker
@@ -19,6 +20,7 @@ sudo usermod -aG docker $USER # add user to docker group
 su - ${USER} # Reload session for the action to take effect
 ```
 
+## Git initialization
 Configure SSH connexion to GitHub for user:
 - Generate key with `ssh-keygen`
 - Copy key `cat ~/.ssh/id_ed25519.pub`
@@ -34,8 +36,10 @@ git submodule init
 git submodule update
 ```
 
-Copy the file `.env` to a file `.env.prod` and change `TARGET=prod`.
+## Environment setup
 
+
+Copy the file `.env` to a file `.env.prod` and change `TARGET=prod`.
 ```bash
 cp .env.template .env.prod
 sed -i -e 's/^TARGET=.*/TARGET="prod"/' .env.prod
@@ -44,20 +48,24 @@ sed -i -e 's/^TARGET=.*/TARGET="prod"/' .env.prod
 vi .env.prod
 ```
 
-In [`docker.sh`](docker.sh), modify the variables depending on your setup:
+In [`docker/.env`](.env.template), modify the variables depending on your setup:
 - `DATA_FOLDER`: absolute path to directory where results are stored
-- `DEMO_UID`: Universally Unique Identifier of the `$DOCKER_USER` (`id -u <docker-user>`)
+- `DEMO_UID`: Universally Unique Identifier of the `$DOCKER_USER` (`id -u $DOCKER_USER`)
 - `DEVICE_NB`: GPU number to be used by container (get available GPUs with `nvidia-smi`)
 - `CUDA_HOME`: path to CUDA installation (e.g. `/usr/local/cuda-11.1`)
 
 To find your `CUDA_HOME` (usually located either in `/usr/local/cuda` or `/usr/lib/cuda`):
 ```bash
-# find CUDA version with (pay attention to version mismatches)
+echo $CUDA_HOME  # if already defined, copy the path in the .env file
+
+# Otherwise find CUDA version with (pay attention to version mismatches)
 nvcc --version
 nvidia-smi
 
-# CUDA_HOME is usually parent dir of
-which nvcc
+# set CUDA_HOME and make sure nvcc version matches selected CUDA_HOME
+export CUDA_HOME=<path/to/cuda>
+export PATH=$CUDA_HOME/bin:$PATH
+export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
 
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
@@ -69,6 +77,8 @@ sudo chmod o+X </path/to>
 sudo chmod -R u+rwX <path/to/results/>
 sudo chown -R $DOCKER_USER:$DOCKER_USER $RESULT_PATH
 ```
+
+(Or let `docker.sh` initialise environment variables and permissions for you).
 
 #### Download models
 

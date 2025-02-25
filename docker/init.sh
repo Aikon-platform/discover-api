@@ -3,6 +3,15 @@ API_ROOT="$(dirname "$DOCKER_DIR")"
 
 source "$DOCKER_DIR"/utils.sh
 
+# echo $CUDA_HOME  # if already defined, copy the path in the .env file
+# Otherwise find CUDA version with (pay attention to version mismatches)
+# nvcc --version
+# nvidia-smi
+# # set CUDA_HOME and make sure nvcc version matches selected CUDA_HOME
+# export CUDA_HOME=<path/to/cuda>
+# export PATH=$CUDA_HOME/bin:$PATH
+# export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
+
 if [ ! -f "$APP_ROOT"/.env ]; then
     cp "$API_ROOT"/.env.template "$API_ROOT"/.env.prod
     update_env "$API_ROOT"/.env.prod
