@@ -15,6 +15,8 @@ ENV HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
 ENV USER=demoapi
 ARG USERID
 
+ARG API_PORT
+
 RUN useradd -u ${USERID} -m -d /home/${USER} ${USER}
 
 ## Silence error messages
@@ -79,7 +81,7 @@ COPY --chown=${USER} ./.env.prod ./api/.env
 COPY docker/nginx.conf /etc/nginx/conf.d/demoapi.conf
 
 # Expose the application port
-EXPOSE 8001
+EXPOSE ${API_PORT}
 
 # Set matplotlib tmp dir
 ENV MPLCONFIGDIR=/home/${USER}/.config/matplotlib

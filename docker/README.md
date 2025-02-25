@@ -103,20 +103,22 @@ Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside 
 It should have started the docker, check it is the case with:
 - `docker logs aikondemo --tail 50`: show last 50 log messages
 - `docker ps`: show running docker containers
-- `curl 127.0.0.1:8001/<installed_app>/monitor`: show if container receives requests
+- `curl 127.0.0.1:$API_PORT/<installed_app>/monitor`: show if container receives requests
 - `docker exec aikondemo /bin/nvidia-smi`: checks that docker communicates with nvidia
 - `docker exec -it aikondemo /bin/bash`: enter the docker container
 
-The API is now accessible locally at `http://localhost:8001`.
+The API is now accessible locally at `http://localhost:$API_PORT`.
 
 <details>
-  <summary>#### Secure connection with [spiped](https://www.tarsnap.com/spiped.html)</summary>
+  <summary>
+    <h4>Secure connection with <a href="https://www.tarsnap.com/spiped.html">spiped</a></h4>
+  </summary>
 
-> ⚠️ If you are not using `spiped` modify the `docker.sh` file to expose `0.0.0.0:8001:8001` instead of `127.0.0.1:8001:8001`
+> ⚠️ If you are not using `spiped` modify the `docker.sh` file to expose `0.0.0.0:$API_PORT:$API_PORT` instead of `127.0.0.1:$API_PORT:$API_PORT`
 
 A good thing is to tunnel securely the connection between API and front. For `discover-demo.enpc.fr`, it is done with `spiped`, based on [this tutorial](https://www.digitalocean.com/community/tutorials/how-to-encrypt-traffic-to-redis-with-spiped-on-ubuntu-16-04).
-The Docker process running on port `localhost:8001` is encrypted and redirected to port `8080`.
-The front server decrypts the traffic and redirects it to `localhost:8001`.
+The Docker process running on port `localhost:$API_PORT` is encrypted and redirected to port `8080`.
+The front server decrypts the traffic and redirects it to `localhost:$API_PORT`.
 
 ```bash
 sudo apt-get update
@@ -128,7 +130,7 @@ sudo chmod 644 /etc/spiped/discover.key
 
 Create service config file for spiped (`sudo vi /etc/systemd/system/spiped-discover.service`):
 - Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' aikondemo` or use `127.0.0.1`
-- Pick Docker port (here `8001`) depending on `EXPOSE` in [`Dockerfile`](Dockerfile)
+- Pick Docker port (corresponding on `$API_PORT`) depending on `EXPOSE` in [`Dockerfile`](Dockerfile)
 
 ```bash
 [Unit]
@@ -139,7 +141,7 @@ StartLimitIntervalSec=300
 
 [Service]
 # Redirects <docker-ip>:8001 to 0.0.0.0:8080 and encrypts it with discover.key on the way
-ExecStart=/usr/bin/spiped -F -d -s [0.0.0.0]:8080 -t [<docker-ip>]:8001 -k /etc/spiped/discover.key
+ExecStart=/usr/bin/spiped -F -d -s [0.0.0.0]:8080 -t [<docker-ip>]:<api-port> -k /etc/spiped/discover.key
 Restart=on-failure
 
 [Install]
@@ -171,7 +173,7 @@ sudo cp ~/discover.key /etc/spiped/ # Copy key to spiped folder
 Create service config file for spiped on front machine (`sudo vi /etc/systemd/system/spiped-connect.service`)
 - Get `<gpu-ip>` with `hostname -I` on the machine where is deployed the API.
 
-⚠️ Note to match the output IP (`127.0.0.1:8001` in this example) to the `API_URL` in [`front/.env`](../front/.env)
+⚠️ Note to match the output IP (`127.0.0.1:$API_PORT` in this example) to the `API_URL` in [`front/.env`](../front/.env)
 
 ```bash
 [Unit]
@@ -182,7 +184,7 @@ StartLimitIntervalSec=300
 
 [Service]
 # Redirects <gpu-ip>:8080 output to 127.0.0.1:8001 and decrypts it with discover.key on the way
-ExecStart=/usr/bin/spiped -F -e -s [127.0.0.1]:8001 -t [<gpu-ip>]:8080 -k /etc/spiped/discover.key
+ExecStart=/usr/bin/spiped -F -e -s [127.0.0.1]:<api-port> -t [<gpu-ip>]:8080 -k /etc/spiped/discover.key
 Restart=Always
 
 [Install]
@@ -199,7 +201,7 @@ sudo systemctl enable spiped-connect.service
 Test connexion between worker and front
 ```bash
 curl --http0.9 <gpu-ip>:8080/<installed_app>/monitor # outputs the encrypted message
-curl localhost:8001/<installed_app>/monitor # outputs decrypted message
+curl localhost:$API_PORT/<installed_app>/monitor # outputs decrypted message
 ```
 </details>
 
@@ -208,12 +210,20 @@ curl localhost:8001/<installed_app>/monitor # outputs decrypted message
 Just run:
 
 ```bash
-bash docker.sh pull
+# to check first modifications to be pulled
+git_branch=$(git branch 2>/dev/null | grep '^*' | colrm 1 2)
+git fetch && git diff $(git_branch) origin/$(git_branch)
+
+bash docker/docker.sh pull
+
+# which is equivalent to
+git pull
+bash docker/docker.sh build
 ```
 
-**Note:** as a redis server is encapsulated inside the docker, its data is **non-persistent**: any task scheduled before a `bash docker.sh <anything>` will be forgotten. Result files are kept, though, as they are in the persistent storage.
+**Note 1:** as a redis server is encapsulated inside the docker, its data is **non-persistent**: any task scheduled before a `bash docker.sh <anything>` will be forgotten. Result files are kept, though, as they are in the persistent storage.
 
-*Note 2:* Docker won't be able to access the host's `http://localhost:8000/` easily, so it is not advised to use the Docker build to develop if that's the only way to access the frontend.
+**Note 2:** Docker won't be able to access the host's `http://localhost:8000/` easily, so it is not advised to use the Docker build to develop if that's the only way to access the frontend.
 
 [//]: # (Configure Redis)
 [//]: # (```bash)
