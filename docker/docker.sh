@@ -1,31 +1,22 @@
 #!/bin/bash
 
-###############################
-# VALUES TO BE USED BY DOCKER #
-#    modify those values to   #
-#      match your system      #
-###############################
+# HOW TO USE
+# Inside the docker/ directory, run:
+# bash docker.sh <start|stop|restart|update|build>
 
-# Machine path where docker will store its /data/ folder (API_DATA_FOLDER)
-DATA_FOLDER=/media/demoapi/
-# GPU device number to be used by docker
-DEVICE_NB=2
-# User ID to be used by docker
-DEMO_UID=1000
-# Path to CUDA installation (/usr/local/cuda-<version> => find your version with nvidia-smi)
-CUDA_HOME=/usr/local/cuda
-# Host where the API will be accessible, (put 127.0.0.1 for spiped configuration)
-CONTAINER_HOST="0.0.0.0"
-# Name of the container
-CONTAINER_NAME="demoapi"
-# Hugging face read token
-HUGGING_FACE_HUB_TOKEN="your_access_token"
+set -e
 
+DOCKER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+# initialize the .env files and data folder permissions on first initialization
+bash "$DOCKER_DIR"/init.sh
+
+# Load container variables from .env file
+. "$DOCKER_DIR"/.env
 
 rebuild_image() {
     # Add error checking for the build process
-    docker build --rm -t "$CONTAINER_NAME" . \
-        -f Dockerfile \
+    docker build --rm -t "$CONTAINER_NAME" -f Dockerfile .. \
         --build-arg USERID=$DEMO_UID \
         --build-arg HTTP_PROXY=${HTTP_PROXY} \
         --build-arg HTTPS_PROXY=${HTTPS_PROXY} \

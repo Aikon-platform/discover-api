@@ -76,7 +76,7 @@ WORKDIR /home/${USER}
 
 # Copy additional configurations
 COPY --chown=${USER} ./.env.prod ./api/.env
-COPY docker-confs/nginx.conf /etc/nginx/conf.d/demoapi.conf
+COPY docker/nginx.conf /etc/nginx/conf.d/demoapi.conf
 
 # Expose the application port
 EXPOSE 8001
@@ -92,4 +92,4 @@ RUN mkdir -p var/dramatiq/
 # Run command at each container launch
 CMD export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
     source venv/bin/activate && \
-    supervisord -c api/docker-confs/supervisord.conf
+    supervisord -c api/docker/supervisord.conf
