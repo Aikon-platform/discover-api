@@ -15,7 +15,8 @@ LIB_PATH = DEMO_DIR / "lib"
 EXT_QUEUE = "queue0"  # see docker-confs/supervisord.conf
 
 EXT_DATA_FOLDER = API_DATA_FOLDER / DEMO_NAME
-EXT_XACCEL_PREFIX = Path(ENV("EXT_XACCEL_PREFIX", default="/media/regions-results"))
+# EXT_XACCEL_PREFIX = Path(ENV("EXT_XACCEL_PREFIX", default="/media/regions"))
+# SHARED_XACCEL_PREFIX is used for exposing annotations
 
 MODEL_PATH = EXT_DATA_FOLDER / "models"
 

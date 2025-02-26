@@ -56,8 +56,8 @@ from flask import request, Blueprint
 
 from .tasks import extract_objects
 from ..shared import routes as shared_routes
-from .const import MODEL_PATH, EXT_XACCEL_PREFIX, DEFAULT_MODEL_INFOS
-from ..shared.const import DOCUMENTS_PATH
+from .const import MODEL_PATH, DEFAULT_MODEL_INFOS
+from ..shared.const import DOCUMENTS_PATH, SHARED_XACCEL_PREFIX
 
 blueprint = Blueprint("regions", __name__, url_prefix="/regions")
 
@@ -136,7 +136,9 @@ def monitor_regions_extraction():
 
 @blueprint.route("<tracking_id>/result", methods=["GET"])
 def result_extraction(tracking_id: str):
-    return shared_routes.result(tracking_id, DOCUMENTS_PATH, EXT_XACCEL_PREFIX, "json")
+    result_dir = DOCUMENTS_PATH
+    # not correct, should be DOCUMENTS_PATH / dtype / uid / "annotations"
+    return shared_routes.result(tracking_id, result_dir, SHARED_XACCEL_PREFIX, "json")
 
 
 @blueprint.route("models", methods=["GET"])
