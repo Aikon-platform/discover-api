@@ -12,7 +12,7 @@ ENV no_proxy=${NO_PROXY}
 ARG HUGGING_FACE_HUB_TOKEN
 ENV HUGGING_FACE_HUB_TOKEN=${HUGGING_FACE_HUB_TOKEN}
 
-ENV USER=demoapi
+ENV USER=aikonapi
 ARG USERID
 
 ARG API_PORT
@@ -68,30 +68,22 @@ RUN python3.10 -m venv venv && \
 # Copy the entire project code
 COPY --chown=${USER} ./ ./api/
 
-# FOR VECTORIZATION MODULE
-# Build and install CUDA operators for DETR (not working)
-#RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
-#RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
-RUN /home/${USER}/venv/bin/pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/
-
 WORKDIR /home/${USER}
 
 # Copy additional configurations
 COPY --chown=${USER} ./.env.prod ./api/.env
-COPY docker/nginx.conf /etc/nginx/conf.d/demoapi.conf
+COPY docker/nginx.conf /etc/nginx/conf.d/aikonapi.conf
+COPY docker/supervisord.conf ./supervisord.conf
 
 # Expose the application port
 EXPOSE ${API_PORT}
 
 # Set matplotlib tmp dir
 ENV MPLCONFIGDIR=/home/${USER}/.config/matplotlib
-RUN mkdir -p /home/${USER}/.config/matplotlib
-RUN chown -R ${USER} /home/${USER}/.config/matplotlib
 
-# Create necessary folders
-RUN mkdir -p var/dramatiq/
+COPY docker/utils.sh /home/${USER}/utils.sh
+COPY docker/start.sh /home/${USER}/start.sh
+RUN chmod +x /home/${USER}/utils.sh
+RUN chmod +x /home/${USER}/start.sh
 
-# Run command at each container launch
-CMD export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
-    source venv/bin/activate && \
-    supervisord -c api/docker/supervisord.conf
+CMD ["/home/aikonapi/start.sh"]

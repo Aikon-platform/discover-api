@@ -101,17 +101,17 @@ bash docker.sh rebuild
 
 To compile cuda operators for `vectorization` / `regions`, once built:
 ```bash
-docker exec -it demoapi /bin/bash
+docker exec -it aikonapi /bin/bash
 # inside the container
-/home/demoapi# source venv/bin/activate
+/home/aikonapi# source venv/bin/activate
 
 # for vectorization
-/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
-/home/demoapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
+/home/aikonapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
+/home/aikonapi# python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
 
 # for regions
-/home/demoapi# cd /home/${USER}/api/app/regions/lib/line_predictor/
-/home/demoapi# python ./dino/ops/setup.py build install
+/home/aikonapi# cd /home/${USER}/api/app/regions/lib/line_predictor/
+/home/aikonapi# python ./dino/ops/setup.py build install
 ```
 Then restart the container with `docker restart aikondemo`
 
