@@ -1,0 +1,46 @@
+server {
+    server_name _;
+    listen API_PORT;
+
+    # Allow uploads up to 150MB file + ~5MB overhead
+    client_max_body_size 155M;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/tmp/website.sock;
+    }
+
+    # location /media/<demo_name> {
+    #     # X-accel-redirect is used to serve static files from a different location
+    #     # without having to expose the location to the user.
+    #     internal;
+    #     # Must match <DEMO_NAME>_RESULTS_PATH in <demo_name>/const.py
+    #     # data are stored inside [$DATA_FOLDER(docker/.env)]/$API_DATA_FOLDER(api/.env)/DEMO_NAME/results
+    #     alias /data/<demo_name>/<folder_to_expose>;
+    # }
+
+    location /media/shared {
+        internal;
+        alias /data/shared;
+    }
+
+    location /media/dticlustering {
+        internal;
+        alias /data/dticlustering/results;
+    }
+
+    location /media/similarity {
+        internal;
+        alias /data/similarity/results;
+    }
+
+    location /media/watermarks {
+        internal;
+        alias /data/watermarks/sources;
+    }
+
+    location /media/vectorization {
+        internal;
+        alias /data/vectorization/results;
+    }
+}

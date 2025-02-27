@@ -17,7 +17,7 @@ iiif-download>=0.1.10
 addict
 cython
 pandas
-Pillow
+Pillow>=10.0.0
 scipy<1.13
 scikit-learn
 matplotlib

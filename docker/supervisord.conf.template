@@ -1,11 +1,11 @@
 [program:worker]
 # Queues are named after the process number, and attributed in app_name/const.py
-environment=dramatiq_prom_port=919%(process_num)d
+environment=dramatiq_prom_port=919%(process_num)d,PYTHONPATH=/home/aikonapi
 command = dramatiq app.main -p 1 -t 1 -Q queue%(process_num)d
-numprocs = 5 # Set number of processes depending on the number of queues
+numprocs = NB_PROCS # Set number of processes depending on the number of queues
 process_name = worker%(process_num)d
-user = demoapi
-directory = %(here)s/../
+user = aikonapi
+directory = /home/aikonapi/api
 startsecs = 5
 startretries = 3
 autostart = true
@@ -17,10 +17,11 @@ stdout_logfile = /dev/stdout
 stdout_logfile_maxbytes = 0
 
 [program:flask]
+environment=PYTHONPATH=/home/aikonapi
 command = gunicorn --bind unix:/tmp/website.sock app.main:app --worker-connections 1001 --workers 4
-user = demoapi
+user = aikonapi
 group = www-data
-directory = %(here)s/../
+directory = /home/aikonapi/api
 startsecs = 5
 autostart = true
 autorestart = true

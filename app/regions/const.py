@@ -47,7 +47,7 @@ download_model_if_not(
 download_model_if_not(
     {
         "repo_id": "seglinglin/Historical-Illustration-Extraction",
-        "filename": "watermark_extraction.pt",
+        "filename": "fasterrcnn_watermark_extraction.pt",
     },
     MODEL_PATH / "fasterrcnn_watermark_extraction.pt",
 )

@@ -312,7 +312,7 @@ class LineExtractor(BaseExtractor):
         bboxes = self.poly_to_bbox(scaled_polygons).to(self.device)
         scores = scores.to(self.device)
 
-        # Perform Non-Maximum Suppression (NMS)
+        # Perform Non-Maximum Suppression (NMS) TODO filter nms on polygons
         nms_filter = nms(bboxes, scores, iou_threshold=0.8).cpu()
         bboxes = bboxes[nms_filter]
         scores = scores[nms_filter].unsqueeze(1)
