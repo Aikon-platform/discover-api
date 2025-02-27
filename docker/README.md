@@ -23,7 +23,7 @@ git submodule update
 
 ### Get environment variables
 
-#### Docker user uid `DEMO_UID`
+#### `DEMO_UID`
 
 Create a user (replace `<docker-user>` by the name you want) to run the Docker
 ```bash
@@ -39,7 +39,7 @@ sudo usermod -aG docker $USER # add user to docker group
 su - ${USER} # Reload session for the action to take effect
 ```
 
-#### Find CUDA directory `CUDA_HOME`
+#### `CUDA_HOME`
 
 To find your `CUDA_HOME` (usually located either in `/usr/local/cuda` or `/usr/lib/cuda`):
 ```bash
@@ -59,7 +59,7 @@ Depending on your CUDA version, it might be necessary to change:
 - [Dockerfile base image](Dockerfile#L2): find the corresponding image [here](https://hub.docker.com/r/nvidia/cuda/tags)
 - [Pytorch version](requirements-dev.txt#L44): find the corresponding requirements [here](https://pytorch.org/get-started/locally/)
 
-#### Hugging face token `HUGGING_FACE_HUB_TOKEN`
+#### `HUGGING_FACE_HUB_TOKEN`
 
 Create a Hugging Face account and [create a new token](https://huggingface.co/settings/tokens/new?tokenType=read).
 Keep it secret and safe.
