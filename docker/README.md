@@ -1,4 +1,4 @@
-# Deploy with Docker
+# 📦 Deploy with Docker
 
 ## Pre-requisites
 - Docker
@@ -59,14 +59,14 @@ Depending on your CUDA version, it might be necessary to change:
 - [Dockerfile base image](Dockerfile#L2): find the corresponding image [here](https://hub.docker.com/r/nvidia/cuda/tags)
 - [Pytorch version](requirements-dev.txt#L44): find the corresponding requirements [here](https://pytorch.org/get-started/locally/)
 
-### Hugging face token `HUGGING_FACE_HUB_TOKEN`
+#### Hugging face token `HUGGING_FACE_HUB_TOKEN`
 
 Create a Hugging Face account and [create a new token](https://huggingface.co/settings/tokens/new?tokenType=read).
 Keep it secret and safe.
 
 ## Docker setup
 
-### Scripted install 🚀
+### 🚀 Scripted install
 
 ```bash
 bash docker.sh build
@@ -85,7 +85,7 @@ This script will:
 
 <details>
   <summary>
-    <h3>Manual installation 🛠️</h3>
+    <h3>🛠️ Manual installation</h3>
   </summary>
 
 #### Environment setup
@@ -159,7 +159,7 @@ docker exec -it aikonapi /bin/bash
 Then restart the container with `docker restart $CONTAINER_NAME`
 </details>
 
-## Test install
+## 🧪 Test install
 
 It should have started the docker, check it is the case with:
 - `docker logs $CONTAINER_NAME --tail 50`: show last 50 log messages
@@ -172,7 +172,7 @@ The API is now accessible locally at `http://localhost:$API_PORT`.
 
 <details>
   <summary>
-    <h4>Secure connection with <a href="https://www.tarsnap.com/spiped.html">spiped</a></h4>
+    <h2>🔑 Secure connection with <a href="https://www.tarsnap.com/spiped.html">spiped</a></h2>
   </summary>
 
 > ⚠️ If you are not using `spiped` modify the `docker/.env` file to set `CONTAINER_HOST=0.0.0.0` instead of `CONTAINER_HOST=127.0.0.1`
@@ -266,7 +266,7 @@ curl localhost:<spiped-port>/<installed_app>/monitor # outputs decrypted message
 ```
 </details>
 
-### Update
+### 🔄 Update
 
 Just run:
 
@@ -279,6 +279,7 @@ bash docker/docker.sh pull
 
 # which is equivalent to
 git pull
+git submodule update
 bash docker/docker.sh build
 ```
 
@@ -289,7 +290,7 @@ bash docker/docker.sh build
 [//]: # (Configure Redis)
 [//]: # (```bash)
 [//]: # (# Find config file)
-[//]: # (sudo find / -name redis.)
+[//]: # (sudo find / -name redis.conf)
 [//]: # (vi <path/to/redis.conf>)
 [//]: # (```)
 [//]: # (Find &#40;`/` command then type `requirepass`&#41; and modify directive &#40;uncomment and set password&#41;:)
