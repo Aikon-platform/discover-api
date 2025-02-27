@@ -72,7 +72,7 @@ WORKDIR /home/${USER}
 
 # Copy additional configurations
 COPY --chown=${USER} ./.env.prod ./api/.env
-COPY docker/nginx.conf /etc/nginx/conf.d/aikonapi.conf
+COPY docker/nginx.conf /etc/nginx/conf.d/${USER}.conf
 COPY docker/supervisord.conf ./supervisord.conf
 
 # Expose the application port
@@ -86,4 +86,4 @@ COPY docker/start.sh /home/${USER}/start.sh
 RUN chmod +x /home/${USER}/utils.sh
 RUN chmod +x /home/${USER}/start.sh
 
-CMD ["/home/aikonapi/start.sh"]
+CMD ["/home/${USER}/start.sh"]

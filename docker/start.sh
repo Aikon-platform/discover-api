@@ -16,7 +16,9 @@ source "$ROOT_DIR"/venv/bin/activate
 if [[ "$INSTALLED_APPS" == *"vectorization"* ]]; then
     color_echo blue "Building operators for vectorization module..."
     cd "$ROOT_DIR"/api/app/vectorization/lib/
-    python src/models/dino/ops/setup.py build install
+    python src/models/dino/ops/setup.py build install || {
+        color_echo red "Failed to build vectorization operators"
+    }
     # python src/models/dino/ops/test.py
     # pip install -e synthetic/
 fi
@@ -24,7 +26,9 @@ fi
 if [[ "$INSTALLED_APPS" == *"regions"* ]]; then
     color_echo blue "Building operators for regions module..."
     cd "$ROOT_DIR"/api/app/regions/lib/line_predictor/dino/ops/
-    python setup.py build install
+    python setup.py build install || {
+        color_echo red "Failed to build regions operators"
+    }
 fi
 
 # Run command at each container launch

@@ -10,6 +10,7 @@ DOCKER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 # initialize the .env files and data folder permissions on first initialization
 bash "$DOCKER_DIR"/init.sh
+source "$DOCKER_DIR"/utils.sh
 
 # Load container variables from .env file
 source "$DOCKER_DIR"/.env
@@ -26,8 +27,8 @@ image_exists() {
 stop_container() {
     if container_exists; then
         color_echo blue "\nStopping $CONTAINER_NAME"
-        docker stop "$CONTAINER_NAME"
-        docker rm "$CONTAINER_NAME"
+        docker stop "$CONTAINER_NAME" || true
+        docker rm "$CONTAINER_NAME" || true
     fi
 }
 

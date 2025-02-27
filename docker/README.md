@@ -113,16 +113,16 @@ docker exec -it aikonapi /bin/bash
 /home/aikonapi# cd /home/${USER}/api/app/regions/lib/line_predictor/
 /home/aikonapi# python ./dino/ops/setup.py build install
 ```
-Then restart the container with `docker restart aikondemo`
+Then restart the container with `docker restart aikonapi`
 
 Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
 
 It should have started the docker, check it is the case with:
-- `docker logs aikondemo --tail 50`: show last 50 log messages
+- `docker logs aikonapi --tail 50`: show last 50 log messages
 - `docker ps`: show running docker containers
 - `curl 127.0.0.1:$API_PORT/<installed_app>/monitor`: show if container receives requests
-- `docker exec aikondemo /bin/nvidia-smi`: checks that docker communicates with nvidia
-- `docker exec -it aikondemo /bin/bash`: enter the docker container
+- `docker exec aikonapi /bin/nvidia-smi`: checks that docker communicates with nvidia
+- `docker exec -it aikonapi /bin/bash`: enter the docker container
 
 The API is now accessible locally at `http://localhost:$API_PORT`.
 
@@ -146,7 +146,7 @@ sudo chmod 644 /etc/spiped/discover.key
 ```
 
 Create service config file for spiped (`sudo vi /etc/systemd/system/spiped-discover.service`):
-- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' aikondemo` or use `127.0.0.1`
+- Get `<docker-ip>` with `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' aikonapi` or use `127.0.0.1`
 - Pick Docker port (corresponding on `$API_PORT`) depending on `EXPOSE` in [`Dockerfile`](Dockerfile)
 
 ```bash
