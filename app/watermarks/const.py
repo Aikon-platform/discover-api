@@ -13,8 +13,8 @@ WATERMARKS_TMP_FOLDER = WATERMARKS_DATA_FOLDER / "tmp_queries"
 WATERMARKS_XACCEL_PREFIX = f"{XACCEL_PREFIX}/{DEMO_NAME}"
 
 MODEL_PATHS = {
-    "detection": WATERMARKS_DATA_FOLDER / "models" / "detection.pth",
-    "features": WATERMARKS_DATA_FOLDER / "models" / "features.pth",
+    "detection": WATERMARKS_DATA_FOLDER / "models" / "fasterrcnn_watermark_extraction.pth",
+    "features": WATERMARKS_DATA_FOLDER / "models" / "resnet18_watermarks.pth",
 }
 
 DEVICE = "cpu"
