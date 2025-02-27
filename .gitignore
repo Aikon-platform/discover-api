@@ -87,3 +87,5 @@ node_modules/
 .idea/
 yolotmp/
 
+docker/nginx.conf
+docker/supervisord.conf
