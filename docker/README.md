@@ -1,26 +1,11 @@
 # Deploy with Docker
 
-## Requirements
+## Pre-requisites
 - Docker
 - [nvidia-container-toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
 - Python >=3.10
 
-## Docker user creation
-Create a user (replace `<docker-user>` by the name you want) to run the Docker
-```bash
-# OPTIONAL: create a user to run the docker
-DOCKER_USER=<docker-user>
-
-sudo useradd -m $DOCKER_USER # Create user
-sudo passwd $DOCKER_USER # Set password
-sudo usermod -aG sudo $DOCKER_USER # Add user to sudo group
-
-sudo -iu $DOCKER_USER # Connect as docker user
-sudo usermod -aG docker $USER # add user to docker group
-su - ${USER} # Reload session for the action to take effect
-```
-
-## Git initialization
+### Git initialization
 Configure SSH connexion to GitHub for user:
 - Generate key with `ssh-keygen`
 - Copy key `cat ~/.ssh/id_ed25519.pub`
@@ -36,23 +21,25 @@ git submodule init
 git submodule update
 ```
 
-## Environment setup
+### Get environment variables
 
+#### Docker user uid `DEMO_UID`
 
-Copy the file `.env` to a file `.env.prod` and change `TARGET=prod`.
+Create a user (replace `<docker-user>` by the name you want) to run the Docker
 ```bash
-cp .env.template .env.prod
-sed -i -e 's/^TARGET=.*/TARGET="prod"/' .env.prod
+# OPTIONAL: create a user to run the docker
+DOCKER_USER=<docker-user>
 
-# OPTIONAL: modify other variables, notably INSTALLED_APPS
-vi .env.prod
+sudo useradd -m $DOCKER_USER # Create user
+sudo passwd $DOCKER_USER # Set password
+sudo usermod -aG sudo $DOCKER_USER # Add user to sudo group
+
+sudo -iu $DOCKER_USER # Connect as docker user
+sudo usermod -aG docker $USER # add user to docker group
+su - ${USER} # Reload session for the action to take effect
 ```
 
-In [`docker/.env`](.env.template), modify the variables depending on your setup:
-- `DATA_FOLDER`: absolute path to directory where results are stored
-- `DEMO_UID`: Universally Unique Identifier of the `$DOCKER_USER` (`id -u $DOCKER_USER`)
-- `DEVICE_NB`: GPU number to be used by container (get available GPUs with `nvidia-smi`)
-- `CUDA_HOME`: path to CUDA installation (e.g. `/usr/local/cuda-11.1`)
+#### Find CUDA directory `CUDA_HOME`
 
 To find your `CUDA_HOME` (usually located either in `/usr/local/cuda` or `/usr/lib/cuda`):
 ```bash
@@ -67,6 +54,60 @@ export CUDA_HOME=<path/to/cuda>
 export PATH=$CUDA_HOME/bin:$PATH
 export LD_LIBRARY_PATH=$CUDA_HOME/lib64:$LD_LIBRARY_PATH
 ```
+
+Depending on your CUDA version, it might be necessary to change: 
+- [Dockerfile base image](Dockerfile#L2): find the corresponding image [here](https://hub.docker.com/r/nvidia/cuda/tags)
+- [Pytorch version](requirements-dev.txt#L44): find the corresponding requirements [here](https://pytorch.org/get-started/locally/)
+
+### Hugging face token `HUGGING_FACE_HUB_TOKEN`
+
+Create a Hugging Face account and [create a new token](https://huggingface.co/settings/tokens/new?tokenType=read).
+Keep it secret and safe.
+
+## Docker setup
+
+### Scripted install 🚀
+
+```bash
+bash docker.sh build
+```
+
+This script will:
+1. On first run:
+   1. Help you fill `.env.prod` and `docker/.env` files
+   2. Generate `nginx.conf` and `superivsord.conf` files
+   3. Create and set permissions for the data folder where the container will store results
+2. Build the Dockerfile:
+   1. Install packages
+   2. Download dependencies (if requirements have changed)
+   3. Create tmp directories for various dependencies
+   4. Compile CUDA operators for `vectorization` and `regions` (if in `INSTALLED_APPS`)
+
+<details>
+  <summary>
+    <h3>Manual installation 🛠️</h3>
+  </summary>
+
+#### Environment setup
+
+Copy the file `.env` to a file `.env.prod` and change few variable for prod.
+```bash
+cp .env.template .env.prod
+sed -i -e 's/^TARGET=.*/TARGET="prod"/' .env.prod
+sed -i -e 's/^API_DATA_FOLDER=.*/API_DATA_FOLDER="/data/"/' .env.prod
+sed -i -e 's/^YOLO_CONFIG_DIR=.*/YOLO_CONFIG_DIR="/data/yolotmp/"/' .env.prod
+
+# OPTIONAL: modify other variables, notably PROD_URL, API_PORT and HUGGING_FACE_HUB_TOKEN
+nano .env.prod
+```
+
+Copy the file [`docker/.env`](.env.template): `cp docker/.env.template docker/.env`
+
+In [`docker/.env`](.env.template), modify the variables depending on your setup:
+- `DATA_FOLDER`: absolute path to directory where results are stored on prod server
+- `DEMO_UID`: Universally Unique Identifier of the `$DOCKER_USER` (`id -u $DOCKER_USER`)
+- `DEVICE_NB`: GPU number to be used by container (get available GPUs with `nvidia-smi`)
+- `CUDA_HOME`: path to CUDA installation (e.g. `/usr/local/cuda-11.1`)
 
 Create the folder matching `DATA_FOLDER` in the `docker.sh` to store results of experiments and set its permissions:
 ```bash
@@ -91,13 +132,15 @@ Download models on Hugging face
 - **Similarity**: [Historical Document Backbone](https://huggingface.co/seglinglin/Historical-Document-Backbone/tree/main)
     - Download the models inside `$DATA_FOLDER/similarity/models`
 
-#### Build Docker
+#### Build image
 
 Build the docker using the premade script:
 
 ```bash
-bash docker.sh rebuild
+bash docker.sh build
 ```
+
+#### Compile CUDA operators
 
 To compile cuda operators for `vectorization` / `regions`, once built:
 ```bash
@@ -113,16 +156,17 @@ docker exec -it aikonapi /bin/bash
 /home/aikonapi# cd /home/${USER}/api/app/regions/lib/line_predictor/
 /home/aikonapi# python ./dino/ops/setup.py build install
 ```
-Then restart the container with `docker restart aikonapi`
+Then restart the container with `docker restart $CONTAINER_NAME`
+</details>
 
-Inside `$DATA_FOLDER/data`, add models and necessary files for the demos inside their respective sub-folders.
+## Test install
 
 It should have started the docker, check it is the case with:
-- `docker logs aikonapi --tail 50`: show last 50 log messages
+- `docker logs $CONTAINER_NAME --tail 50`: show last 50 log messages
 - `docker ps`: show running docker containers
 - `curl 127.0.0.1:$API_PORT/<installed_app>/monitor`: show if container receives requests
-- `docker exec aikonapi /bin/nvidia-smi`: checks that docker communicates with nvidia
-- `docker exec -it aikonapi /bin/bash`: enter the docker container
+- `docker exec $CONTAINER_NAME /bin/nvidia-smi`: checks that docker communicates with nvidia
+- `docker exec -it $CONTAINER_NAME /bin/bash`: enter the docker container
 
 The API is now accessible locally at `http://localhost:$API_PORT`.
 
