@@ -1,5 +1,8 @@
 from pathlib import Path
+
 from ..config.base import ENV, BASE_DIR, API_DATA_FOLDER, XACCEL_PREFIX
+from ..regions.const import EXT_DATA_FOLDER
+from ..similarity.const import SIM_DATA_FOLDER
 
 DEMO_NAME = "watermarks"
 
@@ -13,8 +16,8 @@ WATERMARKS_TMP_FOLDER = WATERMARKS_DATA_FOLDER / "tmp_queries"
 WATERMARKS_XACCEL_PREFIX = f"{XACCEL_PREFIX}/{DEMO_NAME}"
 
 MODEL_PATHS = {
-    "detection": WATERMARKS_DATA_FOLDER / "models" / "fasterrcnn_watermark_extraction.pth",
-    "features": WATERMARKS_DATA_FOLDER / "models" / "resnet18_watermarks.pth",
+    "detection": EXT_DATA_FOLDER / "models" / "fasterrcnn_watermark_extraction.pth",
+    "features": SIM_DATA_FOLDER / "models" / "resnet18_watermarks.pth",
 }
 
 DEVICE = "cpu"

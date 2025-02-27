@@ -14,8 +14,8 @@ API_DATA_FOLDER = (
     data_path if data_path.is_absolute() else (BASE_DIR / data_path).resolve()
 )
 
-# prefix url for exposing results: each app has => /<prefix>/<app_name> (must match docker-confs/nginx.conf)
-XACCEL_PREFIX = ENV("XACCEL_PREFIX", default="/media")
+# prefix url for exposing results: each app has => /<prefix>/<app_name> (must match docker/nginx.conf)
+XACCEL_PREFIX = "/media"
 
 # time limit for dramatiq
 TIME_LIMIT = 1000 * 60 * 60 * 24  # 24h

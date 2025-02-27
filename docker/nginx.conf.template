@@ -10,6 +10,7 @@ server {
         proxy_pass http://unix:/tmp/website.sock;
     }
 
+    # # Must begin with XACCEL_PREFIX (app/config/base.py)
     # location /media/<demo_name> {
     #     # X-accel-redirect is used to serve static files from a different location
     #     # without having to expose the location to the user.

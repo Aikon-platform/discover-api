@@ -86,4 +86,4 @@ COPY docker/start.sh /home/${USER}/start.sh
 RUN chmod +x /home/${USER}/utils.sh
 RUN chmod +x /home/${USER}/start.sh
 
-CMD ["/home/${USER}/start.sh"]
+CMD ["/home/aikonapi/start.sh"]
