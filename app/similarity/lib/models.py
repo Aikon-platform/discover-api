@@ -80,12 +80,7 @@ def _instantiate_dino_vitbase8_pretrain(weights_path, device) -> torch.nn.Module
 
 
 def _instantiate_resnet34(weights_path, device) -> torch.nn.Module:
-    try:
-        weights = torch.load(weights_path, weights_only=True, map_location=device)
-    except RuntimeError:
-        weights = torch.load(weights_path, weights_only=False, map_location=device)
-    # model = models.resnet34(weights=models.ResNet34_Weights.IMAGENET1K_V1, weights_only=True, map_location=device)
-    model = models.resnet34(weights=weights)
+    model = models.resnet34(torch.load(weights_path, weights_only=False, map_location=device))
     return model
 
 

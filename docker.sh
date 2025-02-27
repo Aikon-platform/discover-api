@@ -9,7 +9,7 @@
 # Machine path where docker will store its /data/ folder (API_DATA_FOLDER)
 DATA_FOLDER=/media/dyonisos/data/dtidemo/
 # GPU device number to be used by docker
-DEVICE_NB=2
+DEVICE_NB=1
 # User ID to be used by docker
 DEMO_UID=1019
 # Path to CUDA installation (/usr/local/cuda-<version> => find your version with nvidia-smi)

@@ -1,11 +1,10 @@
 # Final image (change image based on the version showed with $ nvidia-smi)
 FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04
 
-ARG HTTP_PROXY
-ARG HTTPS_PROXY
-
-ENV HTTP_PROXY=${HTTP_PROXY}
-ENV HTTPS_PROXY=${HTTPS_PROXY}
+ENV http_proxy=http://proxy.enpc.fr:3128
+ENV https_proxy=http://proxy.enpc.fr:3128
+ENV HTTP_PROXY=http://proxy.enpc.fr:3128
+ENV HTTPS_PROXY=http://proxy.enpc.fr:3128
 
 ENV USER=demoapi
 ARG USERID
@@ -65,7 +64,7 @@ COPY --chown=${USER} ./ ./api/
 # Build and install CUDA operators for DETR (not working)
 #RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/setup.py build install
 #RUN /home/${USER}/venv/bin/python /home/${USER}/api/app/vectorization/lib/src/models/dino/ops/test.py
-RUN /home/${USER}/venv/bin/pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/
+#RUN /home/${USER}/venv/bin/pip install -e /home/${USER}/api/app/vectorization/lib/synthetic/
 
 WORKDIR /home/${USER}
 
@@ -83,6 +82,19 @@ RUN chown -R ${USER} /home/${USER}/.config/matplotlib
 
 # Create necessary folders
 RUN mkdir -p var/dramatiq/
+
+# Add these lines after installing ffmpeg
+RUN mkdir -p /usr/lib/x86_64-linux-gnu/gstreamer-1.0/gstreamer-1.0/
+RUN chmod 755 /usr/lib/x86_64-linux-gnu/gstreamer-1.0/gstreamer-1.0/
+
+# Add GStreamer environment variables
+ENV GST_PLUGIN_SYSTEM_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
+ENV GST_PLUGIN_SCANNER=/usr/lib/x86_64-linux-gnu/gstreamer1.0/gstreamer-1.0/gst-plugin-scanner
+ENV GST_REGISTRY=/home/${USER}/.cache/gstreamer-1.0/registry.x86_64.bin
+
+# Create and set permissions for GStreamer cache directory
+RUN mkdir -p /home/${USER}/.cache/gstreamer-1.0
+RUN chown -R ${USER}:${USER} /home/${USER}/.cache
 
 # Run command at each container launch
 CMD export LC_ALL=C.UTF-8 && export LANG=C.UTF-8 && \
